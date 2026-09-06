@@ -4,8 +4,9 @@ Ferramenta de benchmarking e avaliação de desempenho para arquiteturas RAG (Re
 
 ## 📌 Estrutura do Projeto
 
-- `data/`: Datasets e arquivos de entrada para benchmark.
+- `input/`: Datasets e arquivos de entrada para benchmark.
 - `results/`: Relatórios e relatórios de métricas gerados.
+- `lightrag_ollama_db/`: Banco de grafo gerado pelo light rag.
 - `src/`: Códigos-fonte da aplicação e scripts de avaliação.
 
 ## 🚀 Como Executar
