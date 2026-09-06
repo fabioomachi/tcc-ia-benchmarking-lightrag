@@ -18,14 +18,19 @@ WORKING_DIR.mkdir(parents=True, exist_ok=True)
 INPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # ---------------------------------------------------------
-# TUNING: Injetando a Ontologia Bancária na Chave Correta
+# TUNING: Ontologia Bancária + Few-Shot Prompting
 # ---------------------------------------------------------
 PROMPTS["entity_extraction_system_prompt"] += (
     "\n\nCRITICAL DOMAIN INSTRUCTION (BANKING COMPLIANCE):\n"
     "You are a banking compliance auditor. Focus exhaustively on extracting entities and relationships "
     "that represent business rules, regulatory constraints, and operational systems.\n"
     "Use strict entity types such as: REGRA_BACEN, PROCEDIMENTO, SISTEMA, CONDICAO, EXCECAO, ATOR, DOCUMENTO, PRAZO.\n"
-    "Ignore generic words. Focus heavily on dependencies (e.g., 'requires', 'blocks', 'authorizes')."
+    "Ignore generic words. Focus heavily on dependencies (e.g., 'requires', 'blocks', 'authorizes').\n\n"
+    "### EXAMPLE ###\n"
+    "Text: 'O operador deve acionar o bloqueio no MED em até 30 minutos.'\n"
+    "Entities: (\"operador\"$$\"ATOR\") | (\"bloqueio\"$$\"PROCEDIMENTO\") | (\"MED\"$$\"SISTEMA\") | (\"30 minutos\"$$\"PRAZO\")\n"
+    "Relationships: (\"operador\"$$\"bloqueio\"$$\"ACIONA\") | (\"bloqueio\"$$\"MED\"$$\"REALIZADO_EM\") | (\"bloqueio\"$$\"30 minutos\"$$\"REQUER_PRAZO\")\n"
+    "###############\n"
 )
 
 client = AsyncOpenAI(base_url="http://localhost:11434/v1/", api_key="ollama_local")
@@ -53,7 +58,8 @@ async def main():
         llm_model_func=custom_llm_func,
         embedding_func=EmbeddingFunc(embedding_dim=384, max_token_size=8192, func=custom_embedding_func),
         chunk_token_size=512,
-        chunk_overlap_token_size=128
+        chunk_overlap_token_size=128,
+        addon_params={"llm_func_timeout": 600}
     )
     await rag.initialize_storages()
 
@@ -88,12 +94,29 @@ async def main():
         arquivos_txt = list(INPUT_DIR.glob("*.txt"))
 
     print(f"\n[4/4] Executando Extração de Grafos (Encontrados {len(arquivos_txt)} documentos)...")
+    
+    arquivos_com_erro = []
+
     for arquivo in arquivos_txt:
         print(f" -> Indexando: {arquivo.name} ...")
-        conteudo = arquivo.read_text(encoding="utf-8")
-        await rag.ainsert(conteudo)
         
-    print("\n✅ Treinamento/Indexação em Lote concluído com sucesso!")
+        # 1. Rastreabilidade: Injetando o nome do documento como metadado no topo do conteúdo
+        conteudo_bruto = arquivo.read_text(encoding="utf-8")
+        conteudo_enriquecido = f"DOCUMENTO_ORIGEM: {arquivo.name}\n\n{conteudo_bruto}"
+        
+        # 2. Tolerância a Falhas: Try-Except para isolar falhas de VRAM/Timeout
+        try:
+            await rag.ainsert(conteudo_enriquecido)
+            print(f"    [OK] {arquivo.name} indexado com sucesso.")
+        except Exception as e:
+            print(f"    [ERRO] Falha ao indexar {arquivo.name}: {str(e)}")
+            arquivos_com_erro.append(arquivo.name)
+            # Opcional: asyncio.sleep(2) para deixar a VRAM "esfriar" em caso de pico
+
+    if arquivos_com_erro:
+        print(f"\n⚠️ Treinamento concluído, mas com falhas nos seguintes arquivos: {arquivos_com_erro}")
+    else:
+        print("\n✅ Treinamento/Indexação em Lote concluído 100% com sucesso!")
 
 if __name__ == "__main__":
     asyncio.run(main())

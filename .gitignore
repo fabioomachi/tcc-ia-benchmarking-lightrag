@@ -13,6 +13,7 @@ __pycache__/
 # Dados e logs pesados/locais
 *.log
 results/
+logs/
 data/
 lightrag_ollama_db/
 *.csv
