@@ -1,0 +1,5 @@
+PROCEDIMENTO OPERACIONAL PADRÃO - POP-015: Bloqueio de Cartão de Crédito por Suspeita de Fraude.
+1. O operador deve verificar o padrão de compras no sistema de monitoramento transacional.
+2. Em caso de transações internacionais atípicas consecutivas, acionar o bloqueio preventivo do cartão.
+3. CONDICAO: O bloqueio preventivo exige a comunicação imediata ao cliente via SMS e e-mail cadastrado, conforme determina a norma do BACEN sobre transparência.
+4. O desbloqueio só pode ser realizado após contato ativo do cliente validado pelo sistema BioCheck.

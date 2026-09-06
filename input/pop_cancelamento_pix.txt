@@ -1,0 +1,5 @@
+PROCEDIMENTO OPERACIONAL PADRÃO - POP-014: Cancelamento de PIX por Suspeita de Fraude.
+1. O operador deve validar a identidade do cliente via biometria facial no sistema BioCheck.
+2. Caso haja contestação por golpe do falso leilão, o bloqueio cautelar deve ser acionado no sistema MED (Mecanismo Especial de Devolução) do BACEN em até 30 minutos corridos após a denúncia.
+3. EXCEÇÃO: É estritamente proibido o estorno manual sem a autorização prévia, registrada em ticket, da mesa de compliance antifraude.
+4. Falhas na aplicação do bloqueio cautelar no prazo regulatório geram passivo ao banco de acordo com a resolução BCB nº 103.

@@ -1,0 +1,23 @@
+cat << 'EOF' > .gitignore
+# Ambientes virtuais
+.venv/
+venv/
+env/
+
+# Cache do Python e testes
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Dados e logs pesados/locais
+*.log
+results/
+data/
+lightrag_ollama_db/
+*.csv
+*.sqlite3
+
+# Configurações de ambiente
+.env
+EOF
