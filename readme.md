@@ -66,11 +66,15 @@ Utilize os argumentos expostos para controlar a estratégia de recuperação, te
 O motor roda em tempo real aguardando inputs do terminal via I/O não-bloqueante.
 ```bash
 python src/2_consulta.py
-
+```
 **2. Isolar Estratégia e Limitar Contexto**
 Útil para medir a degradação de resposta caso o Retrieval devolva dados insuficientes ou muito espalhados na topologia do grafo.
+```bash
 python src/2_consulta.py --mode global --top-k 2
+```
 
 **3. Automação de Benchmarking (Processamento em Lote)**
 Ao fornecer o parâmetro --batch, o streaming e a memória de sessão são desligados para garantir reproducibilidade entre testes isolados. Os resultados são parseados em um novo arquivo .jsonl.
+```bash
 python src/2_consulta.py --batch ./data/bateria_testes.jsonl --llm-model llama3:8b --mode
+```
