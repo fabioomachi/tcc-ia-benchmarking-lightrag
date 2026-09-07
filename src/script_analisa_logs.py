@@ -6,9 +6,9 @@ import pandas as pd
 # Setup de Caminhos
 BASE_DIR = Path(__file__).resolve().parent.parent if Path(__file__).parent.name == "src" else Path(__file__).resolve().parent
 LOG_FILE = BASE_DIR / "logs" / "benchmark_execution.log"
-RESULT_DIR = BASE_DIR / "result"
+RESULT_DIR = BASE_DIR / "resultados"
 
-# Garante a criação da pasta 'result'
+# Garante a criação da pasta 'resultados'
 RESULT_DIR.mkdir(exist_ok=True)
 
 def parse_benchmark_logs():

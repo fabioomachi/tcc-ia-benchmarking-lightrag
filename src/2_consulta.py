@@ -313,6 +313,7 @@ async def main(args):
             func=custom_embedding_func
         )
     )
+    await rag.initialize_storages()    
    
     params = QueryParam(mode=args.mode, top_k=args.top_k)
 
@@ -399,7 +400,7 @@ async def main(args):
                 "error_message": str(e)
             })
             print(f"⚠️ Falha no processamento: {e}")
-
+    await rag.finalize_storages()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Módulo de Consulta Avançada LightRAG")

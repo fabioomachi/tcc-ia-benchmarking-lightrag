@@ -63,6 +63,7 @@ async def main():
         chunk_overlap_token_size=128,
         addon_params={"llm_func_timeout": 600}
     )
+    await rag.initialize_storages()
 
     print("[3/4] Preparando Corpus Documental (Varredura de Arquivos)...")
     arquivos_txt = list(INPUT_DIR.glob("*.txt"))
@@ -113,7 +114,8 @@ async def main():
             print(f"    [ERRO] Falha ao indexar {arquivo.name}: {str(e)}")
             arquivos_com_erro.append(arquivo.name)
             # Opcional: asyncio.sleep(2) para deixar a VRAM "esfriar" em caso de pico
-
+    
+    await rag.finalize_storages()
     if arquivos_com_erro:
         print(f"\n⚠️ Treinamento concluído, mas com falhas nos seguintes arquivos: {arquivos_com_erro}")
     else:
