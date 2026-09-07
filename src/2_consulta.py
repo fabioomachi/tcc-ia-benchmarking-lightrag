@@ -116,8 +116,10 @@ GLOBAL_ARGS = None
 
 async def custom_llm_func(prompt, system_prompt=None, history_messages=[], **kwargs):
     language_constraint = (
-        "DIRETRIZ ABSOLUTA: Você deve responder SEMPRE e EXCLUSIVAMENTE em Português do Brasil (pt-BR). "
-        "Independentemente do idioma dos documentos de contexto ou do prompt original."
+        "DIRETRIZES OBRIGATÓRIAS:\n"
+        "1. Responda SEMPRE e EXCLUSIVAMENTE em Português do Brasil (pt-BR).\n"
+        "2. Seja direto e objetivo.\n"
+        "3. Responda estritamente com base nos fatos fornecidos no contexto."
     )
     final_sys_prompt = f"{system_prompt}\n\n{language_constraint}" if system_prompt else language_constraint
 

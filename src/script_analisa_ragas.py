@@ -1,3 +1,4 @@
+import re
 import json
 import pandas as pd
 from pathlib import Path
@@ -13,6 +14,7 @@ from ragas.metrics import (
 
 from langchain_community.chat_models import ChatOllama
 from langchain_community.embeddings import OllamaEmbeddings
+from ragas.run_config import RunConfig
 
 # ---------------------------------------------------------
 # Configuração de Caminhos
@@ -23,17 +25,23 @@ GOLDEN_DATASET_FILE = BASE_DIR / "dataset" / "golden_dataset.json"
 RESULT_DIR = BASE_DIR / "resultados"
 RESULT_DIR.mkdir(exist_ok=True)
 
+def normalize_text(text: str) -> str:
+    """Remove caracteres especiais e espaços extras para garantir o Join."""
+    if not text:
+        return ""
+    text = text.lower().strip()
+    return re.sub(r'\s+', ' ', text)
+
 def load_data_integrated():
     """Cruza o Golden Dataset gerado com as execuções capturadas nos logs do LightRAG."""
     if not LOG_FILE.exists():
         raise FileNotFoundError(f"Arquivo de log não encontrado em: {LOG_FILE}")
     
-    # Carrega Ground Truth de referência se disponível
     golden_map = {}
     if GOLDEN_DATASET_FILE.exists():
         with open(GOLDEN_DATASET_FILE, "r", encoding="utf-8") as f:
             golden_data = json.load(f)
-            golden_map = {item["question"].strip(): item for item in golden_data}
+            golden_map = {normalize_text(item["question"]): item for item in golden_data}
 
     questions, answers, contexts, ground_truths, question_types = [], [], [], [], []
     prompts_cache = {}
@@ -47,19 +55,26 @@ def load_data_integrated():
                 event_type = event.get("event_type")
                 data = event.get("data", {})
 
-                # Mapeia prompts brutos e contextos
                 if event_type == "llm_input_prompt":
                     prompts_cache[data.get("raw_prompt_payload", "").strip()] = data.get("system_prompt", "")
 
-                elif event_type == "interaction_record" and data.get("source") == "lightrag_engine":
-                    query = data.get("user_query", "").strip()
-                    response = data.get("final_response", "")
+                # Suporta tanto log interativo (interaction_record) quanto batch (batch_interaction_record)
+                elif event_type in ["interaction_record", "batch_interaction_record"]:
+                    # Ignora retornos de cache semântico na análise de qualidade do motor
+                    if event_type == "interaction_record" and data.get("source") != "lightrag_engine":
+                        continue
+
+                    # Unifica a extração das chaves que diferem entre batch e CLI
+                    query = data.get("user_query", data.get("query", "")).strip()
+                    response = data.get("final_response", data.get("response", ""))
                     
-                    # Recupera o contexto extraído pelo LightRAG
+                    if not query:
+                        continue
+                    
                     context_text = prompts_cache.get(query, "Sem contexto explícito capturado no log.")
 
-                    # Faz a correspondência com o Golden Dataset para trazer a ground_truth
-                    golden_item = golden_map.get(query, {})
+                    query_norm = normalize_text(query)
+                    golden_item = golden_map.get(query_norm, {})
                     gt = golden_item.get("ground_truth", "N/A")
                     q_type = golden_item.get("question_type", "UNMAPPED")
 
@@ -91,9 +106,16 @@ def run_ragas_evaluation():
     dataset = Dataset.from_dict(raw_data)
     print(f"✅ Total de amostras prontas para avaliação no RAGAS: {len(dataset)}")
 
-    print("🤖 Configurando LLM Judge (ChatOllama: qwen2.5:3b) e Embeddings (all-minilm)...")
-    evaluator_llm = ChatOllama(model="qwen2.5:3b", base_url="http://localhost:11434", temperature=0.0)
-    evaluator_embeddings = OllamaEmbeddings(model="all-minilm", base_url="http://localhost:11434")
+    print("🤖 Configurando LLM Judge (ChatOllama: qwen2.5:7b) e Embeddings (nomic-embed-text)...")
+    #evaluator_llm = ChatOllama(model="qwen2.5:3b", base_url="http://localhost:11434", temperature=0.0)
+    evaluator_llm = ChatOllama(
+        model="qwen2.5:7b", 
+        base_url="http://localhost:11434", 
+        temperature=0.0,
+        num_ctx=8192,  # Contexto longo exigido pelo payload do RAGAS
+        timeout=1200    # 20 minutos de tolerância por requisição (Cenário de VRAM limitada)
+    )    
+    evaluator_embeddings = OllamaEmbeddings(model="nomic-embed-text", base_url="http://localhost:11434")
 
     print("📊 Executando bateria de avaliação RAGAS...")
     try:
@@ -107,7 +129,8 @@ def run_ragas_evaluation():
             ],
             llm=evaluator_llm,
             embeddings=evaluator_embeddings,
-            raise_exceptions=False
+            raise_exceptions=False,
+            run_config=RunConfig(max_workers=1, timeout=1200) # Estrangula fila para evitar travamento do serviço Ollama
         )
     except Exception as e:
         print(f"❌ Falha crítica na orquestração do RAGAS: {e}")
