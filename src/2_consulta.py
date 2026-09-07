@@ -19,24 +19,24 @@ WORKING_DIR = BASE_DIR / "lightrag_ollama_db"
 LOGS_DIR = BASE_DIR / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
 
+# Caminho padrão ajustado para a estrutura solicitada
+DEFAULT_BATCH_DIR = BASE_DIR / "entradas" / "perguntas"
+
 LOG_FILE = LOGS_DIR / "benchmark_execution.log"
 
 logger = logging.getLogger("RAG_BENCHMARK")
 logger.setLevel(logging.INFO)
 
-# Handler de Arquivo: Escreve JSONL puro para parsing automatizado (Pandas, RAGAS, etc.)
 file_handler = logging.FileHandler(LOG_FILE, encoding="utf-8")
 file_handler.setFormatter(logging.Formatter('%(message)s'))
 logger.addHandler(file_handler)
 
-# Handler de Terminal: Formato legível para acompanhamento em tempo real
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
 logger.addHandler(console_handler)
 
 
 def log_structured_event(event_type: str, payload: dict):
-    """Helper central para padronizar todos os eventos em JSON no log."""
     log_entry = {
         "timestamp": time.time(),
         "datetime": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -47,7 +47,6 @@ def log_structured_event(event_type: str, payload: dict):
 
 
 def async_time_tracker(func):
-    """Decorator para medir latência da orquestração do RAG."""
     @functools.wraps(func)
     async def wrapper(*args, **kwargs):
         start_time = time.perf_counter()
@@ -108,7 +107,7 @@ class SlidingWindowHistory:
 
 
 # -----------------------------------------------------------------------------
-# Integração Desacoplada (Isola o AsyncOpenAI client contra erros de deepcopy)
+# Integração Desacoplada
 # -----------------------------------------------------------------------------
 GLOBAL_CLIENT = None
 GLOBAL_HISTORY = None
@@ -124,14 +123,16 @@ async def custom_llm_func(prompt, system_prompt=None, history_messages=[], **kwa
 
     messages = [{"role": "system", "content": final_sys_prompt}]
     
+    # if history_messages:
+    #     messages.extend(history_messages)
+    # if GLOBAL_HISTORY:
+    #     messages.extend(GLOBAL_HISTORY.messages)
     if history_messages:
         messages.extend(history_messages)
-    if GLOBAL_HISTORY:
-        messages.extend(GLOBAL_HISTORY.messages)
-        
+
+
     messages.append({"role": "user", "content": prompt})
     
-    # AUDITORIA DE PROMPT: Grava o contexto/prompt completo que o LightRAG montou para o LLM
     log_structured_event("llm_input_prompt", {
         "system_prompt": final_sys_prompt,
         "raw_prompt_payload": prompt,
@@ -174,7 +175,6 @@ async def execute_rag_query(rag: LightRAG, query: str, param: QueryParam):
 
 
 async def consume_stream(response_gen) -> tuple[str, float]:
-    """Consome o streaming, imprime na tela e mede a latência do primeiro token (TTFT)."""
     start_time = time.perf_counter()
     first_token = True
     full_response = ""
@@ -194,44 +194,90 @@ async def consume_stream(response_gen) -> tuple[str, float]:
     return full_response, ttft
 
 
-async def process_batch_file(rag: LightRAG, batch_path: str, params: QueryParam):
-    """Processa lote de perguntas e gera log estruturado para benchmarking."""
-    path = Path(batch_path)
-    if not path.exists():
-        log_structured_event("execution_error", {"message": f"Arquivo batch não encontrado: {batch_path}"})
+async def process_batch_dir(rag: LightRAG, batch_path: Path, params: QueryParam, concurrency_limit: int = 10):
+    if not batch_path.exists():
+        log_structured_event("execution_error", {"message": f"Diretório de lote não encontrado: {batch_path}"})
+        print(f"⚠️ Diretório de lote não encontrado em: {batch_path}")
         return
 
-    output_path = path.parent / f"results_{path.stem}_{params.mode}.jsonl"
-    log_structured_event("batch_start", {"input_file": str(path), "output_file": str(output_path)})
+    query_files = list(batch_path.glob("*.txt")) + list(batch_path.glob("*.jsonl"))
+    if not query_files:
+        print(f"⚠️ Nenhum arquivo .txt ou .jsonl encontrado em {batch_path}")
+        return
 
-    with open(path, 'r', encoding='utf-8') as f_in, open(output_path, 'w', encoding='utf-8') as f_out:
-        for line in f_in:
-            query = line.strip()
-            if line.startswith('{'):
-                try:
-                    data = json.loads(line)
-                    query = data.get('query', '')
-                except json.JSONDecodeError:
-                    pass
-            
-            if not query: continue
-            
+    output_path = BASE_DIR / "logs" / f"results_batch_{batch_path.parent.name}_{batch_path.name}_{params.mode}.jsonl"
+    log_structured_event("batch_start", {"input_dir": str(batch_path), "output_file": str(output_path), "concurrency": concurrency_limit})
+
+    queries = []
+    for qfile in query_files:
+        with open(qfile, 'r', encoding='utf-8') as f:
+            for line in f:
+                line_str = line.strip()
+                if not line_str:
+                    continue
+                if line_str.startswith('{'):
+                    try:
+                        data = json.loads(line_str)
+                        q = data.get('query', '')
+                        if q: queries.append(q)
+                    except json.JSONDecodeError:
+                        pass
+                else:
+                    queries.append(line_str)
+
+    total_queries = len(queries)
+    log_structured_event("batch_total_loaded", {"total_queries": total_queries})
+    print(f"\n🚀 Iniciando processamento em lote de {total_queries} perguntas da pasta {batch_path} (Concorrência: {concurrency_limit})...\n")
+
+    semaphore = asyncio.Semaphore(concurrency_limit)
+    completed_counter = 0
+
+    async def worker(query_idx: int, query_text: str):
+        nonlocal completed_counter
+        async with semaphore:
             start_time = time.perf_counter()
             try:
-                response = await execute_rag_query(rag, query, param=params)
+                local_param = QueryParam(mode=params.mode, top_k=params.top_k, stream=False)
+                response = await execute_rag_query(rag, query_text, param=local_param)
                 latency = time.perf_counter() - start_time
                 
                 result_record = {
-                    "query": query,
+                    "index": query_idx,
+                    "query": query_text,
                     "response": response,
                     "mode": params.mode,
-                    "latency_seconds": round(latency, 4)
+                    "latency_seconds": round(latency, 4),
+                    "status": "success"
                 }
-                f_out.write(json.dumps(result_record, ensure_ascii=False) + "\n")
                 
                 log_structured_event("batch_interaction_record", result_record)
+                return result_record
             except Exception as e:
-                log_structured_event("execution_error", {"query": query, "error": str(e)})
+                latency = time.perf_counter() - start_time
+                error_record = {
+                    "index": query_idx,
+                    "query": query_text,
+                    "response": None,
+                    "mode": params.mode,
+                    "latency_seconds": round(latency, 4),
+                    "status": f"error: {type(e).__name__}",
+                    "error_message": str(e)
+                }
+                log_structured_event("execution_error", error_record)
+                return error_record
+
+    tasks = [worker(i, q) for i, q in enumerate(queries)]
+    
+    with open(output_path, 'w', encoding='utf-8') as f_out:
+        for coro in asyncio.as_completed(tasks):
+            res = await coro
+            f_out.write(json.dumps(res, ensure_ascii=False) + "\n")
+            completed_counter += 1
+            if completed_counter % 25 == 0 or completed_counter == total_queries:
+                print(f"📊 Progresso: {completed_counter}/{total_queries} perguntas processadas...")
+
+    log_structured_event("batch_complete", {"total_processed": completed_counter, "output_file": str(output_path)})
+    print(f"\n✅ Lote concluído. Resultados salvos em: {output_path}\n")
 
 
 # -----------------------------------------------------------------------------
@@ -254,7 +300,8 @@ async def main(args):
         "mode": args.mode,
         "top_k": args.top_k,
         "cache_threshold": args.cache_threshold,
-        "history_turns": args.history_turns
+        "history_turns": args.history_turns,
+        "batch_mode": args.batch
     })
 
     rag = LightRAG(
@@ -266,12 +313,12 @@ async def main(args):
             func=custom_embedding_func
         )
     )
-    await rag.initialize_storages()
-    
-    params = QueryParam(mode=args.mode, top_k=args.top_k, stream=not args.batch)
+   
+    params = QueryParam(mode=args.mode, top_k=args.top_k)
 
     if args.batch:
-        await process_batch_file(rag, args.batch, params)
+        batch_target = Path(args.batch) if args.batch != "entradas/perguntas" else DEFAULT_BATCH_DIR
+        await process_batch_dir(rag, batch_target, params, concurrency_limit=args.concurrency)
         return
 
     print(f"\n✅ Motor Operacional. Logs gravados em: {LOG_FILE}\n")
@@ -362,7 +409,11 @@ if __name__ == "__main__":
     parser.add_argument("--embed-model", type=str, default="all-minilm")
     parser.add_argument("--embed-dim", type=int, default=384)
     parser.add_argument("--ollama-url", type=str, default="http://localhost:11434/v1/")
-    parser.add_argument("--batch", type=str, default=None)
+    
+    # Flag --batch agora é um argumento opcional (nargs="?") que assume "entradas/perguntas" por padrão se acionado sem valor
+    parser.add_argument("--batch", nargs="?", const="entradas/perguntas", default=None, help="Executa o lote de arquivos da pasta entradas/perguntas de forma concorrente")
+    
+    parser.add_argument("--concurrency", type=int, default=10, help="Número máximo de requisições concorrentes para o lote")
     parser.add_argument("--history-turns", type=int, default=3, help="Número de turnos mantidos na memória (Sliding Window)")
     parser.add_argument("--cache-threshold", type=float, default=0.92, help="Limiar de similaridade para cache semântico (0 a 1)")
 

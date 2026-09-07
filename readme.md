@@ -78,3 +78,15 @@ Ao fornecer o parâmetro --batch, o streaming e a memória de sessão são desli
 ```bash
 python src/2_consulta.py --batch ./data/bateria_testes.jsonl --llm-model llama3:8b --mode
 ```
+
+**4.  Modo Lote Automático (Lê todos os arquivos .txt ou .jsonl dentro de entradas/perguntas):**
+
+```bash
+python src/2_consulta.py --batch
+```
+
+**5. Modo Lote Customizado (Se quiser apontar para outro diretório específico opcionalmente):**
+
+```bash
+python src/2_consulta.py --batch outro_diretorio/customizado --concurrency 5
+```

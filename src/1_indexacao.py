@@ -8,7 +8,7 @@ from lightrag.utils import EmbeddingFunc
 from lightrag.prompt import PROMPTS
 
 BASE_DIR = Path(__file__).resolve().parent.parent if Path(__file__).parent.name == "src" else Path(__file__).resolve().parent
-INPUT_DIR = BASE_DIR / "input"
+INPUT_DIR = BASE_DIR / "entradas" / "pops"
 WORKING_DIR = BASE_DIR / "lightrag_ollama_db"
 
 print("[1/4] Higienizando ambiente de experimentação...")
@@ -20,7 +20,9 @@ INPUT_DIR.mkdir(parents=True, exist_ok=True)
 # ---------------------------------------------------------
 # TUNING: Ontologia Bancária + Few-Shot Prompting
 # ---------------------------------------------------------
-PROMPTS["entity_extraction_system_prompt"] += (
+prompt_base = PROMPTS.get("entity_extraction", "")
+
+PROMPTS["entity_extraction"] = prompt_base + (
     "\n\nCRITICAL DOMAIN INSTRUCTION (BANKING COMPLIANCE):\n"
     "You are a banking compliance auditor. Focus exhaustively on extracting entities and relationships "
     "that represent business rules, regulatory constraints, and operational systems.\n"
@@ -61,7 +63,6 @@ async def main():
         chunk_overlap_token_size=128,
         addon_params={"llm_func_timeout": 600}
     )
-    await rag.initialize_storages()
 
     print("[3/4] Preparando Corpus Documental (Varredura de Arquivos)...")
     arquivos_txt = list(INPUT_DIR.glob("*.txt"))
