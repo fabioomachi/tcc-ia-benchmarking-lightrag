@@ -53,7 +53,22 @@ async def custom_embedding_func(texts: list[str]) -> np.ndarray:
     response = await client.embeddings.create(model="all-minilm", input=texts)
     return np.array([res.embedding for res in response.data])
 
+def purge_logs(log_dir_path: Path | str = "logs") -> None:
+    path = Path(log_dir_path).resolve()
+    if not path.exists():
+        path.mkdir(parents=True, exist_ok=True)
+        return
+
+    for item in path.iterdir():
+        if item.is_file() or item.is_symlink():
+            item.unlink()
+        elif item.is_dir():
+            shutil.rmtree(item)
+
 async def main():
+    purge_logs(BASE_DIR / "logs")
+    print("✅ Diretório de logs higienizado.")
+
     print("[2/4] Inicializando Motor LightRAG (Perfil: Alta Fidelidade de Extração)...")
     rag = LightRAG(
         working_dir=str(WORKING_DIR),
