@@ -15,6 +15,8 @@ __pycache__/
 resultados/
 logs/
 entradas/
+entradas/perguntas
+entradas/pops
 lightrag_ollama_db/
 *.csv
 *.sqlite3
