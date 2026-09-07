@@ -4,29 +4,33 @@ Ferramenta de benchmarking e avaliação de desempenho para arquiteturas RAG (Re
 
 ## 📌 Estrutura do Projeto
 
-- `input/`: Datasets e arquivos de entrada para benchmark.
-- `results/`: Relatórios e relatórios de métricas gerados.
+- `entradas/`: Datasets e arquivos de entrada para benchmark.
+- `entradas/pops/`: arquivos de instruções para a llm.
+- `entradas/perguntas/`: arquivos de lista de perguntas para testar a llm.
+- `logs/`: logs da execução que servem como insumo para a RAGAS gerar as métricas.
+- `resultados/`: Relatórios e relatórios de métricas gerados.
 - `lightrag_ollama_db/`: Banco de grafo gerado pelo light rag.
 - `src/`: Códigos-fonte da aplicação e scripts de avaliação.
 
 ## 🚀 Como Executar
 
 1. **Clonar o repositório:**
-bash
+```bash
 git clone https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag.git
 cd tcc-ia-benchmarking-lightrag
-
+```
 
 2. **Criar e ativar o ambiente virtual:**
-bash
+```bash
+rm -rf venv
 python3 -m venv .venv
 source .venv/bin/activate
-
+```
 
 3. **Instalar dependências:**
-bash
+```bash
 pip install -r requirements.txt
-
+```
 
 4. **Executar o benchmark:**
 4.1. Certifique-se de que o Ollama está rodando (ollama serve).
