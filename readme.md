@@ -12,6 +12,37 @@ Ferramenta de benchmarking e avaliação de desempenho para arquiteturas RAG (Re
 - `lightrag_ollama_db/`: Banco de grafo gerado pelo light rag.
 - `src/`: Códigos-fonte da aplicação e scripts de avaliação.
 
+## ⚙️ Infraestrutura de Modelos Locais (Ollama)
+
+Este projeto utiliza o [Ollama](https://ollama.com/) para orquestrar a inferência de modelos locais, garantindo privacidade dos dados bancários (POPs) e reprodutibilidade do benchmark sem dependência de APIs externas.
+
+### Topologia de Modelos
+
+A arquitetura foi dividida em dois domínios para balancear o consumo de VRAM (restrito a 4GB + Offload para RAM) e a precisão analítica necessária para o LLM-as-a-Judge.
+
+| Domínio | Papel | Modelo (Ollama) | Justificativa Arquitetural |
+| :--- | :--- | :--- | :--- |
+| **LightRAG (Engine)** | LLM Principal | `qwen2.5:3b` | Alta velocidade de geração e baixo footprint (cabe na VRAM), ideal para extração de grafos e consultas interativas em tempo real. |
+| **LightRAG (Engine)** | Embeddings | `all-minilm` | Vetorização ágil e leve (384 dimensões). |
+| **RAGAS (Evaluation)** | LLM Judge | `qwen2.5:7b` | Maior densidade paramétrica para raciocínio analítico. Essencial para avaliar métricas complexas como *Faithfulness* e *Answer Relevancy*. |
+| **RAGAS (Evaluation)** | Embeddings Judge| `nomic-embed-text` | Capacidade nativa para janelas de contexto estendidas (até 8192 tokens). Previne estouro de limite (HTTP 500) ao processar o payload massivo do RAGAS para *Context Recall/Precision*. |
+
+### Setup do Ambiente
+
+Antes de iniciar os pipelines de indexação ou avaliação, é mandatório realizar o pull prévio dos artefatos para evitar timeouts durante a execução dos scripts.
+
+Execute no terminal:
+
+```bash
+# Modelos do Motor de Busca (Indexação e RAG)
+ollama pull qwen2.5:3b
+ollama pull all-minilm
+
+# Modelos do Framework de Avaliação (RAGAS)
+ollama pull qwen2.5:7b
+ollama pull nomic-embed-text
+```
+
 ## 🚀 Como Executar
 
 1. **Clonar o repositório:**
