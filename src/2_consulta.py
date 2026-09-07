@@ -200,9 +200,9 @@ async def process_batch_dir(rag: LightRAG, batch_path: Path, params: QueryParam,
         print(f"⚠️ Diretório de lote não encontrado em: {batch_path}")
         return
 
-    query_files = list(batch_path.glob("*.txt")) + list(batch_path.glob("*.jsonl"))
+    query_files = list(batch_path.glob("*.txt")) + list(batch_path.glob("*.json"))
     if not query_files:
-        print(f"⚠️ Nenhum arquivo .txt ou .jsonl encontrado em {batch_path}")
+        print(f"⚠️ Nenhum arquivo .txt ou .json encontrado em {batch_path}")
         return
 
     output_path = BASE_DIR / "logs" / f"results_batch_{batch_path.parent.name}_{batch_path.name}_{params.mode}.jsonl"
@@ -218,7 +218,7 @@ async def process_batch_dir(rag: LightRAG, batch_path: Path, params: QueryParam,
                 if line_str.startswith('{'):
                     try:
                         data = json.loads(line_str)
-                        q = data.get('query', '')
+                        q = data.get('question', '')
                         if q: queries.append(q)
                     except json.JSONDecodeError:
                         pass
