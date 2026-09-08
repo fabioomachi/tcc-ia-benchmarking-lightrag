@@ -21,7 +21,7 @@ from ragas.run_config import RunConfig
 # ---------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent if Path(__file__).parent.name == "src" else Path(__file__).resolve().parent
 LOG_FILE = BASE_DIR / "logs" / "benchmark_execution.log"
-GOLDEN_DATASET_FILE = BASE_DIR / "dataset" / "golden_dataset.json"
+GOLDEN_DATASET_FILE = BASE_DIR / "entradas" / "perguntas" / "golden_dataset.json"
 RESULT_DIR = BASE_DIR / "resultados"
 RESULT_DIR.mkdir(exist_ok=True)
 

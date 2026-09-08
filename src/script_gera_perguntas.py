@@ -14,7 +14,7 @@ OUTPUT_DIR = BASE_DIR / "entradas" / "perguntas"
 OUTPUT_FILE = OUTPUT_DIR / "golden_dataset.json"
 
 MODEL_NAME = "qwen2.5:3b"
-QUESTIONS_PER_DOC = 10
+QUESTIONS_PER_DOC = 2
 
 client = AsyncOpenAI(base_url="http://localhost:11434/v1/", api_key="ollama_local")
 

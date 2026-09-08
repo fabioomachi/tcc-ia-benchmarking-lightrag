@@ -211,23 +211,34 @@ async def process_batch_dir(rag: LightRAG, batch_path: Path, params: QueryParam,
     log_structured_event("batch_start", {"input_dir": str(batch_path), "output_file": str(output_path), "concurrency": concurrency_limit})
 
     queries = []
+    
+    # Correção: Lida com JSON Array formatado vs TXT linha a linha
     for qfile in query_files:
-        with open(qfile, 'r', encoding='utf-8') as f:
-            for line in f:
-                line_str = line.strip()
-                if not line_str:
-                    continue
-                if line_str.startswith('{'):
-                    try:
-                        data = json.loads(line_str)
+        if qfile.suffix == '.json':
+            with open(qfile, 'r', encoding='utf-8') as f:
+                try:
+                    data = json.load(f)
+                    if isinstance(data, list):  # Formato do golden_dataset.json
+                        for item in data:
+                            q = item.get('question', '')
+                            if q: queries.append(q)
+                    elif isinstance(data, dict):
                         q = data.get('question', '')
                         if q: queries.append(q)
-                    except json.JSONDecodeError:
-                        pass
-                else:
-                    queries.append(line_str)
+                except json.JSONDecodeError as e:
+                    print(f"⚠️ Erro ao parsear {qfile.name}: {e}")
+        else:
+            with open(qfile, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line_str = line.strip()
+                    if line_str:
+                        queries.append(line_str)
 
     total_queries = len(queries)
+    if total_queries == 0:
+        print("⚠️ Nenhuma pergunta válida extraída do lote.")
+        return
+
     log_structured_event("batch_total_loaded", {"total_queries": total_queries})
     print(f"\n🚀 Iniciando processamento em lote de {total_queries} perguntas da pasta {batch_path} (Concorrência: {concurrency_limit})...\n")
 
@@ -280,7 +291,6 @@ async def process_batch_dir(rag: LightRAG, batch_path: Path, params: QueryParam,
 
     log_structured_event("batch_complete", {"total_processed": completed_counter, "output_file": str(output_path)})
     print(f"\n✅ Lote concluído. Resultados salvos em: {output_path}\n")
-
 
 # -----------------------------------------------------------------------------
 # Loop Principal
