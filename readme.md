@@ -58,15 +58,43 @@ python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-3. **Instalar dependências:**
+3. **Instalar dependências (via uv ou pip):**
 ```bash
+# Recomendado (alta performance e isolamento moderno)
+uv pip install -e ".[all]"
+
+# Ou via pip padrão
 pip install -r requirements.txt
+pip install -e .
 ```
 
-4. **Executar o benchmark:**
-4.1. Certifique-se de que o Ollama está rodando (ollama serve).
-4.2. Execute a indexação: python src/1_indexacao.py
-4.3. Após o término, inicie o motor de perguntas: python src/2_consulta.py
+4. **Execução Moderna via CLI Unificada (`ragbench`):**
+```bash
+# 4.1. Validar conectividade com o Ollama
+ragbench health
+
+# 4.2. Indexar documentos POP no LightRAG
+ragbench index
+
+# 4.3. Gerar Golden Dataset adversarial (opcional)
+ragbench generate-dataset --questions-per-doc 2
+
+# 4.4. Executar benchmark em lote com checkpointing e resume automático
+ragbench run --mode hybrid --concurrency 10
+
+# 4.5. Executar avaliação LLM-as-a-Judge com RAGAS
+ragbench eval
+
+# 4.6. Sessão interativa no terminal (Streaming + Semantic Cache)
+ragbench chat --mode hybrid
+```
+
+5. **Execução Legada (Scripts Procedurais):**
+Caso deseje executar os scripts originais diretamente:
+- Indexação: `python src/1_indexacao.py`
+- Consultas / Lote: `python src/2_consulta.py`
+- ETL de Logs: `python src/script_analisa_logs.py`
+- Avaliação RAGAS: `python src/script_analisa_ragas.py`
 
 
 ## 🧠 Módulo de Consulta Avançada (`2_consulta.py`)

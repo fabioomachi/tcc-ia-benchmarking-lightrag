@@ -1,0 +1,85 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ragbench"
+version = "0.1.0"
+description = "Framework e ferramenta de benchmarking avançado para arquiteturas RAG (LightRAG) e avaliação via RAGAS"
+readme = "readme.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "Fabio Omachi" }
+]
+dependencies = [
+    "lightrag-hku>=1.0.0",
+    "openai>=1.20.0",
+    "ollama>=0.2.0",
+    "pydantic>=2.7.0",
+    "pydantic-settings>=2.2.0",
+    "typer>=0.12.0",
+    "rich>=13.7.0",
+    "numpy>=1.26.0",
+    "pandas>=2.0.0",
+    "networkx>=3.0",
+    "matplotlib>=3.8.0",
+    "nano_vectordb>=0.0.4",
+]
+
+[project.optional-dependencies]
+eval = [
+    "ragas>=0.1.21,<0.2.0",
+    "datasets>=2.14.0",
+    "langchain>=0.1.0,<0.3.0",
+    "langchain-community>=0.0.20,<0.3.0",
+    "langchain-core>=0.1.20",
+]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "ruff>=0.4.0",
+    "mypy>=1.10.0",
+]
+all = [
+    "ragbench[eval,dev]",
+]
+
+[project.scripts]
+ragbench = "ragbench.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ragbench"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [
+    "src/1_indexacao.py",
+    "src/2_consulta.py",
+    "src/script_*.py",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "ASYNC", # flake8-async
+]
+ignore = [
+    "B008",
+    "E501",  # Line length handled softly
+    "ASYNC230", # blocking file open in scripts
+    "ASYNC240", # blocking path read in scripts
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ragbench"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["src"]
