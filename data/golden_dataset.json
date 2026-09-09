@@ -1,0 +1,26 @@
+[
+  {
+    "question": "Em caso de transações internacionais atípicas consecutivas, qual é a primeira ação que o operador deve tomar, conforme POP-015, e como isso pode ser interpretado como um edge case que conflita com a norma do BACEN sobre transparência?",
+    "question_type": "EDGE_CASE",
+    "ground_truth": "O operador deve verificar o padrão de compras no sistema de monitoramento transacional (item 1). Em caso de transações internacionais atípicas consecutivas, acionar o bloqueio preventivo do cartão (item 2). Este cenário é um edge case porque, embora a POP-015 recomenda a acção de bloqueio preventivo, a norma do BACEN sobre transparência exige que a comunicação imediata ao cliente via SMS e e-mail cadastrado seja realizada. Portanto, o operador pode interpretar este caso como um conflito entre a recomendação da POP-015 e a exigência da norma do BACEN.",
+    "source_document": "pop_bloqueio_cartao.txt"
+  },
+  {
+    "question": "Como o sistema de BioCheck deve ser usado para validar o desbloqueio do cartão após o contato ativo do cliente, conforme POP-015, e quais são os prazos mínimos para cada etapa desse processo?",
+    "question_type": "REGULATORY_TIMELINE",
+    "ground_truth": "O sistema de BioCheck deve ser usado para validar o desbloqueio do cartão após o contato ativo do cliente. Segundo POP-015, o desbloqueio só pode ser realizado após contato ativo do cliente validado pelo sistema BioCheck (item 4). Em termos de prazos, a POP-015 não especifica prazos mínimos para cada etapa desse processo. No entanto, é importante notar que o prazo para a comunicação imediata ao cliente via SMS e e-mail cadastrado (item 3) é determinado pela norma do BACEN, que é de 24 horas. Portanto, o prazo para o desbloqueio após o contato ativo do cliente também deve ser respeitado para cumprir a norma do BACEN.",
+    "source_document": "pop_bloqueio_cartao.txt"
+  },
+  {
+    "question": "No caso de um golpe do falso leilão, qual seria a ação mais apropriada para o sistema MED (Mecanismo Especial de Devolução) do BACEN, considerando que o bloqueio cautelar deve ser acionado no sistema MED em até 30 minutos corridos após a denúncia, mas a exceção estabelece que é proibido o estorno manual sem a autorização prévia da mesa de compliance antifraude? ",
+    "question_type": "EDGE_CASE",
+    "ground_truth": "O sistema MED deve acionar o bloqueio cautelar no sistema BACEN em até 30 minutos corridos após a denúncia, mas, em caso de golpe do falso leilão, a ação mais apropriada é a acusação de fraude e o bloqueio cautelar, sem o estorno manual, pois isso estaria em conflito com a exceção estabelecida na POP-014, que proíbe o estorno manual sem a autorização prévia da mesa de compliance antifraude.",
+    "source_document": "pop_cancelamento_pix.txt"
+  },
+  {
+    "question": "O que ocorre se o sistema de cancelamento de PIX por suspeita de fraude não consegue acionar o bloqueio cautelar no sistema MED do BACEN em menos de 30 minutos corridos após a denúncia, considerando que a resolução BCB nº 103 estabelece que falhas nesse prazo geram passivo ao banco? ",
+    "question_type": "REGULATORY_TIMELINE",
+    "ground_truth": "Se o sistema de cancelamento de PIX por suspeita de fraude não consegue acionar o bloqueio cautelar no sistema MED do BACEN em menos de 30 minutos corridos após a denúncia, isso geraria um passivo ao banco de acordo com a resolução BCB nº 103, pois a POP-014 estabelece que o bloqueio deve ser acionado em até 30 minutos corridos após a denúncia, e qualquer atraso nesse prazo estaria em desacordo com as diretrizes legais.",
+    "source_document": "pop_cancelamento_pix.txt"
+  }
+]

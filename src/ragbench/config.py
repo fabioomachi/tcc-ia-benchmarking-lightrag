@@ -58,12 +58,10 @@ class BenchmarkSettings(BaseSettings):
 
     # Caminhos do projeto
     base_dir: Path = Field(default_factory=lambda: Path.cwd())
-    pops_dir: Path = Field(default_factory=lambda: Path("entradas/pops"))
-    questions_dir: Path = Field(default_factory=lambda: Path("entradas/perguntas"))
+    pops_dir: Path = Field(default_factory=lambda: Path("data/pops"))
+    questions_dir: Path = Field(default_factory=lambda: Path("data"))
     storage_dir: Path = Field(default_factory=lambda: Path("lightrag_ollama_db"))
     runs_dir: Path = Field(default_factory=lambda: Path("runs"))
-    logs_dir: Path = Field(default_factory=lambda: Path("logs"))
-    result_dir: Path = Field(default_factory=lambda: Path("resultados"))
 
     def resolve_paths(self) -> None:
         """Assegura caminhos absolutos relativos ao base_dir."""
@@ -75,10 +73,6 @@ class BenchmarkSettings(BaseSettings):
             self.storage_dir = self.base_dir / self.storage_dir
         if not self.runs_dir.is_absolute():
             self.runs_dir = self.base_dir / self.runs_dir
-        if not self.logs_dir.is_absolute():
-            self.logs_dir = self.base_dir / self.logs_dir
-        if not self.result_dir.is_absolute():
-            self.result_dir = self.base_dir / self.result_dir
 
 
 # Singleton acessível por padrão

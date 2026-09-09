@@ -76,10 +76,17 @@ class RagasEvaluator:
 
             gt = golden_item.get("ground_truth", "N/A")
             q_type = golden_item.get("question_type", "UNMAPPED")
+            source_doc = golden_item.get("source_document", "")
+
+            context_text = default_context
+            if source_doc:
+                doc_path = self.settings.pops_dir / source_doc
+                if doc_path.exists():
+                    context_text = doc_path.read_text(encoding="utf-8")
 
             questions.append(rec.query)
             answers.append(rec.response)
-            contexts.append([default_context])
+            contexts.append([context_text])
             ground_truths.append(gt)
             question_types.append(q_type)
             latencies.append(rec.total_latency_seconds)

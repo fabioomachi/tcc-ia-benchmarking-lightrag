@@ -18,20 +18,17 @@ htmlcov/
 .ruff_cache/
 .mypy_cache/
 
-# Dados e bancos locais
+# Banco de dados e índice LightRAG (gerado em runtime)
 lightrag_ollama_db/
 *.sqlite3
 *.db
 
-# Logs e execuções temporárias
-logs/
-*.log
+# Resultados de benchmark (gerados em runtime)
 runs/
+logs/
 resultados/
 
-# Entradas locais geradas
-entradas/pops/
-entradas/perguntas/
+# Dados de runtime gerados (não são source)
 data/storage/
 
 # Arquivos de ambiente e segredos
