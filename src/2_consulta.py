@@ -250,7 +250,7 @@ async def process_batch_dir(rag: LightRAG, batch_path: Path, params: QueryParam,
         async with semaphore:
             start_time = time.perf_counter()
             try:
-                local_param = QueryParam(mode=params.mode, top_k=params.top_k, stream=False)
+                local_param = QueryParam(mode=params.mode, top_k=params.top_k)
                 response = await execute_rag_query(rag, query_text, param=local_param)
                 latency = time.perf_counter() - start_time
                 
@@ -325,7 +325,8 @@ async def main(args):
             func=custom_embedding_func
         )
     )
-    await rag.initialize_storages()    
+    if hasattr(rag, "initialize_storages"):
+        await rag.initialize_storages()    
    
     params = QueryParam(mode=args.mode, top_k=args.top_k)
 
@@ -411,8 +412,8 @@ async def main(args):
                 "error_type": type(e).__name__,
                 "error_message": str(e)
             })
-            print(f"⚠️ Falha no processamento: {e}")
-    await rag.finalize_storages()
+    if hasattr(rag, "finalize_storages"):
+        await rag.finalize_storages()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Módulo de Consulta Avançada LightRAG")

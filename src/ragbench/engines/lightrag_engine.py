@@ -30,6 +30,19 @@ BANKING_COMPLIANCE_ENTITY_EXTRACTION = (
 )
 
 
+class _SafeCallable:
+    """Wrapper que protege callables contra erros de deepcopy do LightRAG com RLock."""
+
+    def __init__(self, target: Any):
+        self.target = target
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        return self.target(*args, **kwargs)
+
+    def __deepcopy__(self, memo: Any) -> Any:
+        return self
+
+
 class LightRAGEngine:
     """Adaptador de alto desempenho para o motor LightRAG com inferência via Ollama."""
 
@@ -93,17 +106,18 @@ class LightRAGEngine:
 
         self.rag = LightRAG(
             working_dir=str(storage_path),
-            llm_model_func=self._custom_llm_func,
+            llm_model_func=_SafeCallable(self._custom_llm_func),
             embedding_func=EmbeddingFunc(
                 embedding_dim=self.settings.lightrag.embed_dim,
                 max_token_size=8192,
-                func=self._custom_embedding_func,
+                func=_SafeCallable(self._custom_embedding_func),
             ),
             chunk_token_size=self.settings.lightrag.chunk_token_size,
             chunk_overlap_token_size=self.settings.lightrag.chunk_overlap_token_size,
             addon_params={"llm_func_timeout": self.settings.lightrag.llm_func_timeout},
         )
-        await self.rag.initialize_storages()
+        if hasattr(self.rag, "initialize_storages"):
+            await self.rag.initialize_storages()
         logger.info(f"LightRAG inicializado com sucesso em {storage_path}")
 
     async def aquery(
@@ -118,7 +132,7 @@ class LightRAGEngine:
             raise RuntimeError("Motor LightRAG não foi inicializado. Chame initialize() primeiro.")
 
         mode_str = mode.value if isinstance(mode, SearchMode) else str(mode)
-        param = QueryParam(mode=mode_str, top_k=top_k, stream=stream)
+        param = QueryParam(mode=mode_str, top_k=top_k)
         return await self.rag.aquery(query, param=param)
 
     async def ainsert(self, text: str) -> None:
@@ -129,6 +143,6 @@ class LightRAGEngine:
 
     async def finalize(self) -> None:
         """Encerra e persiste storages."""
-        if self.rag:
+        if self.rag and hasattr(self.rag, "finalize_storages"):
             await self.rag.finalize_storages()
             logger.info("Storages do LightRAG finalizados com segurança.")
