@@ -4,6 +4,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 from typing import Annotated
+from itertools import chain
 
 import typer
 from rich.console import Console
@@ -58,7 +59,9 @@ def index_documents(
         shutil.rmtree(storage_dir)
         storage_dir.mkdir(parents=True, exist_ok=True)
 
-    txt_files = list(target_dir.glob("*.txt"))
+
+    txt_files = list(chain(target_dir.glob("*.txt"), target_dir.glob("*.md")))
+
     if not txt_files:
         console.print(
             "[yellow]Nenhum arquivo encontrado. Criando POPs sintéticos padrão...[/yellow]"
@@ -81,7 +84,7 @@ def index_documents(
             "4. O desbloqueio só pode ser realizado após contato ativo do cliente validado pelo sistema BioCheck.",
             encoding="utf-8",
         )
-        txt_files = list(target_dir.glob("*.txt"))
+        txt_files = list(chain(target_dir.glob("*.txt"), target_dir.glob("*.md")))
 
     console.print(f"[bold blue]Iniciando indexação de {len(txt_files)} documentos...[/bold blue]")
 

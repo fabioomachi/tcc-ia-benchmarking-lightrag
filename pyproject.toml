@@ -24,6 +24,8 @@ dependencies = [
     "networkx>=3.0",
     "matplotlib>=3.8.0",
     "nano_vectordb>=0.0.4",
+    "datasets>=5.0.1",
+    "langchain-community>=0.2.19",
 ]
 
 [project.optional-dependencies]

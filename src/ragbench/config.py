@@ -19,7 +19,7 @@ class LightRAGSettings(BaseModel):
     llm_model: str = "qwen2.5:3b"
     embed_model: str = "all-minilm"
     embed_dim: int = 384
-    chunk_token_size: int = 512
+    chunk_token_size: int = 300
     chunk_overlap_token_size: int = 128
     llm_func_timeout: int = 600
     default_mode: str = "hybrid"

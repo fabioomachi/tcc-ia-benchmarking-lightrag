@@ -106,10 +106,12 @@ class LightRAGEngine:
 
         self.rag = LightRAG(
             working_dir=str(storage_path),
+            default_llm_timeout = 2400,
+            llm_model_max_async = 1,
             llm_model_func=_SafeCallable(self._custom_llm_func),
             embedding_func=EmbeddingFunc(
                 embedding_dim=self.settings.lightrag.embed_dim,
-                max_token_size=8192,
+                max_token_size=16384,                
                 func=_SafeCallable(self._custom_embedding_func),
             ),
             chunk_token_size=self.settings.lightrag.chunk_token_size,

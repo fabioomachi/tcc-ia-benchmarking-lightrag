@@ -2885,6 +2885,8 @@ name = "ragbench"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "datasets" },
+    { name = "langchain-community" },
     { name = "lightrag-hku" },
     { name = "matplotlib" },
     { name = "nano-vectordb" },
@@ -2927,8 +2929,10 @@ eval = [
 
 [package.metadata]
 requires-dist = [
+    { name = "datasets", specifier = ">=5.0.1" },
     { name = "datasets", marker = "extra == 'eval'", specifier = ">=2.14.0" },
     { name = "langchain", marker = "extra == 'eval'", specifier = ">=0.1.0,<0.3.0" },
+    { name = "langchain-community", specifier = ">=0.2.19" },
     { name = "langchain-community", marker = "extra == 'eval'", specifier = ">=0.0.20,<0.3.0" },
     { name = "langchain-core", marker = "extra == 'eval'", specifier = ">=0.1.20" },
     { name = "lightrag-hku", specifier = ">=1.0.0" },
