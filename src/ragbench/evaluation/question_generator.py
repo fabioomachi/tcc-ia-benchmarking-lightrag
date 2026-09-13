@@ -3,6 +3,7 @@ import json
 import logging
 import re
 from pathlib import Path
+from itertools import chain
 
 from ragbench.config import BenchmarkSettings
 from ragbench.config import settings as global_settings
@@ -137,7 +138,7 @@ class GoldenDatasetGenerator:
         out_file = output_file or (self.settings.questions_dir / "golden_dataset.json")
         out_file.parent.mkdir(parents=True, exist_ok=True)
 
-        txt_files = list(in_dir.glob("*.txt"))
+        txt_files = list(chain(in_dir.glob("*.txt"), in_dir.glob("*.md")))
         if not txt_files:
             logger.warning(f"Nenhum arquivo .txt encontrado em {in_dir}")
             return []

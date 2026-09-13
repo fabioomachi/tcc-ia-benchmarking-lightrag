@@ -64,7 +64,7 @@ class LightRAGSettings(BaseModel):
     # Local aguenta mais concorrência que a API Gemini (rate-limit),
     # mas com timeouts menores pois a resposta é interativa.
     chat_default_llm_timeout: int = 2400
-    chat_llm_model_max_async: int = 4
+    chat_llm_model_max_async: int = 12
     chat_llm_func_timeout: int = 600
     chat_embedding_func_timeout: int = 600
     chat_embedding_func_max_async: int = 8

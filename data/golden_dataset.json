@@ -1,26 +1,26 @@
 [
   {
-    "question": "Em caso de transações internacionais atípicas consecutivas, qual é a primeira ação que o operador deve tomar, conforme POP-015, e como isso pode ser interpretado como um edge case que conflita com a norma do BACEN sobre transparência?",
-    "question_type": "EDGE_CASE",
-    "ground_truth": "O operador deve verificar o padrão de compras no sistema de monitoramento transacional (item 1). Em caso de transações internacionais atípicas consecutivas, acionar o bloqueio preventivo do cartão (item 2). Este cenário é um edge case porque, embora a POP-015 recomenda a acção de bloqueio preventivo, a norma do BACEN sobre transparência exige que a comunicação imediata ao cliente via SMS e e-mail cadastrado seja realizada. Portanto, o operador pode interpretar este caso como um conflito entre a recomendação da POP-015 e a exigência da norma do BACEN.",
-    "source_document": "pop_bloqueio_cartao.txt"
+    "question": "Um cliente correntista, que possui biometria cadastrada há 5 dias, teve sua senha de 6 dígitos bloqueada com o código 'U' e sua senha de 8 dígitos bloqueada com o código '8'. Ele não possui Alfa Code habilitado e está tentando realizar o desbloqueio pelo site institucional. Quais são os impedimentos técnicos para essa operação e qual é o único canal/procedimento capaz de regularizar a situação?",
+    "question_type": "CONDITIONAL_WORKFLOW",
+    "ground_truth": "O cliente não conseguirá realizar o desbloqueio pelo site institucional por três motivos: 1) O bloqueio 'U' da senha de 6 dígitos não admite desbloqueio, apenas alteração; 2) O site institucional não permite a alteração de senhas com bloqueio 'U' ou '8' sem Alfa Code; 3) A biometria cadastrada há apenas 5 dias não atende ao requisito mínimo de 7 dias para validação de segurança. O único canal capaz de regularizar a situação é o atendimento presencial em uma agência, onde o cliente deverá realizar a alteração das senhas (obrigatoriamente a de 8 dígitos primeiro, seguida pela de 6 dígitos).",
+    "source_document": "pop_acesso_pf.md"
   },
   {
-    "question": "Como o sistema de BioCheck deve ser usado para validar o desbloqueio do cartão após o contato ativo do cliente, conforme POP-015, e quais são os prazos mínimos para cada etapa desse processo?",
-    "question_type": "REGULATORY_TIMELINE",
-    "ground_truth": "O sistema de BioCheck deve ser usado para validar o desbloqueio do cartão após o contato ativo do cliente. Segundo POP-015, o desbloqueio só pode ser realizado após contato ativo do cliente validado pelo sistema BioCheck (item 4). Em termos de prazos, a POP-015 não especifica prazos mínimos para cada etapa desse processo. No entanto, é importante notar que o prazo para a comunicação imediata ao cliente via SMS e e-mail cadastrado (item 3) é determinado pela norma do BACEN, que é de 24 horas. Portanto, o prazo para o desbloqueio após o contato ativo do cliente também deve ser respeitado para cumprir a norma do BACEN.",
-    "source_document": "pop_bloqueio_cartao.txt"
+    "question": "Um cliente não correntista, vítima de um sequestro relâmpago, precisa bloquear imediatamente sua 'Senha-8' (usada no App Cartão Alfa). Considerando que ele não possui acesso ao App e está em uma situação de emergência, qual é o procedimento específico de segurança para este caso e como o sistema tratará a 'Conta de Acesso' (usada no App Alfa) deste mesmo cliente após essa ação?",
+    "question_type": "ROLE_RESTRICTION",
+    "ground_truth": "Para casos de assalto, roubo ou sequestro, o cliente ou representante deve contatar o SAC QP/QC ou a Plataforma de Relacionamento para executar a rotina de segurança no SISRET X98, utilizando o código de rota 800050 e informando a conta vinculada ao cartão. Quanto à 'Conta de Acesso', o bloqueio da 'Senha-8' não implica automaticamente no bloqueio da 'Conta de Acesso', pois são credenciais distintas. O documento reforça que, se o cliente possui ambos os tipos, são senhas diferentes para apps diferentes; portanto, a 'Conta de Acesso' permanecerá ativa a menos que o cliente solicite especificamente seu bloqueio ou que o bloqueio de segurança tenha sido estendido a todo o perfil do cliente.",
+    "source_document": "pop_acesso_pf.md"
   },
   {
-    "question": "No caso de um golpe do falso leilão, qual seria a ação mais apropriada para o sistema MED (Mecanismo Especial de Devolução) do BACEN, considerando que o bloqueio cautelar deve ser acionado no sistema MED em até 30 minutos corridos após a denúncia, mas a exceção estabelece que é proibido o estorno manual sem a autorização prévia da mesa de compliance antifraude? ",
-    "question_type": "EDGE_CASE",
-    "ground_truth": "O sistema MED deve acionar o bloqueio cautelar no sistema BACEN em até 30 minutos corridos após a denúncia, mas, em caso de golpe do falso leilão, a ação mais apropriada é a acusação de fraude e o bloqueio cautelar, sem o estorno manual, pois isso estaria em conflito com a exceção estabelecida na POP-014, que proíbe o estorno manual sem a autorização prévia da mesa de compliance antifraude.",
-    "source_document": "pop_cancelamento_pix.txt"
+    "question": "Um cliente solicita o cancelamento de um CDC Renovação Consignação (linha 2881) vinculado ao Convênio Especial 01 (700001) no 5º dia corrido após a liberação do crédito. O cliente afirma que a contratação foi via App. Como o atendente deve proceder, considerando as restrições de alçada e a necessidade de reaverbação?",
+    "question_type": "ROLE_RESTRICTION",
+    "ground_truth": "O atendente não deve realizar o cancelamento diretamente. Conforme o POP, o cancelamento da linha 2881 para o Convênio Especial 01 (700001) está restrito exclusivamente ao departamento DOC – Diretoria de Operações de Crédito (código 800020). O atendente deve informar ao cliente que o procedimento é restrito e, obrigatoriamente, verificar se há margem consignável suficiente para a reaverbação das operações que foram vinculadas à renovação, antes de encaminhar a demanda para o setor responsável.",
+    "source_document": "pop_cdc_pf.md"
   },
   {
-    "question": "O que ocorre se o sistema de cancelamento de PIX por suspeita de fraude não consegue acionar o bloqueio cautelar no sistema MED do BACEN em menos de 30 minutos corridos após a denúncia, considerando que a resolução BCB nº 103 estabelece que falhas nesse prazo geram passivo ao banco? ",
-    "question_type": "REGULATORY_TIMELINE",
-    "ground_truth": "Se o sistema de cancelamento de PIX por suspeita de fraude não consegue acionar o bloqueio cautelar no sistema MED do BACEN em menos de 30 minutos corridos após a denúncia, isso geraria um passivo ao banco de acordo com a resolução BCB nº 103, pois a POP-014 estabelece que o bloqueio deve ser acionado em até 30 minutos corridos após a denúncia, e qualquer atraso nesse prazo estaria em desacordo com as diretrizes legais.",
-    "source_document": "pop_cancelamento_pix.txt"
+    "question": "Um cliente possui um CDC Automático com pagamento via débito em conta e também emitiu um boleto para a mesma parcela. O cliente pagou o boleto e, no dia seguinte, houve o débito automático em conta. Ao consultar o sistema, você verifica que o campo 'Dt. Canc.' está vazio e o pagamento em conta foi parcial. Como proceder para regularizar a duplicidade sem deixar a operação em atraso?",
+    "question_type": "CONDITIONAL_WORKFLOW",
+    "ground_truth": "O atendente deve realizar o estorno seguindo a lógica de prioridade: primeiro, estornar o 'Boleto Bancário' e, em seguida, o 'Recebimento Automático' (débito em conta), desde que não existam outros débitos pendentes que impeçam a operação. Após o estorno, é necessário solicitar que o supervisor receba o valor correto da parcela em 'CDC 13.23' para garantir a quitação. O atendente deve confirmar a data de recebimento retroativo em 'CDC 13.61'. É proibido realizar o estorno se isso resultar em saldo devedor ou deixar a operação em atraso.",
+    "source_document": "pop_cdc_pf.md"
   }
 ]
