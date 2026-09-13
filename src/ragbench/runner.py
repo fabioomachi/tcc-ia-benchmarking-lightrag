@@ -115,15 +115,12 @@ class BenchmarkRunner:
                     query=query_text,
                     mode=mode,
                     top_k=top_k,
-                    model=self.settings.lightrag.llm_model,
+                    model=self.engine.llm_model,
                 )
 
-                # 1. Checagem de Cache Semântico
+                # 1. Checagem de Cache Semântico (embeddings do role do engine)
                 try:
-                    query_embs = await self.engine.ollama_client.get_embeddings(
-                        model=self.settings.lightrag.embed_model,
-                        texts=[query_text],
-                    )
+                    query_embs = await self.engine.get_query_embeddings([query_text])
                     if len(query_embs) > 0:
                         cached_resp, similarity = self.cache.get(query_embs[0])
                         if cached_resp:

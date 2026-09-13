@@ -2,9 +2,9 @@ import asyncio
 import sys
 import time
 from datetime import datetime
+from itertools import chain
 from pathlib import Path
 from typing import Annotated
-from itertools import chain
 
 import typer
 from rich.console import Console
@@ -31,14 +31,19 @@ console = Console()
 @app.command("health")
 def check_health():
     """Verifica a conectividade com o Ollama local e status dos modelos."""
-    from ragbench.infrastructure.ollama_client import ResilientOllamaClient
+    from ragbench.infrastructure.ollama_client import OllamaChatClient, ResilientOllamaClient
 
-    client = ResilientOllamaClient(settings.ollama)
-    is_up = asyncio.run(client.check_health())
-    if is_up:
-        console.print("[green]✔ Ollama operacional e respondendo na porta local.[/green]")
+    index_client = ResilientOllamaClient(settings.ollama)
+    index_up = asyncio.run(index_client.check_health())
+    chat_client = OllamaChatClient(settings.chat)
+    chat_up = asyncio.run(chat_client.check_health())
+    if index_up and chat_up:
+        console.print("[green]✔ Index (Gemini) e Chat (Ollama local) operacionais.[/green]")
     else:
-        console.print(f"[red]✖ Falha ao conectar ao Ollama em {settings.ollama.base_url}[/red]")
+        if not index_up:
+            console.print(f"[red]✖ Falha no index em {settings.ollama.base_url}[/red]")
+        if not chat_up:
+            console.print(f"[red]✖ Falha no chat em {settings.chat.base_url}[/red]")
         sys.exit(1)
 
 
@@ -58,7 +63,6 @@ def index_documents(
         console.print("[yellow]Higienizando banco de grafos anterior...[/yellow]")
         shutil.rmtree(storage_dir)
         storage_dir.mkdir(parents=True, exist_ok=True)
-
 
     txt_files = list(chain(target_dir.glob("*.txt"), target_dir.glob("*.md")))
 
@@ -89,7 +93,7 @@ def index_documents(
     console.print(f"[bold blue]Iniciando indexação de {len(txt_files)} documentos...[/bold blue]")
 
     async def _run_index():
-        engine = LightRAGEngine(settings=settings)
+        engine = LightRAGEngine.for_index(settings=settings)
         await engine.initialize()
 
         for doc in txt_files:
@@ -160,7 +164,7 @@ def run_benchmark(
             console.print(f"[yellow]Nenhuma pergunta encontrada em {target_path}[/yellow]")
             return
 
-        engine = LightRAGEngine(settings=settings)
+        engine = LightRAGEngine.for_chat(settings=settings)
         await engine.initialize()
 
         runner = BenchmarkRunner(engine=engine, storage=storage, settings=settings)
@@ -252,20 +256,25 @@ def evaluate_run(
 def interactive_chat(
     mode: Annotated[str, typer.Option(help="Modo de busca")] = "hybrid",
     top_k: Annotated[int, typer.Option(help="Top-K entidades")] = 5,
+    chat_model: Annotated[str | None, typer.Option(help="Override do modelo de chat")] = None,
 ):
     """Sessão conversacional interativa no terminal com streaming, cache semântico e telemetria."""
     search_mode = SearchMode(mode)
+    if chat_model:
+        settings.chat.llm_model = chat_model
     cache = SemanticCache(threshold=settings.cache_threshold)
     history = SlidingWindowHistory(max_turns=settings.history_turns)
 
     async def _chat_loop():
-        engine = LightRAGEngine(settings=settings)
+        engine = LightRAGEngine.for_chat(settings=settings)
         await engine.initialize()
 
         console.print(
             Panel(
                 f"[bold green]ragbench Interactive Chat[/bold green]\n"
-                f"Modo: [cyan]{mode}[/cyan] | Top-K: [cyan]{top_k}[/cyan] | Cache: [cyan]{settings.cache_threshold}[/cyan]\n"
+                f"Modo: [cyan]{mode}[/cyan] | Top-K: [cyan]{top_k}[/cyan] | "
+                f"Chat: [cyan]{settings.chat.llm_model}[/cyan] | "
+                f"Embed: [cyan]{settings.chat.embed_model}[/cyan]\n"
                 f"Digite [bold red]'sair'[/bold red] para encerrar.",
                 title="Sessão Iniciada",
             )
@@ -281,11 +290,8 @@ def interactive_chat(
 
                 start_time = time.perf_counter()
 
-                # Checagem de Cache Semântico
-                query_embs = await engine.ollama_client.get_embeddings(
-                    model=settings.lightrag.embed_model,
-                    texts=[query],
-                )
+                # Checagem de Cache Semântico (embeddings do chat: all-minilm)
+                query_embs = await engine.get_query_embeddings([query])
                 if len(query_embs) > 0:
                     cached_resp, similarity = cache.get(query_embs[0])
                     if cached_resp:
@@ -307,13 +313,19 @@ def interactive_chat(
                 ttft = 0.0
                 full_text = ""
 
-                async for chunk in response_gen:  # type: ignore
-                    if first_token:
-                        ttft = time.perf_counter() - start_time
-                        first_token = False
-                    sys.stdout.write(chunk)
-                    sys.stdout.flush()
-                    full_text += chunk
+                # Tratamento para garantir suporte tanto a Stream quanto a String direta
+                if isinstance(response_gen, str):
+                    ttft = time.perf_counter() - start_time
+                    full_text = response_gen
+                    console.print(full_text)
+                else:
+                    async for chunk in response_gen:
+                        if first_token:
+                            ttft = time.perf_counter() - start_time
+                            first_token = False
+                        sys.stdout.write(chunk)
+                        sys.stdout.flush()
+                        full_text += chunk
 
                 total_latency = time.perf_counter() - start_time
                 console.print(
