@@ -223,6 +223,7 @@ class LightRAGEngine:
         mode: SearchMode | str = SearchMode.HYBRID,
         top_k: int = 5,
         stream: bool = False,
+        enable_rerank: bool = False,
     ) -> str | AsyncGenerator[str, None]:
         """Executa consulta contra o grafo e vetores do LightRAG."""
         if not self.rag:
