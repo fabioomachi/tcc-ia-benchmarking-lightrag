@@ -189,13 +189,16 @@ def run_benchmark(
         BenchmarkReporter.generate_execution_markdown_report(records, md_path)
 
         # Cópia para o diretório legado de resultados para compatibilidade
-        settings.result_dir.mkdir(parents=True, exist_ok=True)
+
+        target_results_dir = getattr(settings, "results_dir", settings.runs_dir.parent / "resultados")
+        target_results_dir.mkdir(parents=True, exist_ok=True)
+
         BenchmarkReporter.export_execution_csv(
-            records, settings.result_dir / "benchmark_analise_detalhada.csv"
+            records, target_results_dir / "benchmark_analise_detalhada.csv"
         )
         BenchmarkReporter.generate_execution_markdown_report(
-            records, settings.result_dir / "resumo_benchmark.md"
-        )
+            records, target_results_dir / "resumo_benchmark.md"
+        )        
 
         console.print("\n[bold green]✅ Execução finalizada![/bold green]")
         console.print(f"📁 Checkpoint SQLite: [cyan]{db_path}[/cyan]")

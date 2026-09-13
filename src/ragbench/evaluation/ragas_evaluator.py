@@ -68,7 +68,15 @@ class RagasEvaluator:
         )
 
         for rec in records:
-            if rec.status != "success" or not rec.response:
+            # 1. Converte o status para string minúscula para ignorar diferenças de maiúsculas/minúsculas
+            status_str = str(rec.status).lower() if rec.status is not None else ""
+
+            # 2. Aceita status válidos de sucesso e valida a existência da resposta
+            if status_str not in ("success", "ok", "completed") or not rec.response:
+                logger.warning(
+                    f"⚠️ Registro ignorado [ID: {getattr(rec, 'query_id', 'N/A')}]: "
+                    f"status='{rec.status}', tem_resposta={bool(rec.response)}"
+                )
                 continue
 
             q_norm = self._normalize_text(rec.query)
@@ -93,7 +101,9 @@ class RagasEvaluator:
             ttfts.append(rec.ttft_seconds)
 
         if not questions:
-            raise EvaluationError("Nenhuma consulta válida encontrada para submeter ao RAGAS.")
+            raise EvaluationError(
+                f"Nenhuma consulta válida encontrada entre os {len(records)} registros recarregados do checkpoint."
+            )
 
         return Dataset.from_dict(
             {

@@ -139,7 +139,7 @@ class BenchmarkRunner:
                 # 2. Execução no Motor RAG
                 rag_start = time.perf_counter()
                 try:
-                    response = await self.engine.aquery(
+                    response_obj = await self.engine.aquery(
                         query=query_text,
                         mode=mode,
                         top_k=top_k,
@@ -148,14 +148,29 @@ class BenchmarkRunner:
                     rag_latency = time.perf_counter() - rag_start
                     total_latency = time.perf_counter() - start_time
 
-                    record.response = str(response)
+                    # Consome o stream caso aquery retorne um gerador assíncrono
+                    if not isinstance(response_obj, str) and hasattr(response_obj, "__aiter__"):
+                        full_response = ""
+                        async for chunk in response_obj:
+                            full_response += chunk
+                        response_text = full_response
+                    else:
+                        response_text = str(response_obj or "")
+
+                    record.response = response_text
                     record.source = QueryInteractionSource.LIGHTRAG_ENGINE
                     record.rag_retrieval_latency_seconds = round(rag_latency, 4)
                     record.total_latency_seconds = round(total_latency, 4)
-                    record.status = RagExecutionStatus.SUCCESS
 
-                    if len(query_embs) > 0:
-                        self.cache.add(query_embs[0], str(response))
+                    # Valida se o texto retornado não está vazio
+                    if response_text.strip():
+                        record.status = RagExecutionStatus.SUCCESS
+                    else:
+                        record.status = RagExecutionStatus.ERROR
+                        record.error_message = "O modelo de chat retornou uma resposta vazia."
+
+                    if len(query_embs) > 0 and response_text.strip():
+                        self.cache.add(query_embs[0], response_text)
 
                 except Exception as e:
                     total_latency = time.perf_counter() - start_time
@@ -163,9 +178,6 @@ class BenchmarkRunner:
                     record.error_message = f"{type(e).__name__}: {str(e)}"
                     record.total_latency_seconds = round(total_latency, 4)
                     logger.error(f"Erro na query #{idx}: {record.error_message}")
-
-                self.storage.save_record(record)
-                return record
 
         tasks = [worker(i, q) for i, q in enumerate(queries)]
 
