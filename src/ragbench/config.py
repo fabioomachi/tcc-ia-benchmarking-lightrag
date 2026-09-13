@@ -9,17 +9,17 @@ class OllamaSettings(BaseModel):
 
     base_url: str = "http://localhost:11434/v1/"
     api_key: str = "ollama_local"
-    request_timeout: float = 600.0
+    request_timeout: float = 900.0
     max_retries: int = 3
 
 
 class LightRAGSettings(BaseModel):
     """Configurações do motor LightRAG."""
 
-    llm_model: str = "qwen2.5:3b"
+    llm_model: str = "qwen2.5:1.5b"
     embed_model: str = "all-minilm"
     embed_dim: int = 384
-    chunk_token_size: int = 300
+    chunk_token_size: int = 1500
     chunk_overlap_token_size: int = 128
     llm_func_timeout: int = 600
     default_mode: str = "hybrid"

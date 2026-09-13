@@ -23,9 +23,10 @@ BANKING_COMPLIANCE_ENTITY_EXTRACTION = (
     "Use strict entity types such as: REGRA_BACEN, PROCEDIMENTO, SISTEMA, CONDICAO, EXCECAO, ATOR, DOCUMENTO, PRAZO.\n"
     "Ignore generic words. Focus heavily on dependencies (e.g., 'requires', 'blocks', 'authorizes').\n\n"
     "### EXAMPLE ###\n"
-    "Text: 'O operador deve acionar o bloqueio no MED em até 30 minutos.'\n"
-    'Entities: ("operador"$$"ATOR") | ("bloqueio"$$"PROCEDIMENTO") | ("MED"$$"SISTEMA") | ("30 minutos"$$"PRAZO")\n'
-    'Relationships: ("operador"$$"bloqueio"$$"ACIONA") | ("bloqueio"$$"MED"$$"REALIZADO_EM") | ("bloqueio"$$"30 minutos"$$"REQUER_PRAZO")\n'
+    'Text: "O operador deve acionar o bloqueio no MED em ate 30 minutos."\n'
+    '("operador"<|#>"ATOR"<|#>"Operador do sistema responsável por acionar o bloqueio")\n'
+    '("MED"<|#>"SISTEMA"<|#>"Sistema do BACEN para devolução cautelar")\n'
+    '("operador"<|#>"MED"<|#>"aciona o sistema"<|#>"aciona")\n'
     "###############\n"
 )
 
@@ -96,6 +97,8 @@ class LightRAGEngine:
     async def _custom_embedding_func(self, texts: list[str]) -> np.ndarray:
         return await self.ollama_client.get_embeddings(
             model=self.settings.lightrag.embed_model,
+            embedding_dim=768,  # Dimensão retornada pelo text-embedding-004
+            max_token_size=8192,
             texts=texts,
         )
 
@@ -116,7 +119,12 @@ class LightRAGEngine:
             ),
             chunk_token_size=self.settings.lightrag.chunk_token_size,
             chunk_overlap_token_size=self.settings.lightrag.chunk_overlap_token_size,
-            addon_params={"llm_func_timeout": self.settings.lightrag.llm_func_timeout},
+            addon_params={
+                "llm_func_timeout": self.settings.lightrag.llm_func_timeout, 
+                "language": "Portuguese",
+                "embedding_func_timeout": 600,   # Aumenta timeout do embedding para 10 minutos
+                "embedding_func_max_async": 4   # Reduz concorrência para evitar rate limits na Google API 
+                },            
         )
         if hasattr(self.rag, "initialize_storages"):
             await self.rag.initialize_storages()
