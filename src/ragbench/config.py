@@ -128,6 +128,18 @@ class RagasSettings(BaseModel):
     run_max_wait: int = 180
 
 
+class LoggingSettings(BaseModel):
+    """Configurações da centralização de logs em arquivo (`logs/`)."""
+
+    level: str = "INFO"
+    dir: Path = Field(default_factory=lambda: Path("logs"))
+    file_name: str = "ragbench.log"
+    max_bytes: int = 5_000_000
+    backup_count: int = 5
+    per_run_file: bool = True
+    capture_warnings: bool = True
+
+
 class BenchmarkSettings(BaseSettings):
     """Configurações globais e orquestração do benchmark."""
 
@@ -143,6 +155,7 @@ class BenchmarkSettings(BaseSettings):
     lightrag: LightRAGSettings = Field(default_factory=LightRAGSettings)
     chat: ChatSettings = Field(default_factory=ChatSettings)
     ragas: RagasSettings = Field(default_factory=RagasSettings)
+    logging: LoggingSettings = Field(default_factory=LoggingSettings)
 
     # Hiperparâmetros de execução
     concurrency_limit: int = 10
@@ -169,6 +182,8 @@ class BenchmarkSettings(BaseSettings):
             self.runs_dir = self.base_dir / self.runs_dir
         if not self.results_dir.is_absolute():
             self.results_dir = self.base_dir / self.results_dir
+        if not self.logging.dir.is_absolute():
+            self.logging.dir = self.base_dir / self.logging.dir
 
 
 # Singleton preguiçoso: importar o módulo não lê mais o .env nem toca o cwd.

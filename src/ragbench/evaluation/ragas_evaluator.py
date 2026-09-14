@@ -1,5 +1,4 @@
 import json
-import logging
 import re
 import time
 from collections.abc import Callable
@@ -26,8 +25,9 @@ from ragas.run_config import RunConfig
 from ragbench.config import BenchmarkSettings, get_settings
 from ragbench.core.exceptions import EvaluationError, OllamaConnectionError
 from ragbench.core.models import QueryExecutionRecord
+from ragbench.infrastructure.logging import get_logger
 
-logger = logging.getLogger("ragbench.evaluation.ragas")
+logger = get_logger("ragbench.evaluation.ragas")
 
 # Colunas de score do RAGAS — único escopo válido para o alerta de NaN.
 _SCORE_COLUMNS = ["faithfulness", "answer_relevancy", "context_recall", "context_precision"]

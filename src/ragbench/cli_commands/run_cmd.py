@@ -10,6 +10,7 @@ import typer
 from ragbench.cli_commands import deps
 from ragbench.core.models import SearchMode
 from ragbench.engines.lightrag_engine import LightRAGEngine
+from ragbench.infrastructure.logging import setup_logging
 from ragbench.infrastructure.storage import SQLiteExecutionStorage
 from ragbench.reporting.reporters import BenchmarkReporter
 from ragbench.runner import BenchmarkRunner
@@ -36,6 +37,7 @@ def run_benchmark(
     search_mode = SearchMode(mode)
 
     run_id = build_run_id(run_name, mode, datetime.now())
+    setup_logging(settings, run_id=run_id)
     run_dir = settings.runs_dir / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
 
@@ -93,5 +95,6 @@ def run_benchmark(
         deps.console.print(f"📁 Checkpoint SQLite: [cyan]{db_path}[/cyan]")
         deps.console.print(f"📊 Relatório Markdown: [cyan]{md_path}[/cyan]")
         deps.console.print(f"📑 Exportação CSV: [cyan]{csv_path}[/cyan]")
+        deps.console.print(f"📝 Log: [cyan]{settings.logging.dir / f'{run_id}.log'}[/cyan]")
 
     asyncio.run(_run())

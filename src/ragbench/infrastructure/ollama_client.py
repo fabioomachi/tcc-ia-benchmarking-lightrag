@@ -1,6 +1,5 @@
 import asyncio
 import json
-import logging
 import random
 from collections.abc import AsyncGenerator, Callable
 from typing import Any
@@ -12,8 +11,9 @@ from openai import AsyncOpenAI, RateLimitError
 
 from ragbench.config import ChatSettings, OllamaSettings
 from ragbench.core.exceptions import OllamaConnectionError
+from ragbench.infrastructure.logging import get_logger
 
-logger = logging.getLogger("ragbench.ollama")
+logger = get_logger("ragbench.ollama")
 
 # Factory de cliente HTTP: retorna um httpx.AsyncClient ou fake compatível
 # (async CM com get/post/stream). Permite testes sem rede via injeção.

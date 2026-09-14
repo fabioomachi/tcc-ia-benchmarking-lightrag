@@ -1,4 +1,3 @@
-import logging
 from collections.abc import AsyncGenerator, Callable
 from pathlib import Path
 from typing import Any
@@ -10,9 +9,10 @@ from lightrag.utils import EmbeddingFunc
 
 from ragbench.config import BenchmarkSettings, ChatSettings, get_settings
 from ragbench.core.models import SearchMode
+from ragbench.infrastructure.logging import get_logger
 from ragbench.infrastructure.ollama_client import OllamaChatClient, ResilientOllamaClient
 
-logger = logging.getLogger("ragbench.engine.lightrag")
+logger = get_logger("ragbench.engine.lightrag")
 
 # Injeção de Ontologia Bancária + Few-Shot Prompting no LightRAG
 BANKING_COMPLIANCE_ENTITY_EXTRACTION = (

@@ -1,6 +1,5 @@
 import asyncio
 import json
-import logging
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -22,9 +21,10 @@ from ragbench.core.models import (
     RagExecutionStatus,
     SearchMode,
 )
+from ragbench.infrastructure.logging import get_logger
 from ragbench.infrastructure.semantic_cache import SemanticCache
 
-logger = logging.getLogger("ragbench.runner")
+logger = get_logger("ragbench.runner")
 
 
 class BenchmarkRunner:

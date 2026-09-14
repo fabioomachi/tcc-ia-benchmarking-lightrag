@@ -1,15 +1,15 @@
 import asyncio
 import json
-import logging
 import re
 from itertools import chain
 from pathlib import Path
 
 from ragbench.config import BenchmarkSettings, get_settings
 from ragbench.core.models import GoldenQuestion, QuestionType
+from ragbench.infrastructure.logging import get_logger
 from ragbench.infrastructure.ollama_client import ResilientOllamaClient
 
-logger = logging.getLogger("ragbench.evaluation.dataset_gen")
+logger = get_logger("ragbench.evaluation.dataset_gen")
 
 SYSTEM_PROMPT = """Você é um Lead QA Automation Engineer & Banking Auditor especializado em testes adversariais para sistemas RAG.
 Sua missão é gerar um Golden Dataset com perguntas complexas, não-triviais e situacionais a partir de Procedimentos Operacionais Padrão (POPs) bancários.
