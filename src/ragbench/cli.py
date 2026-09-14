@@ -30,20 +30,32 @@ console = Console()
 
 @app.command("health")
 def check_health():
-    """Verifica a conectividade com o Ollama local e status dos modelos."""
+    """Verifica a conectividade com o transporte Gemini e o fallback local."""
     from ragbench.infrastructure.ollama_client import OllamaChatClient, ResilientOllamaClient
 
     index_client = ResilientOllamaClient(settings.ollama)
     index_up = asyncio.run(index_client.check_health())
-    chat_client = OllamaChatClient(settings.chat)
-    chat_up = asyncio.run(chat_client.check_health())
+
+    # Transporte unificado: chat usa o mesmo pipeline Gemini do index.
+    # Só checa Ollama local se o modelo de chat NÃO for Gemini.
+    chat_model = settings.chat.llm_model or ""
+    if chat_model.startswith("gemini-"):
+        chat_up = index_up
+        chat_target = f"Gemini ({chat_model}) via {settings.ollama.base_url}"
+    else:
+        chat_client = OllamaChatClient(settings.chat)
+        chat_up = asyncio.run(chat_client.check_health())
+        chat_target = settings.chat.base_url
     if index_up and chat_up:
-        console.print("[green]✔ Index (Gemini) e Chat (Ollama local) operacionais.[/green]")
+        console.print(
+            "[green]✔ Index "
+            f"({settings.lightrag.llm_model}) e Chat ({chat_model}) operacionais.[/green]"
+        )
     else:
         if not index_up:
             console.print(f"[red]✖ Falha no index em {settings.ollama.base_url}[/red]")
         if not chat_up:
-            console.print(f"[red]✖ Falha no chat em {settings.chat.base_url}[/red]")
+            console.print(f"[red]✖ Falha no chat em {chat_target}[/red]")
         sys.exit(1)
 
 
@@ -190,7 +202,9 @@ def run_benchmark(
 
         # Cópia para o diretório legado de resultados para compatibilidade
 
-        target_results_dir = getattr(settings, "results_dir", settings.runs_dir.parent / "resultados")
+        target_results_dir = getattr(
+            settings, "results_dir", settings.runs_dir.parent / "resultados"
+        )
         target_results_dir.mkdir(parents=True, exist_ok=True)
 
         BenchmarkReporter.export_execution_csv(
@@ -198,7 +212,7 @@ def run_benchmark(
         )
         BenchmarkReporter.generate_execution_markdown_report(
             records, target_results_dir / "resumo_benchmark.md"
-        )        
+        )
 
         console.print("\n[bold green]✅ Execução finalizada![/bold green]")
         console.print(f"📁 Checkpoint SQLite: [cyan]{db_path}[/cyan]")
@@ -261,7 +275,16 @@ def interactive_chat(
     top_k: Annotated[int, typer.Option(help="Top-K entidades")] = 5,
     chat_model: Annotated[str | None, typer.Option(help="Override do modelo de chat")] = None,
 ):
-    """Sessão conversacional interativa no terminal com streaming, cache semântico e telemetria."""
+    """Sessão conversacional interativa (transporte Gemini, modelo de chat dedicado).
+
+    Espelha a robustez do `index`: inicializa/finaliza storages com segurança,
+    usa o mesmo pipeline resiliente do index (rate-limit + retries + streaming
+    via `ResilientOllamaClient`), mas gera com `CHAT__LLM_MODEL`
+    (ex: `gemini-3.1-flash-lite`) — diferenciado de `LIGHTRAG__LLM_MODEL`.
+    Embeddings de consulta e cache seguem a fonte única do index.
+    """
+    from ragbench.core.exceptions import OllamaConnectionError
+
     search_mode = SearchMode(mode)
     if chat_model:
         settings.chat.llm_model = chat_model
@@ -272,80 +295,101 @@ def interactive_chat(
         engine = LightRAGEngine.for_chat(settings=settings)
         await engine.initialize()
 
-        console.print(
-            Panel(
-                f"[bold green]ragbench Interactive Chat[/bold green]\n"
-                f"Modo: [cyan]{mode}[/cyan] | Top-K: [cyan]{top_k}[/cyan] | "
-                f"Chat: [cyan]{settings.chat.llm_model}[/cyan] | "
-                f"Embed: [cyan]{settings.chat.embed_model}[/cyan]\n"
-                f"Digite [bold red]'sair'[/bold red] para encerrar.",
-                title="Sessão Iniciada",
+        try:
+            console.print(
+                Panel(
+                    "[bold green]ragbench Interactive Chat[/bold green]\n"
+                    f"Modo: [cyan]{mode}[/cyan] | Top-K: [cyan]{top_k}[/cyan]\n"
+                    f"Chat LLM: [cyan]{engine.llm_model}[/cyan] "
+                    f"(index: [dim]{settings.lightrag.llm_model}[/dim])\n"
+                    f"Embed: [cyan]{settings.lightrag.embed_model}[/cyan] "
+                    f"dim={settings.lightrag.embed_dim} (fonte única: index)\n"
+                    f"Transporte: [cyan]Gemini resiliente[/cyan] "
+                    f"| Histórico: {settings.history_turns} turnos\n"
+                    "Digite [bold red]'sair'[/bold red] para encerrar.",
+                    title="Sessão Iniciada",
+                )
             )
-        )
 
-        while True:
-            try:
-                query = console.input("\n[bold yellow]Pergunta > [/bold yellow]").strip()
-                if query.lower() in ["sair", "exit", "quit"]:
-                    break
-                if not query:
-                    continue
-
-                start_time = time.perf_counter()
-
-                # Checagem de Cache Semântico (embeddings do chat: all-minilm)
-                query_embs = await engine.get_query_embeddings([query])
-                if len(query_embs) > 0:
-                    cached_resp, similarity = cache.get(query_embs[0])
-                    if cached_resp:
-                        latency = time.perf_counter() - start_time
-                        console.print(
-                            f"\n[green]⚡ Resposta (via Cache Semântico - Score: {similarity:.3f} | Latência: {latency:.3f}s):[/green]"
-                        )
-                        console.print(cached_resp)
-                        history.add_turn(query, cached_resp)
+            while True:
+                try:
+                    query = console.input("\n[bold yellow]Pergunta > [/bold yellow]").strip()
+                    if query.lower() in ["sair", "exit", "quit"]:
+                        break
+                    if not query:
                         continue
 
-                # Chamada do RAG com Streaming
-                console.print(f"\n[blue]🤖 Resposta Gerada ({mode}):[/blue]")
-                response_gen = await engine.aquery(
-                    query, mode=search_mode, top_k=top_k, stream=True
-                )
+                    start_time = time.perf_counter()
 
-                first_token = True
-                ttft = 0.0
-                full_text = ""
+                    # 1. Embeddings pela fonte única (index/Gemini) — como no index.
+                    query_embs = await engine.get_query_embeddings([query])
+                    if len(query_embs) > 0:
+                        cached_resp, similarity = cache.get(query_embs[0])
+                        if cached_resp:
+                            latency = time.perf_counter() - start_time
+                            console.print(
+                                "\n[green]⚡ Resposta (via Cache Semântico - "
+                                f"Score: {similarity:.3f} | Latência: {latency:.3f}s):[/green]"
+                            )
+                            console.print(cached_resp)
+                            history.add_turn(query, cached_resp)
+                            continue
 
-                # Tratamento para garantir suporte tanto a Stream quanto a String direta
-                if isinstance(response_gen, str):
-                    ttft = time.perf_counter() - start_time
-                    full_text = response_gen
-                    console.print(full_text)
-                else:
-                    async for chunk in response_gen:
-                        if first_token:
+                    # 2. RAG com streaming + histórico (QueryParam), mesmo
+                    # transporte resiliente do index, modelo do chat.
+                    console.print(
+                        f"\n[blue]🤖 Resposta Gerada ({mode} | {engine.llm_model}):[/blue]"
+                    )
+                    response_gen = await engine.aquery(
+                        query,
+                        mode=search_mode,
+                        top_k=top_k,
+                        stream=True,
+                        history_messages=history.get_messages(),
+                    )
+
+                    first_token = True
+                    ttft = 0.0
+                    full_text = ""
+
+                    if isinstance(response_gen, str):
+                        ttft = time.perf_counter() - start_time
+                        full_text = response_gen
+                        console.print(full_text)
+                    else:
+                        async for chunk in response_gen:
+                            if first_token:
+                                ttft = time.perf_counter() - start_time
+                                first_token = False
+                            sys.stdout.write(chunk)
+                            sys.stdout.flush()
+                            full_text += chunk
+                        if first_token:  # stream vazio
                             ttft = time.perf_counter() - start_time
-                            first_token = False
-                        sys.stdout.write(chunk)
-                        sys.stdout.flush()
-                        full_text += chunk
 
-                total_latency = time.perf_counter() - start_time
-                console.print(
-                    f"\n\n[dim]⏱ Latência Total: {total_latency:.3f}s | TTFT: {ttft:.3f}s[/dim]"
-                )
+                    total_latency = time.perf_counter() - start_time
+                    console.print(
+                        f"\n\n[dim]⏱ Latência Total: {total_latency:.3f}s | TTFT: {ttft:.3f}s "
+                        f"| Modelo: {engine.llm_model}[/dim]"
+                    )
 
-                if len(query_embs) > 0:
-                    cache.add(query_embs[0], full_text)
-                history.add_turn(query, full_text)
+                    if full_text.strip():
+                        if len(query_embs) > 0:
+                            cache.add(query_embs[0], full_text)
+                        history.add_turn(query, full_text)
 
-            except KeyboardInterrupt:
-                break
-            except Exception as e:
-                console.print(f"[red]Erro no processamento: {e}[/red]")
-
-        await engine.finalize()
-        console.print("[yellow]Sessão encerrada com sucesso.[/yellow]")
+                except KeyboardInterrupt:
+                    break
+                except OllamaConnectionError as e:
+                    console.print(
+                        f"[red]Falha resiliente esgotada (rate-limit/rede): {e}[/red]\n"
+                        "[yellow]Aguarde a janela de rate-limit e tente novamente.[/yellow]"
+                    )
+                except Exception as e:
+                    console.print(f"[red]Erro no processamento: {e}[/red]")
+        finally:
+            await engine.finalize()
+            console.print("[yellow]Sessão encerrada com sucesso.[/yellow]")
 
     asyncio.run(_chat_loop())
 

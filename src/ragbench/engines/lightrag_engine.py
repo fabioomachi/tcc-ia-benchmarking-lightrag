@@ -45,12 +45,19 @@ class _SafeCallable:
 
 
 class LightRAGEngine:
-    """Adaptador dual-model: index (Gemini) + chat/query (Ollama local).
+    """Adaptador dual-model sobre transporte único resiliente (Gemini).
 
-    role="index": usa ResilientOllamaClient + lightrag.llm_model/embed.
-    role="chat": usa OllamaChatClient + chat.llm_model/embed.
+    Ambos os roles usam `ResilientOllamaClient` (endpoint Gemini
+    OpenAI-compatível + REST de embeddings, com rate-limit, retries com
+    backoff/jitter e streaming). A diferenciação index/chat é SÓ no modelo:
+
+    - role="index": `settings.lightrag.llm_model` (`LIGHTRAG__LLM_MODEL`)
+    - role="chat":  `settings.chat.llm_model` (`CHAT__LLM_MODEL`)
+
     O diretório de armazenamento (grafo) é compartilhado: o index constrói,
-    o chat apenas consulta.
+    o chat apenas consulta. Embeddings são sempre via index
+    (`lightrag.embed_model/embed_dim`) para não quebrar o retrieval.
+    O `OllamaChatClient` legado é mantido apenas para `health` fallback local.
     """
 
     def __init__(
@@ -82,10 +89,24 @@ class LightRAGEngine:
 
     @property
     def llm_model(self) -> str:
-        """Modelo LLM efetivo conforme o role."""
+        """Modelo LLM efetivo conforme o role (diferenciação index/chat)."""
         if self.role == "chat":
             return self.settings.chat.llm_model
         return self.settings.lightrag.llm_model
+
+    @property
+    def llm_temperature(self) -> float:
+        """Temperatura efetiva conforme o role."""
+        if self.role == "chat":
+            return self.settings.chat.temperature
+        return self.settings.lightrag.llm_temperature
+
+    @property
+    def llm_max_tokens(self) -> int:
+        """Max tokens efetivo conforme o role."""
+        if self.role == "chat":
+            return self.settings.chat.max_tokens
+        return self.settings.ollama.completion_max_tokens
 
     @classmethod
     def for_index(
@@ -121,6 +142,11 @@ class LightRAGEngine:
         history_messages: list | None = None,
         **kwargs: Any,
     ) -> Any:
+        """LLM unificado: mesmo transporte resiliente (Gemini) p/ index e chat.
+
+        Diferencia apenas `model/temperature/max_tokens` via propriedades
+        `llm_model/llm_temperature/llm_max_tokens` (role-aware).
+        """
         language_constraint = (
             "DIRETRIZES OBRIGATÓRIAS:\n"
             "1. Responda SEMPRE e EXCLUSIVAMENTE em Português do Brasil (pt-BR).\n"
@@ -136,23 +162,34 @@ class LightRAGEngine:
             messages.extend(history_messages)
         messages.append({"role": "user", "content": prompt})
 
+        logger.debug(
+            "LLM func role=%s model=%s msg_chars=%d history=%d",
+            self.role,
+            self.llm_model,
+            len(str(messages)),
+            len(history_messages or []),
+        )
+
         stream = kwargs.pop("stream", False)
         kwargs.pop("temperature", None)
-        if self.role == "chat":
-            return await self.chat_client.generate_completion(
-                model=self.settings.chat.llm_model,
+        kwargs.pop("max_tokens", None)
+
+        try:
+            # Transporte único: ResilientOllamaClient (Gemini). O Ollama local
+            # (chat_client) NÃO é mais usado para geração — apenas health.
+            resp = await self.ollama_client.generate_completion(
+                model=self.llm_model,
                 messages=messages,
-                temperature=self.settings.chat.temperature,
+                temperature=self.llm_temperature,
+                max_tokens=self.llm_max_tokens,
                 stream=stream,
                 **kwargs,
             )
-        return await self.ollama_client.generate_completion(
-            model=self.settings.lightrag.llm_model,
-            messages=messages,
-            temperature=self.settings.lightrag.llm_temperature,
-            stream=stream,
-            **kwargs,
-        )
+            logger.debug("LLM func role=%s resposta chars=%d", self.role, len(repr(resp)))
+            return resp
+        except Exception:
+            logger.exception("Falha no LLM role=%s model=%s", self.role, self.llm_model)
+            raise
 
     async def _custom_embedding_func(self, texts: list[str]) -> np.ndarray:
         # Fonte única de verdade: embeddings sempre via index (Gemini
@@ -224,13 +261,25 @@ class LightRAGEngine:
         top_k: int = 5,
         stream: bool = False,
         enable_rerank: bool = False,
+        history_messages: list[dict[str, str]] | None = None,
     ) -> str | AsyncGenerator[str, None]:
-        """Executa consulta contra o grafo e vetores do LightRAG."""
+        """Executa consulta contra o grafo e vetores do LightRAG.
+
+        Espelha o `ainsert` do index em robustez: `stream` e
+        `conversation_history` são repassados ao `QueryParam` (antes eram
+        aceitos na assinatura e silenciosamente ignorados).
+        """
         if not self.rag:
             raise RuntimeError("Motor LightRAG não foi inicializado. Chame initialize() primeiro.")
 
         mode_str = mode.value if isinstance(mode, SearchMode) else str(mode)
-        param = QueryParam(mode=mode_str, top_k=top_k)
+        param = QueryParam(
+            mode=mode_str,
+            top_k=top_k,
+            stream=stream,
+            conversation_history=history_messages or [],
+            enable_rerank=enable_rerank,
+        )
         return await self.rag.aquery(query, param=param)
 
     async def ainsert(self, text: str) -> None:

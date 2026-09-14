@@ -7,8 +7,10 @@ import pandas as pd
 from datasets import Dataset
 from langchain_community.chat_models import ChatOllama
 from langchain_community.embeddings import OllamaEmbeddings
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from ragas import evaluate
 from ragas.metrics import (
+    AnswerRelevancy,
     answer_relevancy,
     context_precision,
     context_recall,
@@ -25,10 +27,57 @@ logger = logging.getLogger("ragbench.evaluation.ragas")
 
 
 class RagasEvaluator:
-    """Avaliador LLM-as-a-Judge utilizando RAGAS com modelos locais servidos via Ollama."""
+    """Avaliador LLM-as-a-Judge via RAGAS sobre transporte Gemini unificado.
+
+    O juiz usa o MESMO endpoint Gemini do index/chat (OpenAI-compatível),
+    diferenciando apenas o modelo (`RAGAS__JUDGE_MODEL`, ex: `gemini-3.8-flash`).
+    Modelos sem prefixo `gemini-` mantêm fallback Ollama local.
+    """
 
     def __init__(self, settings: BenchmarkSettings | None = None):
         self.settings = settings or global_settings
+
+    @staticmethod
+    def _is_gemini_model(model: str) -> bool:
+        return (model or "").startswith("gemini-")
+
+    def _build_judge_llm(self):
+        """Juiz RAGAS: Gemini via ChatOpenAI ou fallback Ollama local."""
+        model = self.settings.ragas.judge_model
+        if self._is_gemini_model(model):
+            return ChatOpenAI(
+                model=model,
+                openai_api_base=self.settings.ollama.base_url,
+                openai_api_key=self.settings.ollama.api_key,
+                temperature=0.0,
+                timeout=self.settings.ragas.timeout,
+                max_retries=self.settings.ragas.judge_max_retries,
+            )
+        ollama_http_url = self.settings.chat.base_url.rstrip("/").replace("/v1", "")
+        return ChatOllama(
+            model=model,
+            base_url=ollama_http_url,
+            temperature=0.0,
+            num_ctx=self.settings.ragas.num_ctx,
+            timeout=self.settings.ragas.timeout,
+        )
+
+    def _build_embeddings(self):
+        """Embeddings do RAGAS: Gemini via OpenAI-compat ou fallback Ollama."""
+        model = self.settings.ragas.embed_model
+        if self._is_gemini_model(model):
+            return OpenAIEmbeddings(
+                model=model,
+                openai_api_base=self.settings.ollama.base_url,
+                openai_api_key=self.settings.ollama.api_key,
+                timeout=self.settings.ollama.embedding_timeout,
+                max_retries=self.settings.ollama.max_retries,
+            )
+        ollama_http_url = self.settings.chat.base_url.rstrip("/").replace("/v1", "")
+        return OllamaEmbeddings(
+            model=model,
+            base_url=ollama_http_url,
+        )
 
     @staticmethod
     def _normalize_text(text: str) -> str:
@@ -126,31 +175,29 @@ class RagasEvaluator:
         target_golden = golden_path or (self.settings.questions_dir / "golden_dataset.json")
         dataset = self.prepare_dataset(records, target_golden)
 
-        ollama_http_url = self.settings.ollama.base_url.rstrip("/").replace("/v1", "")
-
-        evaluator_llm = ChatOllama(
-            model=self.settings.ragas.judge_model,
-            base_url=ollama_http_url,
-            temperature=0.0,
-            num_ctx=self.settings.ragas.num_ctx,
-            timeout=self.settings.ragas.timeout,
-        )
-
-        evaluator_embeddings = OllamaEmbeddings(
-            model=self.settings.ragas.embed_model,
-            base_url=ollama_http_url,
-        )
+        evaluator_llm = self._build_judge_llm()
+        evaluator_embeddings = self._build_embeddings()
 
         logger.info(
             f"Iniciando bateria RAGAS em {len(dataset)} amostras com modelo {self.settings.ragas.judge_model}..."
         )
 
         try:
+            # Gemini (ex: gemini-3.8-flash) rejeita candidateCount > 1 com 400
+            # "Multiple candidates is not enabled for this model". O
+            # answer_relevancy padrão usa strictness=3 (n=3 gerações), então
+            # força candidato único no transporte Gemini. Demais métricas já
+            # usam reproducibility=1 por padrão.
+            relevancy_metric = (
+                AnswerRelevancy(strictness=1)
+                if self._is_gemini_model(self.settings.ragas.judge_model)
+                else answer_relevancy
+            )
             results = evaluate(
                 dataset=dataset,
                 metrics=[
                     faithfulness,
-                    answer_relevancy,
+                    relevancy_metric,
                     context_recall,
                     context_precision,
                 ],
@@ -160,9 +207,22 @@ class RagasEvaluator:
                 run_config=RunConfig(
                     max_workers=self.settings.ragas.max_workers,
                     timeout=self.settings.ragas.timeout,
+                    # 503 UNAVAILABLE / 429 são transitórios (pico de demanda no
+                    # Gemini). Backoff exponencial longo atravessa o pico em vez
+                    # de falhar o Job. Com raise_exceptions=False, jobs que
+                    # esgotarem os retries viram NaN em vez de abortar o eval.
+                    max_retries=self.settings.ragas.run_max_retries,
+                    max_wait=self.settings.ragas.run_max_wait,
+                    log_tenacity=True,
                 ),
             )
             df_ragas = results.to_pandas()
+            n_nan = int(df_ragas.isna().any(axis=1).sum()) if not df_ragas.empty else 0
+            if n_nan:
+                logger.warning(
+                    f"{n_nan}/{len(df_ragas)} linhas com NaN (jobs que esgotaram "
+                    "retries em 429/503). Reexecute o eval — picos são temporários."
+                )
             return df_ragas
         except Exception as e:
             logger.error(f"Falha na orquestração do RAGAS: {e}")

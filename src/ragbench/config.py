@@ -71,35 +71,60 @@ class LightRAGSettings(BaseModel):
 
 
 class ChatSettings(BaseModel):
-    """Configurações do LLM local de chat/query (Ollama).
+    """Configurações do LLM de chat/query.
 
-    O LLM de geração é local (qwen3.5:4b). Os embeddings são SEMPRE os do
-    index (text-embedding-005/768 via Gemini) — dois modelos distintos de
-    embedding quebram o retrieval, por isso embed_model/embed_dim aqui são
-    apenas espelho documentado e devem igualar lightrag.embed_*.
+    Arquitetura unificada (pós-refactor): o transporte LLM do chat é o MESMO
+    pipeline resiliente do index (`ResilientOllamaClient` via Gemini
+    OpenAI-compatível, com rate-limit + retries + streaming). A diferenciação
+    entre index e chat é APENAS no nome do modelo:
+
+    - index → `lightrag.llm_model` (`LIGHTRAG__LLM_MODEL`)
+    - chat  → `chat.llm_model` (`CHAT__LLM_MODEL`, ex: `gemini-3.1-flash-lite`)
+
+    Os embeddings são SEMPRE os do index (`lightrag.embed_*/768` via Gemini)
+    — dois modelos distintos de embedding quebram o retrieval, por isso
+    `embed_model/embed_dim` aqui são apenas espelho documentado e devem
+    igualar `lightrag.embed_*`.
+
+    `base_url/api_key` legados do Ollama local são mantidos para fallback
+    manual, mas o caminho padrão do `LightRAGEngine(role="chat")` reutiliza
+    `settings.ollama` (Gemini) como transporte.
     """
 
     base_url: str = "http://localhost:11434/v1/"
     api_key: str = "ollama"
-    llm_model: str = "qwen3.5:4b"
-    embed_model: str = "text-embedding-005"
+    llm_model: str = "gemini-3.1-flash-lite"
+    embed_model: str = "gemini-embedding-001"
     embed_dim: int = 768
     temperature: float = 0.0
-    max_tokens: int = 2048
-    num_ctx: int = 4096
+    max_tokens: int = 8192
+    num_ctx: int = 8192
     request_timeout: float = 900.0
     max_retries: int = 3
     connect_timeout: float = 10.0
 
 
 class RagasSettings(BaseModel):
-    """Configurações do LLM-as-a-Judge (RAGAS)."""
+    """Configurações do LLM-as-a-Judge (RAGAS).
 
-    judge_model: str = "qwen2.5:7b"
-    embed_model: str = "nomic-embed-text"
+    Arquitetura unificada: o juiz usa o MESMO transporte Gemini do
+    index/chat (endpoint OpenAI-compatível em `ollama.base_url` + `api_key`).
+    A diferenciação é SÓ no modelo: `ragas.judge_model` (`RAGAS__JUDGE_MODEL`,
+    ex: `gemini-3.8-flash`) ≠ `lightrag.llm_model` ≠ `chat.llm_model`.
+    Modelos sem prefixo `gemini-` mantêm fallback Ollama local.
+    """
+
+    judge_model: str = "gemini-3.8-flash"
+    embed_model: str = "gemini-embedding-001"
     num_ctx: int = 8192
     timeout: int = 1200
     max_workers: int = 1
+    # Resiliência contra 429/503 transitórios do Gemini (picos de demanda).
+    # judge_max_retries: retries rápidos no cliente; run_max_*: retries com
+    # backoff exponencial no nível do RAGAS (RunConfig/tenacity).
+    judge_max_retries: int = 8
+    run_max_retries: int = 15
+    run_max_wait: int = 180
 
 
 class BenchmarkSettings(BaseSettings):
