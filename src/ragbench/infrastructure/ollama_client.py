@@ -1,7 +1,8 @@
 import asyncio
+import json
 import logging
 import random
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable
 from typing import Any
 
 import httpx
@@ -14,15 +15,24 @@ from ragbench.core.exceptions import OllamaConnectionError
 
 logger = logging.getLogger("ragbench.ollama")
 
+# Factory de cliente HTTP: retorna um httpx.AsyncClient ou fake compatível
+# (async CM com get/post/stream). Permite testes sem rede via injeção.
+HttpClientFactory = Callable[..., Any]
+
 
 class ResilientOllamaClient:
     """Cliente unificado 100% Google Gemini (LLM + Embeddings)."""
 
-    def __init__(self, settings: OllamaSettings):
+    def __init__(
+        self,
+        settings: OllamaSettings,
+        client: AsyncOpenAI | None = None,
+        genai_client: Any | None = None,
+    ):
         self.settings = settings
 
         # Cliente OpenAI para a API Gemini (Chat / Completions)
-        self.client = AsyncOpenAI(
+        self.client = client or AsyncOpenAI(
             base_url=settings.base_url,
             api_key=settings.api_key,
             timeout=httpx.Timeout(settings.request_timeout, connect=settings.connect_timeout),
@@ -30,11 +40,20 @@ class ResilientOllamaClient:
         )
 
         # Cliente oficial do Google para Embeddings
-        self.genai_client = genai.Client(api_key=settings.api_key)
+        self.genai_client = genai_client or genai.Client(api_key=settings.api_key)
 
         self._request_interval_seconds = settings.rate_limit_interval_seconds
         self._rate_limit_lock = asyncio.Lock()
         self._last_request_time = 0.0
+
+    def calc_rate_limit_delay(self, attempt: int) -> float:
+        """Calcula o backoff com jitter para retry 429 (puro: sem I/O, testável)."""
+        calculated = self.settings.retry_initial_delay * (
+            self.settings.retry_backoff_factor ** (attempt - 1)
+        )
+        ceiling = min(self.settings.retry_max_delay, calculated)
+        floor = min(self.settings.retry_jitter_min, ceiling)
+        return random.uniform(floor, ceiling)
 
     async def _wait_for_rate_limit(self) -> None:
         """Garante a cadência mínima entre requisições ao Gemini."""
@@ -65,9 +84,6 @@ class ResilientOllamaClient:
         effective_max_tokens = kwargs.pop("max_tokens", self.settings.completion_max_tokens)
         valid_kwargs = {k: v for k, v in kwargs.items() if k in ["top_p", "response_format"]}
         max_attempts = self.settings.completion_max_attempts
-        initial_delay = self.settings.retry_initial_delay
-        backoff_factor = self.settings.retry_backoff_factor
-        max_delay = self.settings.retry_max_delay
         backoff = self.settings.retry_backoff
 
         for attempt in range(1, max_attempts + 1):
@@ -101,10 +117,7 @@ class ResilientOllamaClient:
                         f"Rate limit esgotado no modelo {model}: {e}"
                     ) from e
 
-                calculated_delay = initial_delay * (backoff_factor ** (attempt - 1))
-                jittered_delay = random.uniform(
-                    self.settings.retry_jitter_min, min(max_delay, calculated_delay)
-                )
+                jittered_delay = self.calc_rate_limit_delay(attempt)
                 logger.warning(
                     f"⚠️ [Rate Limit 429] Tentativa {attempt}/{max_attempts} falhou. "
                     f"Aguardando {jittered_delay:.2f}s..."
@@ -180,16 +193,55 @@ class ResilientOllamaClient:
 class OllamaChatClient:
     """Cliente Ollama local usando a API REST nativa para garantir a injeção do limite de contexto."""
 
-    def __init__(self, settings: ChatSettings):
+    def __init__(
+        self,
+        settings: ChatSettings,
+        http_client_factory: HttpClientFactory | None = None,
+    ):
         self.settings = settings
+        self._http_client_factory = http_client_factory or httpx.AsyncClient
+
+    def _api_base(self) -> str:
+        """Base da API nativa (remove o sufixo OpenAI-compatível /v1)."""
+        return self.settings.base_url.rstrip("/").removesuffix("/v1")
+
+    @property
+    def tags_url(self) -> str:
+        return f"{self._api_base()}/api/tags"
+
+    @property
+    def chat_url(self) -> str:
+        return f"{self._api_base()}/api/chat"
+
+    @property
+    def embed_url(self) -> str:
+        return f"{self._api_base()}/api/embed"
+
+    def build_chat_payload(
+        self,
+        model: str | None,
+        messages: list[dict[str, str]] | None,
+        temperature: float | None,
+        stream: bool,
+    ) -> dict[str, Any]:
+        """Monta o payload do /api/chat (puro: sem I/O, testável)."""
+        effective_model = model or self.settings.llm_model
+        effective_temperature = self.settings.temperature if temperature is None else temperature
+        return {
+            "model": effective_model,
+            "messages": messages or [],
+            "stream": stream,
+            "options": {
+                "temperature": effective_temperature,
+                "num_ctx": self.settings.num_ctx,  # Aqui garantimos o respeito aos 16k tokens
+            },
+        }
 
     async def check_health(self) -> bool:
         """Verifica a conectividade com o Ollama local via API nativa."""
-        base = self.settings.base_url.rstrip("/").removesuffix("/v1")
-        url = f"{base}/api/tags"
         try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                resp = await client.get(url)
+            async with self._http_client_factory(timeout=5.0) as client:
+                resp = await client.get(self.tags_url)
                 return resp.status_code == 200
         except Exception as e:
             logger.warning(f"Ollama local indisponível: {e}")
@@ -203,30 +255,14 @@ class OllamaChatClient:
         stream: bool = False,
         **kwargs: Any,
     ) -> str | AsyncGenerator[str, None]:
-        import json
-
-        effective_model = model or self.settings.llm_model
-        effective_temperature = self.settings.temperature if temperature is None else temperature
-
-        # Força o uso da API REST nativa do Ollama ao invés do wrapper OpenAI
-        base = self.settings.base_url.rstrip("/").removesuffix("/v1")
-        url = f"{base}/api/chat"
+        payload = self.build_chat_payload(model, messages, temperature, stream)
+        url = self.chat_url
         timeout = httpx.Timeout(self.settings.request_timeout)
-
-        payload = {
-            "model": effective_model,
-            "messages": messages or [],
-            "stream": stream,
-            "options": {
-                "temperature": effective_temperature,
-                "num_ctx": self.settings.num_ctx,  # Aqui garantimos o respeito aos 16k tokens
-            },
-        }
 
         if stream:
 
             async def stream_generator():
-                async with httpx.AsyncClient(timeout=timeout) as client:
+                async with self._http_client_factory(timeout=timeout) as client:
                     async with client.stream("POST", url, json=payload) as resp:
                         resp.raise_for_status()
                         async for line in resp.aiter_lines():
@@ -236,12 +272,12 @@ class OllamaChatClient:
                                     content = data.get("message", {}).get("content", "")
                                     if content:
                                         yield content
-                                except Exception:
-                                    pass
+                                except json.JSONDecodeError:
+                                    logger.debug(f"Linha NDJSON inválida ignorada: {line[:80]}")
 
             return stream_generator()
 
-        async with httpx.AsyncClient(timeout=timeout) as client:
+        async with self._http_client_factory(timeout=timeout) as client:
             resp = await client.post(url, json=payload)
             resp.raise_for_status()
             data = resp.json()
@@ -255,11 +291,10 @@ class OllamaChatClient:
         dim = kwargs.get("embedding_dim", self.settings.embed_dim)
         payload_texts = texts or []
 
-        base = self.settings.base_url.rstrip("/").removesuffix("/v1")
-        url = f"{base}/api/embed"
+        url = self.embed_url
         timeout = httpx.Timeout(self.settings.request_timeout)
 
-        async with httpx.AsyncClient(timeout=timeout) as client:
+        async with self._http_client_factory(timeout=timeout) as client:
             resp = await client.post(url, json={"model": effective_model, "input": payload_texts})
             resp.raise_for_status()
             data = resp.json().get("embeddings", [])

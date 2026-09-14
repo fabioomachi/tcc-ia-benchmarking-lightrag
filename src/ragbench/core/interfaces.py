@@ -9,6 +9,15 @@ from ragbench.core.models import QueryExecutionRecord, SearchMode
 class BaseRAGPipeline(Protocol):
     """Contrato comum para qualquer motor de RAG avaliado no benchmark."""
 
+    @property
+    def llm_model(self) -> str:
+        """Modelo LLM efetivo do motor (usado em telemetria)."""
+        ...
+
+    async def get_query_embeddings(self, texts: list[str]) -> np.ndarray:
+        """Vetoriza consultas para cache semântico e retrieval."""
+        ...
+
     async def initialize(self) -> None:
         """Prepara storages, índices e conexões."""
         ...

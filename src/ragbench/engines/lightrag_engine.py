@@ -1,5 +1,5 @@
 import logging
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable
 from pathlib import Path
 from typing import Any
 
@@ -8,8 +8,7 @@ from lightrag import LightRAG, QueryParam
 from lightrag.prompt import PROMPTS
 from lightrag.utils import EmbeddingFunc
 
-from ragbench.config import BenchmarkSettings, ChatSettings
-from ragbench.config import settings as global_settings
+from ragbench.config import BenchmarkSettings, ChatSettings, get_settings
 from ragbench.core.models import SearchMode
 from ragbench.infrastructure.ollama_client import OllamaChatClient, ResilientOllamaClient
 
@@ -44,6 +43,39 @@ class _SafeCallable:
         return self
 
 
+def build_entity_extraction_prompt(base_prompt: str) -> str:
+    """Aplica a ontologia bancária ao prompt base (puro: sem mutar global).
+
+    Idempotente: se o marcador já estiver presente, retorna a base inalterada.
+    """
+    if "BANKING COMPLIANCE" in base_prompt:
+        return base_prompt
+    return base_prompt + BANKING_COMPLIANCE_ENTITY_EXTRACTION
+
+
+def build_llm_messages(
+    prompt: str,
+    system_prompt: str | None = None,
+    history_messages: list[dict[str, str]] | None = None,
+) -> list[dict[str, str]]:
+    """Monta as mensagens do LLM com a restrição de idioma (puro: sem I/O)."""
+    language_constraint = (
+        "DIRETRIZES OBRIGATÓRIAS:\n"
+        "1. Responda SEMPRE e EXCLUSIVAMENTE em Português do Brasil (pt-BR).\n"
+        "2. Seja direto e objetivo.\n"
+        "3. Responda estritamente com base nos fatos fornecidos no contexto."
+    )
+    final_sys_prompt = (
+        f"{system_prompt}\n\n{language_constraint}" if system_prompt else language_constraint
+    )
+
+    messages = [{"role": "system", "content": final_sys_prompt}]
+    if history_messages:
+        messages.extend(history_messages)
+    messages.append({"role": "user", "content": prompt})
+    return messages
+
+
 class LightRAGEngine:
     """Adaptador dual-model sobre transporte único resiliente (Gemini).
 
@@ -66,13 +98,15 @@ class LightRAGEngine:
         ollama_client: ResilientOllamaClient | None = None,
         chat_client: OllamaChatClient | None = None,
         role: str = "index",
+        rag_factory: Callable[..., LightRAG] | None = None,
     ):
-        self.settings = settings or global_settings
+        self.settings = settings or get_settings()
         if role not in ("index", "chat"):
             raise ValueError(f"role inválido: {role!r} (use 'index' ou 'chat')")
         self.role = role
         self.ollama_client = ollama_client or ResilientOllamaClient(self.settings.ollama)
         self.chat_client = chat_client or OllamaChatClient(self._chat_settings)
+        self._rag_factory = rag_factory or LightRAG
         self.rag: LightRAG | None = None
         self._inject_prompts()
         if role == "chat" and self.settings.chat.embed_dim != self.settings.lightrag.embed_dim:
@@ -113,9 +147,12 @@ class LightRAGEngine:
         cls,
         settings: BenchmarkSettings | None = None,
         ollama_client: ResilientOllamaClient | None = None,
+        rag_factory: Callable[..., LightRAG] | None = None,
     ) -> "LightRAGEngine":
         """Engine de indexação (config atual testada / Gemini)."""
-        return cls(settings=settings, ollama_client=ollama_client, role="index")
+        return cls(
+            settings=settings, ollama_client=ollama_client, role="index", rag_factory=rag_factory
+        )
 
     @classmethod
     def for_chat(
@@ -123,17 +160,21 @@ class LightRAGEngine:
         settings: BenchmarkSettings | None = None,
         ollama_client: ResilientOllamaClient | None = None,
         chat_client: OllamaChatClient | None = None,
+        rag_factory: Callable[..., LightRAG] | None = None,
     ) -> "LightRAGEngine":
         """Engine de chat/query (Ollama local, ex: qwen3.5:4b)."""
         return cls(
-            settings=settings, ollama_client=ollama_client, chat_client=chat_client, role="chat"
+            settings=settings,
+            ollama_client=ollama_client,
+            chat_client=chat_client,
+            role="chat",
+            rag_factory=rag_factory,
         )
 
     def _inject_prompts(self) -> None:
         """Injeta a ontologia bancária nos prompts internos do LightRAG."""
         prompt_base = PROMPTS.get("entity_extraction", "")
-        if "BANKING COMPLIANCE" not in prompt_base:
-            PROMPTS["entity_extraction"] = prompt_base + BANKING_COMPLIANCE_ENTITY_EXTRACTION
+        PROMPTS["entity_extraction"] = build_entity_extraction_prompt(prompt_base)
 
     async def _custom_llm_func(
         self,
@@ -147,20 +188,7 @@ class LightRAGEngine:
         Diferencia apenas `model/temperature/max_tokens` via propriedades
         `llm_model/llm_temperature/llm_max_tokens` (role-aware).
         """
-        language_constraint = (
-            "DIRETRIZES OBRIGATÓRIAS:\n"
-            "1. Responda SEMPRE e EXCLUSIVAMENTE em Português do Brasil (pt-BR).\n"
-            "2. Seja direto e objetivo.\n"
-            "3. Responda estritamente com base nos fatos fornecidos no contexto."
-        )
-        final_sys_prompt = (
-            f"{system_prompt}\n\n{language_constraint}" if system_prompt else language_constraint
-        )
-
-        messages = [{"role": "system", "content": final_sys_prompt}]
-        if history_messages:
-            messages.extend(history_messages)
-        messages.append({"role": "user", "content": prompt})
+        messages = build_llm_messages(prompt, system_prompt, history_messages)
 
         logger.debug(
             "LLM func role=%s model=%s msg_chars=%d history=%d",
@@ -227,7 +255,7 @@ class LightRAGEngine:
             embedding_func_timeout = self.settings.lightrag.embedding_func_timeout
             embedding_func_max_async = self.settings.lightrag.embedding_func_max_async
 
-        self.rag = LightRAG(
+        self.rag = self._rag_factory(
             working_dir=str(storage_path),
             default_llm_timeout=default_llm_timeout,
             llm_model_max_async=llm_model_max_async,

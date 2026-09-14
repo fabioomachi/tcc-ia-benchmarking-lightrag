@@ -1,13 +1,18 @@
 import json
 import logging
 import re
+import time
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
+import httpx
 import pandas as pd
 from datasets import Dataset
 from langchain_community.chat_models import ChatOllama
 from langchain_community.embeddings import OllamaEmbeddings
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_core.embeddings import Embeddings
+from langchain_openai import ChatOpenAI
 from ragas import evaluate
 from ragas.metrics import (
     AnswerRelevancy,
@@ -18,12 +23,78 @@ from ragas.metrics import (
 )
 from ragas.run_config import RunConfig
 
-from ragbench.config import BenchmarkSettings
-from ragbench.config import settings as global_settings
-from ragbench.core.exceptions import EvaluationError
+from ragbench.config import BenchmarkSettings, get_settings
+from ragbench.core.exceptions import EvaluationError, OllamaConnectionError
 from ragbench.core.models import QueryExecutionRecord
 
 logger = logging.getLogger("ragbench.evaluation.ragas")
+
+# Colunas de score do RAGAS — único escopo válido para o alerta de NaN.
+_SCORE_COLUMNS = ["faithfulness", "answer_relevancy", "context_recall", "context_precision"]
+
+
+class GeminiRestEmbeddings(Embeddings):
+    """Embeddings Gemini via REST `:embedContent` (síncrono, padrão langchain).
+
+    O RAGAS consome apenas `embed_query`/`embed_documents` síncronos, e o
+    endpoint OpenAI-compatível do Gemini retorna 501 para `/embeddings` —
+    por isso este wrapper usa o REST nativo, mesmo contrato do
+    `ResilientOllamaClient.get_embeddings`. Falhas após retries levantam
+    `OllamaConnectionError` (vira retry no RunConfig e, se esgotado, NaN).
+    """
+
+    def __init__(
+        self,
+        api_key: str,
+        api_base_url: str,
+        model: str,
+        dim: int = 768,
+        timeout: float = 10.0,
+        max_attempts: int = 3,
+        retry_delay: float = 2.0,
+    ):
+        self.api_key = api_key
+        self.url = f"{api_base_url.rstrip('/')}/{model}:embedContent"
+        self.dim = dim
+        self.timeout = timeout
+        self.max_attempts = max_attempts
+        self.retry_delay = retry_delay
+
+    def _embed_one(self, client: httpx.Client, text: str) -> list[float]:
+        payload = {"content": {"parts": [{"text": text}]}, "outputDimensionality": self.dim}
+        headers = {"x-goog-api-key": self.api_key}
+        last_error: Exception | None = None
+        for attempt in range(1, self.max_attempts + 1):
+            try:
+                resp = client.post(self.url, json=payload, headers=headers)
+                if resp.status_code == 429:
+                    time.sleep(self.retry_delay * attempt)
+                    continue
+                resp.raise_for_status()
+                return resp.json().get("embedding", {}).get("values", [0.0] * self.dim)
+            except Exception as e:
+                last_error = e
+                if attempt < self.max_attempts:
+                    time.sleep(self.retry_delay)
+        raise OllamaConnectionError(f"Falha no embedding Gemini REST: {last_error}")
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        with httpx.Client(timeout=self.timeout) as client:
+            return [self._embed_one(client, t) for t in texts]
+
+    def embed_query(self, text: str) -> list[float]:
+        return self.embed_documents([text])[0]
+
+
+def select_relevancy_metric(judge_model: str) -> Any:
+    """Escolhe a métrica answer_relevancy conforme o transporte (puro: sem I/O).
+
+    Gemini rejeita candidateCount > 1 com 400, e o answer_relevancy padrão usa
+    strictness=3 (n=3 gerações) — por isso força candidato único no Gemini.
+    """
+    if (judge_model or "").startswith("gemini-"):
+        return AnswerRelevancy(strictness=1)
+    return answer_relevancy
 
 
 class RagasEvaluator:
@@ -34,8 +105,17 @@ class RagasEvaluator:
     Modelos sem prefixo `gemini-` mantêm fallback Ollama local.
     """
 
-    def __init__(self, settings: BenchmarkSettings | None = None):
-        self.settings = settings or global_settings
+    def __init__(
+        self,
+        settings: BenchmarkSettings | None = None,
+        judge_llm_factory: Callable[[], Any] | None = None,
+        embeddings_factory: Callable[[], Any] | None = None,
+        evaluate_fn: Callable[..., Any] | None = None,
+    ):
+        self.settings = settings or get_settings()
+        self._judge_llm_factory = judge_llm_factory or self._build_judge_llm
+        self._embeddings_factory = embeddings_factory or self._build_embeddings
+        self._evaluate_fn = evaluate_fn or evaluate
 
     @staticmethod
     def _is_gemini_model(model: str) -> bool:
@@ -63,15 +143,22 @@ class RagasEvaluator:
         )
 
     def _build_embeddings(self):
-        """Embeddings do RAGAS: Gemini via OpenAI-compat ou fallback Ollama."""
+        """Embeddings do RAGAS: Gemini via REST ou fallback Ollama.
+
+        O endpoint OpenAI-compatível do Gemini não implementa `/embeddings`
+        (501 UNIMPLEMENTED), então usa o REST `:embedContent` — o mesmo caminho
+        testado do `ResilientOllamaClient.get_embeddings`.
+        """
         model = self.settings.ragas.embed_model
         if self._is_gemini_model(model):
-            return OpenAIEmbeddings(
+            return GeminiRestEmbeddings(
+                api_key=self.settings.ollama.api_key,
+                api_base_url=self.settings.ollama.embedding_api_base_url,
                 model=model,
-                openai_api_base=self.settings.ollama.base_url,
-                openai_api_key=self.settings.ollama.api_key,
+                dim=self.settings.ollama.embedding_default_dim,
                 timeout=self.settings.ollama.embedding_timeout,
-                max_retries=self.settings.ollama.max_retries,
+                max_attempts=self.settings.ollama.embedding_max_attempts,
+                retry_delay=self.settings.ollama.embedding_retry_delay,
             )
         ollama_http_url = self.settings.chat.base_url.rstrip("/").replace("/v1", "")
         return OllamaEmbeddings(
@@ -175,25 +262,16 @@ class RagasEvaluator:
         target_golden = golden_path or (self.settings.questions_dir / "golden_dataset.json")
         dataset = self.prepare_dataset(records, target_golden)
 
-        evaluator_llm = self._build_judge_llm()
-        evaluator_embeddings = self._build_embeddings()
+        evaluator_llm = self._judge_llm_factory()
+        evaluator_embeddings = self._embeddings_factory()
 
         logger.info(
             f"Iniciando bateria RAGAS em {len(dataset)} amostras com modelo {self.settings.ragas.judge_model}..."
         )
 
         try:
-            # Gemini (ex: gemini-3.8-flash) rejeita candidateCount > 1 com 400
-            # "Multiple candidates is not enabled for this model". O
-            # answer_relevancy padrão usa strictness=3 (n=3 gerações), então
-            # força candidato único no transporte Gemini. Demais métricas já
-            # usam reproducibility=1 por padrão.
-            relevancy_metric = (
-                AnswerRelevancy(strictness=1)
-                if self._is_gemini_model(self.settings.ragas.judge_model)
-                else answer_relevancy
-            )
-            results = evaluate(
+            relevancy_metric = select_relevancy_metric(self.settings.ragas.judge_model)
+            results = self._evaluate_fn(
                 dataset=dataset,
                 metrics=[
                     faithfulness,
@@ -217,11 +295,16 @@ class RagasEvaluator:
                 ),
             )
             df_ragas = results.to_pandas()
-            n_nan = int(df_ragas.isna().any(axis=1).sum()) if not df_ragas.empty else 0
+            # Conta NaN SÓ nas colunas de métrica: colunas de telemetria
+            # (ex: ttft_s) podem ser nulas no checkpoint sem indicar falha.
+            score_cols = [c for c in _SCORE_COLUMNS if c in df_ragas.columns]
+            scope = df_ragas[score_cols] if score_cols else df_ragas
+            n_nan = int(scope.isna().any(axis=1).sum()) if not scope.empty else 0
             if n_nan:
                 logger.warning(
-                    f"{n_nan}/{len(df_ragas)} linhas com NaN (jobs que esgotaram "
-                    "retries em 429/503). Reexecute o eval — picos são temporários."
+                    f"{n_nan}/{len(df_ragas)} linhas com NaN nas métricas (jobs que "
+                    "esgotaram retries após 4xx/5xx do Gemini — ex: 429/503 em "
+                    "pico de demanda. Reexecute o eval, picos são temporários)."
                 )
             return df_ragas
         except Exception as e:

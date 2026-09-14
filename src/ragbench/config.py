@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -154,6 +155,7 @@ class BenchmarkSettings(BaseSettings):
     questions_dir: Path = Field(default_factory=lambda: Path("data"))
     storage_dir: Path = Field(default_factory=lambda: Path("lightrag_ollama_db"))
     runs_dir: Path = Field(default_factory=lambda: Path("runs"))
+    results_dir: Path = Field(default_factory=lambda: Path("resultados"))
 
     def resolve_paths(self) -> None:
         """Assegura caminhos absolutos relativos ao base_dir."""
@@ -165,8 +167,33 @@ class BenchmarkSettings(BaseSettings):
             self.storage_dir = self.base_dir / self.storage_dir
         if not self.runs_dir.is_absolute():
             self.runs_dir = self.base_dir / self.runs_dir
+        if not self.results_dir.is_absolute():
+            self.results_dir = self.base_dir / self.results_dir
 
 
-# Singleton acessível por padrão
-settings = BenchmarkSettings()
-settings.resolve_paths()
+# Singleton preguiçoso: importar o módulo não lê mais o .env nem toca o cwd.
+# O primeiro acesso (via get_settings() ou `config.settings`) constrói e resolve.
+_cached_settings: BenchmarkSettings | None = None
+
+
+def get_settings() -> BenchmarkSettings:
+    """Retorna o singleton de configurações, construindo-o sob demanda."""
+    global _cached_settings
+    if _cached_settings is None:
+        _cached_settings = BenchmarkSettings()
+        _cached_settings.resolve_paths()
+    return _cached_settings
+
+
+def reset_settings_cache() -> None:
+    """Descarta o singleton (uso em testes que mudam de diretório/env)."""
+    global _cached_settings
+    _cached_settings = None
+
+
+def __getattr__(name: str) -> Any:
+    # Compatibilidade: `from ragbench.config import settings` continua válido,
+    # mas agora resolve de forma preguiçosa em vez de executar no import.
+    if name == "settings":
+        return get_settings()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

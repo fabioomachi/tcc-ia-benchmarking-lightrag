@@ -85,3 +85,18 @@ known-first-party = ["ragbench"]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["src"]
+addopts = ["--cov=src/ragbench", "--cov-report=term-missing"]
+
+[tool.coverage.run]
+source = ["src/ragbench"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = true
+
+[dependency-groups]
+dev = [
+    "pytest-cov>=7.1.0",
+]

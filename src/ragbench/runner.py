@@ -14,17 +14,15 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 
-from ragbench.config import BenchmarkSettings
-from ragbench.config import settings as global_settings
+from ragbench.config import BenchmarkSettings, get_settings
+from ragbench.core.interfaces import BaseCache, BaseExecutionStorage, BaseRAGPipeline
 from ragbench.core.models import (
     QueryExecutionRecord,
     QueryInteractionSource,
     RagExecutionStatus,
     SearchMode,
 )
-from ragbench.engines.lightrag_engine import LightRAGEngine
 from ragbench.infrastructure.semantic_cache import SemanticCache
-from ragbench.infrastructure.storage import SQLiteExecutionStorage
 
 logger = logging.getLogger("ragbench.runner")
 
@@ -34,14 +32,14 @@ class BenchmarkRunner:
 
     def __init__(
         self,
-        engine: LightRAGEngine,
-        storage: SQLiteExecutionStorage,
-        cache: SemanticCache | None = None,
+        engine: BaseRAGPipeline,
+        storage: BaseExecutionStorage,
+        cache: BaseCache | None = None,
         settings: BenchmarkSettings | None = None,
     ):
         self.engine = engine
         self.storage = storage
-        self.settings = settings or global_settings
+        self.settings = settings or get_settings()
         self.cache = cache or SemanticCache(threshold=self.settings.cache_threshold)
 
     @staticmethod
@@ -90,9 +88,12 @@ class BenchmarkRunner:
         concurrency: int = 10,
         resume: bool = True,
         on_progress: Callable[[int, int, QueryExecutionRecord], None] | None = None,
+        show_progress: bool = True,
     ) -> list[QueryExecutionRecord]:
         """Executa lote de perguntas com controle de concorrência e checkpointing."""
-        completed_indices = self.storage.get_completed_indices() if resume else set()
+        completed_indices = (
+            await asyncio.to_thread(self.storage.get_completed_indices) if resume else set()
+        )
         total_queries = len(queries)
 
         if completed_indices:
@@ -103,10 +104,10 @@ class BenchmarkRunner:
         semaphore = asyncio.Semaphore(concurrency)
         results: list[QueryExecutionRecord] = []
 
-        async def worker(idx: int, query_text: str) -> QueryExecutionRecord:
+        async def worker(idx: int, query_text: str) -> QueryExecutionRecord | None:
             if idx in completed_indices:
                 # Já executado e salvo anteriormente
-                return None  # type: ignore
+                return None
 
             async with semaphore:
                 start_time = time.perf_counter()
@@ -131,7 +132,7 @@ class BenchmarkRunner:
                                 time.perf_counter() - start_time, 4
                             )
                             record.status = RagExecutionStatus.SUCCESS
-                            self.storage.save_record(record)
+                            await asyncio.to_thread(self.storage.save_record, record)
                             return record
                 except Exception as e:
                     logger.debug(f"Bypass de cache devido a erro transitório: {e}")
@@ -179,10 +180,20 @@ class BenchmarkRunner:
                     record.total_latency_seconds = round(total_latency, 4)
                     logger.error(f"Erro na query #{idx}: {record.error_message}")
 
-                self.storage.save_record(record)
+                await asyncio.to_thread(self.storage.save_record, record)
                 return record
 
         tasks = [worker(i, q) for i, q in enumerate(queries)]
+
+        if not show_progress:
+            # Caminho silencioso para testes e uso programático (sem rich).
+            for coro in asyncio.as_completed(tasks):
+                res = await coro
+                if res is not None:
+                    results.append(res)
+                    if on_progress:
+                        on_progress(len(results), total_queries, res)
+                return await asyncio.to_thread(self.storage.load_all_records)
 
         with Progress(
             SpinnerColumn(),
@@ -203,4 +214,4 @@ class BenchmarkRunner:
                     if on_progress:
                         on_progress(len(results), total_queries, res)
 
-        return self.storage.load_all_records()
+            return await asyncio.to_thread(self.storage.load_all_records)
