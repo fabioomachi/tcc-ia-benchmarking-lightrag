@@ -1,6 +1,6 @@
 # ragbench — RAG Benchmarking Framework
 
-Framework de benchmarking para arquiteturas **RAG (Retrieval-Augmented Generation)**, especializado em **Knowledge Graph RAG** com inferência local via [Ollama](https://ollama.com) e avaliação analítica com **LLM-as-a-Judge** via [RAGAS](https://docs.ragas.io).
+Framework de benchmarking para arquiteturas **RAG (Retrieval-Augmented Generation)**, especializado em **Knowledge Graph RAG** com transporte unificado via API Gemini (OpenAI-compatível) e avaliação analítica com **LLM-as-a-Judge** via [RAGAS](https://docs.ragas.io). Ollama local é mantido apenas como fallback.
 
 Desenvolvido como projeto de TCC sobre avaliação de arquiteturas de IA para domínios regulatórios.
 
@@ -41,16 +41,21 @@ POPs (documentos-fonte)
 |---|---|---|
 | Python | 3.11+ | Usar 3.12 recomendado |
 | [uv](https://docs.astral.sh/uv/) | 0.4+ | Gerenciador de pacotes |
-| [Ollama](https://ollama.com) | qualquer | Rodando localmente em `localhost:11434` |
+| API key Google (Gemini) | — | Obrigatória; configurada em `OLLAMA__API_KEY` no `.env` |
+| [Ollama](https://ollama.com) | qualquer | Opcional — apenas fallback local (`localhost:11434`) |
 
-### Modelos Ollama necessários
+### Modelos por papel (transporte Gemini unificado)
 
-```bash
-ollama pull qwen2.5:7b          # LLM principal para consultas e geração de dataset
-ollama pull qwen2.5:3b          # LLM de inferência (mais leve, para indexação)
-ollama pull nomic-embed-text    # Embeddings semânticos (RAGAS)
-ollama pull all-minilm          # Embeddings para o índice LightRAG
-```
+Index, chat e eval compartilham o mesmo pipeline resiliente (rate-limit + retries + streaming) e se diferenciam **apenas** pelo nome do modelo:
+
+| Papel | Variável | Padrão no código | Exemplo no `.env` |
+|---|---|---|---|
+| Index (LightRAG) | `LIGHTRAG__LLM_MODEL` | `qwen2.5:1.5b` | `gemini-3.5-flash-lite` |
+| Chat / query | `CHAT__LLM_MODEL` | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` |
+| Juiz RAGAS | `RAGAS__JUDGE_MODEL` | `gemini-3.8-flash` | `gemini-3.5-flash-lite` |
+| Embeddings (fonte única) | `LIGHTRAG__EMBED_MODEL` / `RAGAS__EMBED_MODEL` | `gemini-embedding-001` (768 dim) | `gemini-embedding-001` |
+
+> Os embeddings são sempre os do index (`gemini-embedding-001`/768 via REST `:embedContent`) — o endpoint OpenAI-compatível do Gemini não implementa `/embeddings` (retorna 501), por isso o eval usa REST nativo. Modelos sem prefixo `gemini-` usam o fallback Ollama local.
 
 ---
 
@@ -64,7 +69,7 @@ cd tcc-ia-benchmarking-lightrag
 # Instalar dependências (cria .venv automaticamente)
 uv pip install -e ".[all]"
 
-# Configurar variáveis de ambiente (opcional — os defaults funcionam para Ollama local)
+# Configurar variáveis de ambiente (obrigatório: preencher OLLAMA__API_KEY com a chave do Gemini)
 cp .env.example .env
 ```
 
@@ -86,17 +91,18 @@ tcc-ia-benchmarking-lightrag/
 │
 ├── src/
 │   └── ragbench/                # Pacote principal (Hexagonal Architecture)
-│       ├── cli.py               # Interface CLI (Typer)
+│       ├── cli.py               # Registro dos comandos Typer (wiring fino)
+│       ├── cli_commands/        # Implementação dos comandos (health, index, dataset, run, eval, chat)
 │       ├── config.py            # Configuração centralizada (Pydantic Settings)
 │       ├── runner.py            # Orquestrador de benchmark assíncrono
 │       ├── core/                # Domínio: modelos, interfaces, exceções
 │       ├── engines/             # Adaptadores RAG (LightRAG)
 │       ├── evaluation/          # Geração de dataset e avaliação RAGAS
-│       ├── infrastructure/      # Cache semântico, storage SQLite/JSONL, cliente Ollama
+│       ├── infrastructure/      # Cache semântico, storage SQLite/JSONL, clientes Gemini/Ollama
 │       └── reporting/           # Geração de relatórios Markdown e CSV
 │
 ├── tests/
-│   └── unit/                    # Testes unitários (pytest)
+│   └── unit/                    # Testes unitários (pytest, gate de cobertura 80%)
 │
 ├── lightrag_ollama_db/          # Índice LightRAG em disco (gerado em runtime, git-ignored)
 └── runs/                        # Resultados de benchmark por execução (git-ignored)
@@ -152,7 +158,7 @@ Parâmetros disponíveis:
 | `--target` | `data/golden_dataset.json` | Arquivo ou pasta de perguntas |
 | `--mode` | `hybrid` | Modo LightRAG: `naive`, `local`, `global`, `hybrid` |
 | `--top-k` | `5` | Chunks/entidades recuperados por consulta |
-| `--concurrency` | `10` | Requisições concorrentes ao Ollama |
+| `--concurrency` | `10` | Requisições concorrentes (respeitando o rate-limit do Gemini, 4.2s) |
 | `--run-name` | `run_<timestamp>_<mode>` | Nome identificador da execução |
 | `--resume` / `--no-resume` | `True` | Retoma de checkpoint anterior |
 
@@ -172,15 +178,24 @@ uv run ragbench run --run-name exp_hybrid --mode hybrid
 uv run ragbench eval --run-id meu_experimento
 ```
 
-Gera em `runs/meu_experimento/`:
+Gera em `runs/meu_experimento/` (mais cópia em `resultados/`):
 - `ragas_evaluation_results.csv` — métricas por pergunta
 - `resumo_qualidade_ragas.md` — relatório com análise de casos críticos
+
+Notas:
+- O juiz usa `RAGAS__JUDGE_MODEL` via transporte Gemini (modelos `gemini-*`; demais caem no Ollama local).
+- `answer_relevancy` roda com `strictness=1` no Gemini (o padrão `n=3` é rejeitado com 400 — múltiplos candidatos não suportados).
+- Resiliência a 429/503 transitórios: `RAGAS__JUDGE_MAX_RETRIES=8`, `RAGAS__RUN_MAX_RETRIES=15`, `RAGAS__RUN_MAX_WAIT=180`. O alerta de NaN considera só as colunas de métrica (telemetria nula no checkpoint, ex: `ttft_s`, não conta).
 
 ### 5. Chat interativo
 
 ```bash
 uv run ragbench chat --mode hybrid
+# ou com override pontual do modelo de chat (mesmo pipeline, outro modelo):
+uv run ragbench chat --chat-model gemini-3.1-flash-lite
 ```
+
+Usa o mesmo pipeline resiliente do index, gerando com `CHAT__LLM_MODEL`, com cache semântico, histórico por janela deslizante e telemetria (latência total + TTFT).
 
 ---
 
@@ -202,7 +217,7 @@ uv run ragbench chat --mode hybrid
 uv run ruff check .
 uv run ruff format --check .
 
-# Testes unitários
+# Testes unitários (gate de cobertura: 80%)
 uv run pytest tests/
 
 # Instalar dependências de desenvolvimento
@@ -213,10 +228,10 @@ uv pip install -e ".[dev]"
 
 ## Arquitetura
 
-O `ragbench` segue **Ports & Adapters (Hexagonal Architecture)**:
+O `ragbench` segue **Ports & Adapters (Hexagonal Architecture)** com transporte LLM unificado:
 
 - **`core/`** — Domínio puro: schemas Pydantic, protocolos (`BaseRAGPipeline`, `BaseCache`), exceções. Zero dependência de frameworks externos.
-- **`engines/`** — Adaptadores de RAG. `LightRAGEngine` implementa `BaseRAGPipeline`. Novos motores (ex: GraphRAG, Chroma) podem ser adicionados sem alterar o core.
-- **`infrastructure/`** — Implementações concretas de cache, storage e cliente HTTP. `SQLiteExecutionStorage` garante checkpointing atômico e suporte a `--resume` para runs de 1000+ perguntas.
-- **`evaluation/`** — Pipeline de geração adversarial e avaliação LLM-as-a-Judge totalmente desacoplado do motor de consulta.
-- **`cli.py`** — Ponto de entrada único. Toda orquestração via Typer.
+- **`engines/`** — Adaptadores de RAG. `LightRAGEngine` (roles `index`/`chat`) sobre `ResilientOllamaClient` (Gemini). Index e chat diferem só no modelo (`LIGHTRAG__LLM_MODEL` ≠ `CHAT__LLM_MODEL`); embeddings sempre via index.
+- **`infrastructure/`** — Implementações concretas de cache, storage e cliente HTTP. `SQLiteExecutionStorage` garante checkpointing atômico e suporte a `--resume` para runs de 1000+ perguntas. `OllamaChatClient` (REST nativa) mantido para fallback local e `health`.
+- **`evaluation/`** — Pipeline de geração adversarial e avaliação LLM-as-a-Judge com juiz dedicado (`RAGAS__JUDGE_MODEL`, `GeminiRestEmbeddings` via REST).
+- **`cli.py` + `cli_commands/`** — Ponto de entrada único. `cli.py` só registra os comandos Typer; a implementação vive em `cli_commands/` (um módulo por comando) com injeção via `deps` (testável com factories).
