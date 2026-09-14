@@ -179,6 +179,9 @@ class BenchmarkRunner:
                     record.total_latency_seconds = round(total_latency, 4)
                     logger.error(f"Erro na query #{idx}: {record.error_message}")
 
+                self.storage.save_record(record)
+                return record
+
         tasks = [worker(i, q) for i, q in enumerate(queries)]
 
         with Progress(

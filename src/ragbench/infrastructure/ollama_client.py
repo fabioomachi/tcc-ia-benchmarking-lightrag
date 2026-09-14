@@ -178,26 +178,19 @@ class ResilientOllamaClient:
 
 
 class OllamaChatClient:
-    """Cliente Ollama local para chat/query (ex: qwen3.5:4b + all-minilm).
-
-    Sem lógica Gemini (sem rate-limit agressivo, sem REST de embeddings
-    do Google). Usa a API OpenAI-compatível do Ollama local.
-    """
+    """Cliente Ollama local usando a API REST nativa para garantir a injeção do limite de contexto."""
 
     def __init__(self, settings: ChatSettings):
         self.settings = settings
-        self.client = AsyncOpenAI(
-            base_url=settings.base_url,
-            api_key=settings.api_key,
-            timeout=httpx.Timeout(settings.request_timeout, connect=settings.connect_timeout),
-            max_retries=settings.max_retries,
-        )
 
     async def check_health(self) -> bool:
-        """Verifica a conectividade com o Ollama local."""
+        """Verifica a conectividade com o Ollama local via API nativa."""
+        base = self.settings.base_url.rstrip("/").removesuffix("/v1")
+        url = f"{base}/api/tags"
         try:
-            await self.client.models.list()
-            return True
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(url)
+                return resp.status_code == 200
         except Exception as e:
             logger.warning(f"Ollama local indisponível: {e}")
             return False
@@ -210,31 +203,49 @@ class OllamaChatClient:
         stream: bool = False,
         **kwargs: Any,
     ) -> str | AsyncGenerator[str, None]:
-        """Gera respostas via Ollama local."""
+        import json
+
         effective_model = model or self.settings.llm_model
         effective_temperature = self.settings.temperature if temperature is None else temperature
-        effective_max_tokens = kwargs.pop("max_tokens", self.settings.max_tokens)
-        valid_kwargs = {k: v for k, v in kwargs.items() if k in ["top_p", "response_format"]}
 
-        response = await self.client.chat.completions.create(
-            model=effective_model,
-            messages=messages or [],
-            temperature=effective_temperature,
-            max_tokens=effective_max_tokens,
-            stream=stream,
-            **valid_kwargs,
-        )
+        # Força o uso da API REST nativa do Ollama ao invés do wrapper OpenAI
+        base = self.settings.base_url.rstrip("/").removesuffix("/v1")
+        url = f"{base}/api/chat"
+        timeout = httpx.Timeout(self.settings.request_timeout)
+
+        payload = {
+            "model": effective_model,
+            "messages": messages or [],
+            "stream": stream,
+            "options": {
+                "temperature": effective_temperature,
+                "num_ctx": self.settings.num_ctx,  # Aqui garantimos o respeito aos 16k tokens
+            },
+        }
 
         if stream:
 
-            async def stream_generator(stream_resp=response):
-                async for chunk in stream_resp:
-                    content = chunk.choices[0].delta.content
-                    if content:
-                        yield content
+            async def stream_generator():
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    async with client.stream("POST", url, json=payload) as resp:
+                        resp.raise_for_status()
+                        async for line in resp.aiter_lines():
+                            if line:
+                                try:
+                                    data = json.loads(line)
+                                    content = data.get("message", {}).get("content", "")
+                                    if content:
+                                        yield content
+                                except Exception:
+                                    pass
 
             return stream_generator()
-        return response.choices[0].message.content or ""
+
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.post(url, json=payload)
+            resp.raise_for_status()
+            data = resp.json()
+            return data.get("message", {}).get("content", "")
 
     async def get_embeddings(
         self, model: str | None = None, texts: list[str] | None = None, **kwargs: Any

@@ -16,19 +16,39 @@ class BenchmarkReporter:
         df.to_csv(output_path, index=False, encoding="utf-8-sig")
         return output_path
 
-    @staticmethod
-    def generate_execution_markdown_report(
-        records: list[QueryExecutionRecord], output_path: Path
-    ) -> Path:
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        data = [r.model_dump() for r in records]
+    @classmethod
+    def generate_execution_markdown_report(cls, records: list, output_path: Path) -> None:
+        # Garante conversão segura dos objetos Pydantic/dataclass para dict
+        data = [rec.model_dump() if hasattr(rec, "model_dump") else rec.__dict__ for rec in records]
         df = pd.DataFrame(data)
 
+        if df.empty:
+            output_path.write_text(
+                "# Resumo do Benchmark\n\nNenhum registro encontrado.", encoding="utf-8"
+            )
+            return
+
         total_queries = len(df)
-        success_queries = len(df[df["status"] == "success"])
-        cache_hits = len(df[df["source"] == "semantic_cache"])
-        engine_queries = len(df[df["source"] == "lightrag_engine"])
-        mean_latency = df["total_latency_seconds"].mean() if total_queries else 0.0
+
+        # Tratamento defensivo caso a coluna 'status' venha com o objeto Enum ou nome diferente
+        if "status" in df.columns:
+            # Extrai o valor do Enum caso esteja serializado como objeto
+            df["status_str"] = df["status"].apply(lambda x: getattr(x, "value", str(x)).lower())
+            success_queries = len(df[df["status_str"] == "success"])
+        else:
+            success_queries = total_queries
+
+        if "source" in df.columns:
+            df["source_str"] = df["source"].apply(lambda x: getattr(x, "value", str(x)).lower())
+            cache_hits = len(df[df["source_str"] == "semantic_cache"])
+            engine_queries = len(df[df["source_str"] == "lightrag_engine"])
+        else:
+            cache_hits = 0
+            engine_queries = total_queries
+
+        mean_latency = (
+            df["total_latency_seconds"].mean() if "total_latency_seconds" in df.columns else 0.0
+        )
 
         ttft_series = df["ttft_seconds"].dropna()
         mean_ttft = ttft_series.mean() if not ttft_series.empty else 0.0
