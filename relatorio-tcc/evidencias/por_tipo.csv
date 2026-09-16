@@ -1,0 +1,26 @@
+# baseline_hybrid_4
+question_type,faithfulness,answer_relevancy,context_recall,context_precision
+CONDITIONAL_WORKFLOW,0.5,0.4629,0.625,1.0
+ROLE_RESTRICTION,0.8571,0.8666,0.8333,1.0
+
+# clarify_fixo_24
+question_type,faithfulness,answer_relevancy,context_recall,context_precision
+CONDITIONAL_WORKFLOW,0.8049,0.775,1.0,1.0
+EDGE_CASE,0.4578,0.4849,0.9,1.0
+REGULATORY_TIMELINE,0.7571,0.6429,1.0,1.0
+ROLE_RESTRICTION,0.8538,0.8189,1.0,1.0
+
+# clarify_roteado_24
+question_type,faithfulness,answer_relevancy,context_recall,context_precision
+CONDITIONAL_WORKFLOW,0.9055,0.7945,1.0,1.0
+EDGE_CASE,0.6456,0.6621,0.9,1.0
+REGULATORY_TIMELINE,0.8992,0.8198,1.0,1.0
+ROLE_RESTRICTION,0.9404,0.8209,0.9,1.0
+
+# llm_direto_completa_24
+question_type,faithfulness,answer_relevancy,context_recall,context_precision
+CONDITIONAL_WORKFLOW,0.2037,0.8102,1.0,1.0
+EDGE_CASE,0.2365,0.8526,0.9333,1.0
+REGULATORY_TIMELINE,0.2125,0.8335,1.0,1.0
+ROLE_RESTRICTION,0.0877,0.7926,1.0,1.0
+

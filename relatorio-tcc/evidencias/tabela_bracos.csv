@@ -1,0 +1,5 @@
+,faithfulness,answer_relevancy,context_recall,context_precision
+baseline_hybrid_4,0.6786,0.6647,0.7292,1.0
+clarify_fixo_24,0.7349,0.698,0.9792,1.0
+clarify_roteado_24,0.8588,0.7788,0.9565,1.0
+llm_direto_completa_24,0.1834,0.8195,0.9861,1.0
