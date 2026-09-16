@@ -310,6 +310,30 @@ class LightRAGEngine:
         )
         return await self.rag.aquery(query, param=param)
 
+    async def aget_context(
+        self,
+        query: str,
+        mode: SearchMode | str = SearchMode.HYBRID,
+        top_k: int = 5,
+    ) -> str:
+        """Retorna só o contexto recuperado (sem gerar resposta LLM).
+
+        Spike hipótese: permite auditar qual documento o retrieval privilegia
+        por modo (naive/local/global/hybrid) sem custo de geração.
+        """
+        if not self.rag:
+            raise RuntimeError("Motor LightRAG não foi inicializado. Chame initialize() primeiro.")
+
+        mode_str = mode.value if isinstance(mode, SearchMode) else str(mode)
+        param = QueryParam(mode=mode_str, top_k=top_k, only_need_context=True)
+        result = await self.rag.aquery(query, param=param)
+        if isinstance(result, str):
+            return result
+        full = ""
+        async for chunk in result:
+            full += chunk
+        return full
+
     async def ainsert(self, text: str) -> None:
         """Insere conteúdo textual no grafo."""
         if not self.rag:

@@ -2,7 +2,19 @@
 
 import typer
 
-from ragbench.cli_commands import chat_cmd, dataset, deps, eval_cmd, health, index_cmd, run_cmd
+from ragbench.cli_commands import (
+    chat_cmd,
+    clarify_cmd,
+    dataset,
+    deps,
+    eval_cmd,
+    health,
+    index_cmd,
+    probe_cmd,
+    run_clarify_cmd,
+    run_cmd,
+    run_direct_cmd,
+)
 
 app = typer.Typer(
     name="ragbench",
@@ -28,6 +40,10 @@ app.command("generate-dataset")(dataset.generate_dataset)
 app.command("run")(run_cmd.run_benchmark)
 app.command("eval")(eval_cmd.evaluate_run)
 app.command("chat")(chat_cmd.interactive_chat)
+app.command("chat-clarify")(clarify_cmd.interactive_clarify_chat)
+app.command("run-clarify")(run_clarify_cmd.run_clarify_batch)
+app.command("run-direct")(run_direct_cmd.run_direct_batch)
+app.command("probe-retrieval")(probe_cmd.probe_retrieval)
 
 
 if __name__ == "__main__":

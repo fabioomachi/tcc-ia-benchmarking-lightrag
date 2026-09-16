@@ -35,6 +35,7 @@ def resolve_eval_db_path(runs_dir: Path, run_id: str | None, checkpoint: Path | 
 def evaluate_run(
     run_id: Annotated[str | None, typer.Option(help="ID da run a avaliar")] = None,
     checkpoint: Annotated[Path | None, typer.Option(help="Caminho do checkpoint.sqlite3")] = None,
+    golden: Annotated[Path | None, typer.Option(help="Golden dataset específico")] = None,
 ) -> None:
     """Executa a avaliação de qualidade LLM-as-a-Judge (RAGAS) em uma execução anterior."""
     settings = deps.get_settings()
@@ -49,8 +50,17 @@ def evaluate_run(
     storage = SQLiteExecutionStorage(db_path)
     records = storage.load_all_records()
 
+    golden_path = golden
+    if golden_path is None:
+        # run-clarify gera golden.json próprio (queries enriquecidas); usa ele
+        # automaticamente quando existir, senão cai no golden padrão.
+        run_golden = db_path.parent / "golden.json"
+        if run_golden.exists():
+            golden_path = run_golden
+            deps.console.print(f"[dim]Usando golden da run: {golden_path}[/dim]")
+
     evaluator = RagasEvaluator(settings=settings)
-    df_results = evaluator.run_evaluation(records)
+    df_results = evaluator.run_evaluation(records, golden_path=golden_path)
 
     out_csv = db_path.parent / "ragas_evaluation_results.csv"
     out_md = db_path.parent / "resumo_qualidade_ragas.md"

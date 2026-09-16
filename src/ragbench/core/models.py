@@ -22,6 +22,7 @@ class SearchMode(StrEnum):
     LOCAL = "local"
     GLOBAL = "global"
     HYBRID = "hybrid"
+    DIRECT = "direct"  # Baseline LLM puro: sem grafo, sem retrieval.
 
 
 class GoldenQuestion(BaseModel):

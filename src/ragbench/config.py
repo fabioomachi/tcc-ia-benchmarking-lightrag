@@ -140,6 +140,24 @@ class LoggingSettings(BaseModel):
     capture_warnings: bool = True
 
 
+class ClarifySettings(BaseModel):
+    """Configurações do spike de clarificação conversacional (hipótese)."""
+
+    max_turns: int = 3
+    require_all_slots: bool = False
+
+
+class RoutingSettings(BaseModel):
+    """Roteador só-grafo: decide acesso-vs-CDC pelo índice de entidades."""
+
+    enabled: bool = True
+    margin_min: float = 0.05
+    acesso_mode: str = "local"
+    acesso_top_k: int = 10
+    cdc_mode: str = "hybrid"
+    cdc_top_k: int = 5
+
+
 class BenchmarkSettings(BaseSettings):
     """Configurações globais e orquestração do benchmark."""
 
@@ -156,6 +174,8 @@ class BenchmarkSettings(BaseSettings):
     chat: ChatSettings = Field(default_factory=ChatSettings)
     ragas: RagasSettings = Field(default_factory=RagasSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
+    clarify: ClarifySettings = Field(default_factory=ClarifySettings)
+    routing: RoutingSettings = Field(default_factory=RoutingSettings)
 
     # Hiperparâmetros de execução
     concurrency_limit: int = 10
