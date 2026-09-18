@@ -1,0 +1,369 @@
+[
+  {
+    "index": 0,
+    "id": "acesso_bloqueio_u8_site",
+    "branch": "ACESSO_GENERICO",
+    "doc": "pop_acesso_pf.md",
+    "confident": true,
+    "slots_preenchidos": {
+      "canal_tentado": "site",
+      "codigo_bloqueio": "U",
+      "alfa_code": "não",
+      "biometria_dias": "5"
+    },
+    "clarify_turns": 3,
+    "query_enriquecida": "Minha senha bloqueou, como desbloqueio pelo site?\n[Dados coletados via clarificação: alfa_code=não; biometria_dias=5; canal_tentado=site; codigo_bloqueio=U]",
+    "ground_truth": "Não consegue pelo site: bloqueio 'U' da senha de 6 dígitos não admite desbloqueio, só alteração; site exige Alfa Code ou biometria há mais de 7 dias; biometria com 5 dias é insuficiente. Regularizar presencial na agência, alterando primeiro a de 8 dígitos e depois a de 6.",
+    "tipo": "CONDITIONAL_WORKFLOW"
+  },
+  {
+    "index": 1,
+    "id": "acesso_sequestro_senha8",
+    "branch": "ACESSO_GENERICO",
+    "doc": "pop_acesso_pf.md",
+    "confident": true,
+    "slots_preenchidos": {
+      "canal_tentado": "app",
+      "tipo_cliente": "não correntista"
+    },
+    "clarify_turns": 2,
+    "query_enriquecida": "Fui assaltado, preciso bloquear minha senha do cartão. Como faço?\n[Dados coletados via clarificação: canal_tentado=app; tipo_cliente=não correntista]",
+    "ground_truth": "Em assalto/roubo/sequestro, contatar SAC QP/QC ou Plataforma de Relacionamento para rotina de segurança no SISRET X98, rota 800050, informando a conta do cartão. O bloqueio da Senha-8 não bloqueia automaticamente a Conta de Acesso, pois são credenciais de apps distintos.",
+    "tipo": "ROLE_RESTRICTION"
+  },
+  {
+    "index": 2,
+    "id": "acesso_titular_solidario",
+    "branch": "ACESSO_SOLIDARIO",
+    "doc": "pop_acesso_pf.md",
+    "confident": true,
+    "slots_preenchidos": {
+      "canal_tentado": "agência",
+      "tipo_cliente": "correntista"
+    },
+    "clarify_turns": 2,
+    "query_enriquecida": "Meu marido bloqueou a senha, por que não consigo usar a minha?\n[Dados coletados via clarificação: canal_tentado=agência; tipo_cliente=correntista]",
+    "ground_truth": "Titulares solidários compartilham as mesmas senhas de 6 e 8 dígitos e código de acesso; o bloqueio por um titular impede os demais de transacionar. Resolver por alteração das senhas nos canais competentes (agência resolve inclusive bloqueio 'U').",
+    "tipo": "EDGE_CASE"
+  },
+  {
+    "index": 3,
+    "id": "acesso_codigo_deficiente_visual",
+    "branch": "ACESSO_DEFICIENTE_CODIGO",
+    "doc": "pop_acesso_pf.md",
+    "confident": true,
+    "slots_preenchidos": {
+      "codigo_bloqueio": "D",
+      "canal_tentado": "agência",
+      "tipo_cliente": "correntista"
+    },
+    "clarify_turns": 2,
+    "query_enriquecida": "Sou deficiente visual, preciso mesmo de código de acesso?\n[Dados coletados via clarificação: canal_tentado=agência; codigo_bloqueio=D; tipo_cliente=correntista]",
+    "ground_truth": "Cliente com deficiência visual total pode ser dispensado do código de acesso mediante registro da característica no cadastro pela agência. Em conta conjunta, a dispensa vale somente para o titular com a deficiência.",
+    "tipo": "ROLE_RESTRICTION"
+  },
+  {
+    "index": 4,
+    "id": "acesso_exterior_bloqueio_u",
+    "branch": "ACESSO_EXTERIOR_U",
+    "doc": "pop_acesso_pf.md",
+    "confident": true,
+    "slots_preenchidos": {
+      "codigo_bloqueio": "U",
+      "canal_tentado": "app",
+      "tipo_cliente": "correntista"
+    },
+    "clarify_turns": 3,
+    "query_enriquecida": "Estou fora do país e minha senha bloqueou. E agora?\n[Dados coletados via clarificação: canal_tentado=app; codigo_bloqueio=U; tipo_cliente=correntista]",
+    "ground_truth": "Não: agências no exterior só operam senhas em Tóquio; representante legal com procuração pode atuar no Brasil; a declaração por e-mail do MCI vale só para bloqueio por erro, nunca para bloqueio 'U' por suspeita de fraude. Usar Central de Senhas no App Alfa quando elegível.",
+    "tipo": "CONDITIONAL_WORKFLOW"
+  },
+  {
+    "index": 5,
+    "id": "acesso_portador_adicional",
+    "branch": "ACESSO_ADICIONAL",
+    "doc": "pop_acesso_pf.md",
+    "confident": true,
+    "slots_preenchidos": {
+      "canal_tentado": "agência",
+      "tipo_cliente": "correntista"
+    },
+    "clarify_turns": 2,
+    "query_enriquecida": "O cartão adicional do meu filho chegou sem senha. O que fazer?\n[Dados coletados via clarificação: canal_tentado=agência; tipo_cliente=correntista]",
+    "ground_truth": "Adicional não correntista cadastra nova senha de 6 dígitos presencialmente em qualquer agência. Adicional correntista usa a própria senha da sua conta (ou item 3 se Gold/enviada por correio).",
+    "tipo": "EDGE_CASE"
+  },
+  {
+    "index": 6,
+    "id": "acesso_sms_nao_cadastrada",
+    "branch": "ACESSO_SMS_ALTERACAO",
+    "doc": "pop_acesso_pf.md",
+    "confident": true,
+    "slots_preenchidos": {
+      "canal_tentado": "site",
+      "tipo_cliente": "não correntista"
+    },
+    "clarify_turns": 2,
+    "query_enriquecida": "Quero receber a senha por SMS. Pode enviar?\n[Dados coletados via clarificação: canal_tentado=site; tipo_cliente=não correntista]",
+    "ground_truth": "Não: geração de senha por SMS serve só para alteração, nunca para primeira senha 'não cadastrada/a cadastrar'. Orientar 8 dígitos via App Alfa (dispositivo autorizado com Alfa Code/push) e 6 dígitos presencial na agência.",
+    "tipo": "CONDITIONAL_WORKFLOW"
+  },
+  {
+    "index": 7,
+    "id": "acesso_chip_taa",
+    "branch": "ACESSO_CHIP_TAA",
+    "doc": "pop_acesso_pf.md",
+    "confident": true,
+    "slots_preenchidos": {
+      "canal_tentado": "app",
+      "tipo_cliente": "correntista"
+    },
+    "clarify_turns": 2,
+    "query_enriquecida": "Troquei a senha do cartão com chip e não funciona. Por quê?\n[Dados coletados via clarificação: canal_tentado=app; tipo_cliente=correntista]",
+    "ground_truth": "Após alterar a senha de 6 dígitos de cartão com chip, é obrigatório atualizar o chip em qualquer TAA; sem isso a nova senha não funciona no presencial. Carteiras digitais seguem normais após a troca.",
+    "tipo": "REGULATORY_TIMELINE"
+  },
+  {
+    "index": 8,
+    "id": "acesso_codigo_q_apf",
+    "branch": "ACESSO_CODIGO_Q",
+    "doc": "pop_acesso_pf.md",
+    "confident": true,
+    "slots_preenchidos": {
+      "codigo_bloqueio": "Q",
+      "biometria_dias": "5",
+      "canal_tentado": "app"
+    },
+    "clarify_turns": 2,
+    "query_enriquecida": "Alterei a senha no celular e apareceu código Q. O que significa?\n[Dados coletados via clarificação: biometria_dias=5; canal_tentado=app; codigo_bloqueio=Q]",
+    "ground_truth": "Código 'Q' indica alteração pendente de confirmação na TAA com biometria cadastrada há mais de 7 dias. Com 5 dias, ainda não atende ao requisito; confirmar na TAA após completar 7 dias ou de forma assistida.",
+    "tipo": "EDGE_CASE"
+  },
+  {
+    "index": 9,
+    "id": "acesso_conta_vs_senha8",
+    "branch": "ACESSO_CONTA_VS_SENHA8",
+    "doc": "pop_acesso_pf.md",
+    "confident": true,
+    "slots_preenchidos": {
+      "canal_tentado": "app",
+      "tipo_cliente": "não correntista"
+    },
+    "clarify_turns": 1,
+    "query_enriquecida": "Não entro no App Alfa com a senha do cartão. Por quê?\n[Dados coletados via clarificação: canal_tentado=app; tipo_cliente=não correntista]",
+    "ground_truth": "São credenciais distintas: Conta de Acesso acessa o App Alfa e Senha-8 acessa o App Cartão Alfa. Quem tem só Senha-8 não entra no App Alfa; precisa cadastrar senha separada via 'Esqueci senha'. Identificar via SISRET X69 ou Plataforma Gerenciamento de Senhas 3.0.",
+    "tipo": "CONDITIONAL_WORKFLOW"
+  },
+  {
+    "index": 10,
+    "id": "acesso_sac_alcada_u",
+    "branch": "ACESSO_SAC_ALCADA_U",
+    "doc": "pop_acesso_pf.md",
+    "confident": true,
+    "slots_preenchidos": {
+      "codigo_bloqueio": "U",
+      "canal_tentado": "site",
+      "tipo_cliente": "correntista"
+    },
+    "clarify_turns": 3,
+    "query_enriquecida": "Minha senha deu bloqueio U, o SAC resolve?\n[Dados coletados via clarificação: canal_tentado=site; codigo_bloqueio=U; tipo_cliente=correntista]",
+    "ground_truth": "Bloqueio 'U' não usa geração de senha comum: SAC Receptivo QP encaminha à Célula de Segurança (rotina 50130), SAC Soluções QP à 50131, SAC QC à 50112; Plataforma de Relacionamento orienta contato com o SAC.",
+    "tipo": "ROLE_RESTRICTION"
+  },
+  {
+    "index": 11,
+    "id": "acesso_site_biometria_7dias",
+    "branch": "ACESSO_SITE_BIOMETRIA_PENDENTE",
+    "doc": "pop_acesso_pf.md",
+    "confident": false,
+    "slots_preenchidos": {
+      "alfa_code": "não",
+      "canal_tentado": "site",
+      "biometria_dias": "10"
+    },
+    "clarify_turns": 1,
+    "query_enriquecida": "Consigo trocar a senha pelo site sem Alfa Code?\n[Dados coletados via clarificação: alfa_code=não; biometria_dias=10; canal_tentado=site]",
+    "ground_truth": "Sim, sem Alfa Code o site exige confirmação em TAA com biometria há mais de 7 dias (ou assistida). Com 10 dias, o fluxo é permitido; com menos de 7 dias ou bloqueio 'U'/'8', o site não permite.",
+    "tipo": "REGULATORY_TIMELINE"
+  },
+  {
+    "index": 12,
+    "id": "cdc_cancelamento_2881_doc",
+    "branch": "CDC_CANCEL_2881_DOC",
+    "doc": "pop_cdc_pf.md",
+    "confident": true,
+    "slots_preenchidos": {
+      "canal_tentado": "app",
+      "tipo_cliente": "correntista"
+    },
+    "clarify_turns": 2,
+    "query_enriquecida": "Quero cancelar meu CDC renovação, como faço?\n[Dados coletados via clarificação: canal_tentado=app; tipo_cliente=correntista]",
+    "ground_truth": "Cancelamento da linha 2881 para o convênio 700001 é restrito ao DOC (800020). Atendente não cancela direto; deve verificar margem consignável para reaverbação das operações vinculadas antes de encaminhar.",
+    "tipo": "ROLE_RESTRICTION"
+  },
+  {
+    "index": 13,
+    "id": "cdc_duplicidade_boleto",
+    "branch": "CDC_GENERICO",
+    "doc": "pop_cdc_pf.md",
+    "confident": true,
+    "slots_preenchidos": {
+      "canal_tentado": "app",
+      "tipo_cliente": "correntista"
+    },
+    "clarify_turns": 2,
+    "query_enriquecida": "Paguei duas vezes a parcela, e agora?\n[Dados coletados via clarificação: canal_tentado=app; tipo_cliente=correntista]",
+    "ground_truth": "Confirmada duplicidade sem estorno, estornar primeiro o Boleto Bancário e depois o Recebimento Automático (só sem débitos pendentes e sem gerar saldo devedor/atraso). Supervisor recebe o valor correto em CDC 13.23 e confirma data retroativa em CDC 13.61.",
+    "tipo": "CONDITIONAL_WORKFLOW"
+  },
+  {
+    "index": 14,
+    "id": "cdc_consignada_d2_inss",
+    "branch": "CDC_GENERICO",
+    "doc": "pop_cdc_pf.md",
+    "confident": true,
+    "slots_preenchidos": {
+      "canal_tentado": "app",
+      "tipo_cliente": "correntista"
+    },
+    "clarify_turns": 2,
+    "query_enriquecida": "Descontaram no contracheque e na conta. Quando volta?\n[Dados coletados via clarificação: canal_tentado=app; tipo_cliente=correntista]",
+    "ground_truth": "Liquidado/renovado com consignação indevida tem estorno automático em conta em até D+2 dias úteis, exceto convênio 900001 (INSS, devolução a partir do 5º dia útil) e 900002 (MPDG, até o 1º dia útil).",
+    "tipo": "REGULATORY_TIMELINE"
+  },
+  {
+    "index": 15,
+    "id": "cdc_linear_consignado",
+    "branch": "CDC_LINEAR_VEDADO",
+    "doc": "pop_cdc_pf.md",
+    "confident": true,
+    "slots_preenchidos": {
+      "canal_tentado": "agência",
+      "tipo_cliente": "correntista"
+    },
+    "clarify_turns": 2,
+    "query_enriquecida": "Quero amortizar para baixar o valor das parcelas. Pode ser linear?\n[Dados coletados via clarificação: canal_tentado=agência; tipo_cliente=correntista]",
+    "ground_truth": "Não: amortização linear é vedada para CDC Consignado (e para operações fora do status Normal, com pagamento parcial, em cobrança ou com Pula-Parcela). Para Consignação/Renovação prefira ordem decrescente para evitar duplicidade em folha.",
+    "tipo": "EDGE_CASE"
+  },
+  {
+    "index": 16,
+    "id": "cdc_perdas_nao_informar",
+    "branch": "CDC_PERDAS",
+    "doc": "pop_cdc_pf.md",
+    "confident": true,
+    "slots_preenchidos": {
+      "canal_tentado": "agência",
+      "tipo_cliente": "correntista"
+    },
+    "clarify_turns": 2,
+    "query_enriquecida": "Minha operação está em perdas? Posso liquidar no débito?\n[Dados coletados via clarificação: canal_tentado=agência; tipo_cliente=correntista]",
+    "ground_truth": "Não informar ao cliente que a operação está em prejuízo. Com saldo suficiente, liquidar via CDC 13-34 com confirmação do supervisor em CDC 13-36; parcial via CDC 13-35 com gerente de grupo. Boleto exige ocorrência.",
+    "tipo": "ROLE_RESTRICTION"
+  },
+  {
+    "index": 17,
+    "id": "cdc_anc_vencida",
+    "branch": "CDC_ANC_SEM_LIMITE",
+    "doc": "pop_cdc_pf.md",
+    "confident": true,
+    "slots_preenchidos": {
+      "canal_tentado": "app",
+      "tipo_cliente": "correntista"
+    },
+    "clarify_turns": 2,
+    "query_enriquecida": "Quero contratar CDC mas dizem sem limite. Por quê?\n[Dados coletados via clarificação: canal_tentado=app; tipo_cliente=correntista]",
+    "ground_truth": "Sem limite disponível (ANC vencida/impedida/cancelada ou margem zerada), orientar ida a qualquer agência com RG/CPF e comprovantes de residência e renda de menos de 90 dias; ver rotina 50105 para restabelecimento.",
+    "tipo": "CONDITIONAL_WORKFLOW"
+  },
+  {
+    "index": 18,
+    "id": "cdc_fraude_correspondente",
+    "branch": "CDC_FRAUDE_CORRESPONDENTE",
+    "doc": "pop_cdc_pf.md",
+    "confident": true,
+    "slots_preenchidos": {
+      "canal_tentado": "site",
+      "tipo_cliente": "correntista"
+    },
+    "clarify_turns": 2,
+    "query_enriquecida": "Não reconheço esse empréstimo do correspondente. E agora?\n[Dados coletados via clarificação: canal_tentado=site; tipo_cliente=correntista]",
+    "ground_truth": "Registrar ocorrência e responsabilizar correspondentes/antifraude (800010): assunto 50113 para não reconhecida/divergente, 50114 para suspeita de fraude/golpe com transferência a terceiros, 50115 para pendente de confirmação. Produto/modalidade obrigatório no registro.",
+    "tipo": "ROLE_RESTRICTION"
+  },
+  {
+    "index": 19,
+    "id": "cdc_limite_usando_cancelar",
+    "branch": "CDC_LIMITE_CANCELAMENTO",
+    "doc": "pop_cdc_pf.md",
+    "confident": true,
+    "slots_preenchidos": {
+      "canal_tentado": "agência",
+      "tipo_cliente": "correntista"
+    },
+    "clarify_turns": 2,
+    "query_enriquecida": "Quero cancelar meu Limite Especial. Pode?\n[Dados coletados via clarificação: canal_tentado=agência; tipo_cliente=correntista]",
+    "ground_truth": "Não com o limite em uso: orientar cobrir o saldo primeiro (sondar motivo, oferecer redução a R$ 100, sem tarifa). Com saldo e autenticação, cancelar na plataforma com deferimento do supervisor; em Ouvidoria, cancela direto sem sondagem.",
+    "tipo": "CONDITIONAL_WORKFLOW"
+  },
+  {
+    "index": 20,
+    "id": "cdc_13_aniversario",
+    "branch": "CDC_GENERICO",
+    "doc": "pop_cdc_pf.md",
+    "confident": true,
+    "slots_preenchidos": {
+      "canal_tentado": "app",
+      "tipo_cliente": "correntista"
+    },
+    "clarify_turns": 2,
+    "query_enriquecida": "Quando descontam meu CDC 13º salário?\n[Dados coletados via clarificação: canal_tentado=app; tipo_cliente=correntista]",
+    "ground_truth": "Com convênio, debita na data de cobrança ou no vencimento (30 dias após o crédito), o que ocorrer primeiro; se o 13º é vinculado ao aniversário, cobrança e vencimento caem no mês de aniversário. Sem convênio, debita no vencimento contratado.",
+    "tipo": "REGULATORY_TIMELINE"
+  },
+  {
+    "index": 21,
+    "id": "cdc_irpf_fgts",
+    "branch": "CDC_IRPF_FGTS",
+    "doc": "pop_cdc_pf.md",
+    "confident": true,
+    "slots_preenchidos": {
+      "canal_tentado": "app",
+      "tipo_cliente": "correntista"
+    },
+    "clarify_turns": 2,
+    "query_enriquecida": "Antecipei IR e FGTS, quando debitam?\n[Dados coletados via clarificação: canal_tentado=app; tipo_cliente=correntista]",
+    "ground_truth": "IRPF debita na data prevista do crédito da restituição ou no vencimento, se o crédito não vier antes. FGTS liquida automaticamente via repasse do FGTS e só debita em conta se o repasse for insuficiente.",
+    "tipo": "EDGE_CASE"
+  },
+  {
+    "index": 22,
+    "id": "cdc_repactuacao_op",
+    "branch": "CDC_REPACTUACAO",
+    "doc": "pop_cdc_pf.md",
+    "confident": true,
+    "slots_preenchidos": {
+      "canal_tentado": "agência",
+      "tipo_cliente": "correntista"
+    },
+    "clarify_turns": 2,
+    "query_enriquecida": "Quero cancelar minha repactuação. Consigo?\n[Dados coletados via clarificação: canal_tentado=agência; tipo_cliente=correntista]",
+    "ground_truth": "Com 'Op' pendente de confirmação, pode excluir a repactuação; se já confirmada, só liquidação/pagamento total. Convênio Especial 17 tem repactuação com suspensão (rotina 50109).",
+    "tipo": "CONDITIONAL_WORKFLOW"
+  },
+  {
+    "index": 23,
+    "id": "cdc_autorizacao_2021",
+    "branch": "CDC_AUTORIZACAO_2021",
+    "doc": "pop_cdc_pf.md",
+    "confident": true,
+    "slots_preenchidos": {
+      "canal_tentado": "app",
+      "tipo_cliente": "correntista"
+    },
+    "clarify_turns": 2,
+    "query_enriquecida": "Por que pedem autorização para debitar meu CDC?\n[Dados coletados via clarificação: canal_tentado=app; tipo_cliente=correntista]",
+    "ground_truth": "Desde 01/03/2021, o débito em conta exige autorização específica do cliente (Resolução CMN 4.790/2020). Sem autorização indicada pelo sistema, seguir a rotina 50104 de Autorização de Débito.",
+    "tipo": "REGULATORY_TIMELINE"
+  }
+]

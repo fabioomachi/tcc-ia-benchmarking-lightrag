@@ -14,6 +14,7 @@ from ragbench.cli_commands import (
     run_clarify_cmd,
     run_cmd,
     run_direct_cmd,
+    run_tree_cmd,
 )
 
 app = typer.Typer(
@@ -43,6 +44,7 @@ app.command("chat")(chat_cmd.interactive_chat)
 app.command("chat-clarify")(clarify_cmd.interactive_clarify_chat)
 app.command("run-clarify")(run_clarify_cmd.run_clarify_batch)
 app.command("run-direct")(run_direct_cmd.run_direct_batch)
+app.command("run-tree")(run_tree_cmd.run_tree_batch)
 app.command("probe-retrieval")(probe_cmd.probe_retrieval)
 
 

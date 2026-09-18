@@ -23,6 +23,7 @@ class SearchMode(StrEnum):
     GLOBAL = "global"
     HYBRID = "hybrid"
     DIRECT = "direct"  # Baseline LLM puro: sem grafo, sem retrieval.
+    TREE = "tree"  # Chatbot tradicional: árvore de decisão, sem LLM.
 
 
 class GoldenQuestion(BaseModel):
@@ -40,6 +41,7 @@ class QueryInteractionSource(StrEnum):
     LIGHTRAG_ENGINE = "lightrag_engine"
     SEMANTIC_CACHE = "semantic_cache"
     BASELINE_ENGINE = "baseline_engine"
+    TREE_ENGINE = "tree_engine"
 
 
 class RagExecutionStatus(StrEnum):

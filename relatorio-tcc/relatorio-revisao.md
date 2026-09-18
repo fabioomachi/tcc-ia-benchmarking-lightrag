@@ -68,6 +68,7 @@ os itens da entrada (ver seção 5):
 | Clarify fixo | `run-clarify` | hybrid/k5 | fixa (3 turnos) | incompleta (24) | 3.1 | `src/ragbench/cli_commands/run_clarify_cmd.py` + `src/ragbench/conversational/batch.py` (`simulate_clarification`) |
 | Clarify roteado | `run-clarify` (roteador ligado) | **roteado** | **guiada p/ margem** | incompleta (24) | 3.1 | + `src/ragbench/conversational/router.py` (`route_by_graph`, `simulate_clarification_guided`): slot discriminativo primeiro, parada por margem, modo por documento (acesso→`local/k10`, CDC→`hybrid/k5`) |
 | LLM direto | `run-direct --input completa\|incompleta` | **NÃO** | nenhuma | completa/incompleta (24) | 3.1 | `src/ragbench/engines/direct_llm_engine.py` + `src/ragbench/cli_commands/run_direct_cmd.py`: **zero grafo/retrieval**, só conhecimento geral |
+| Árvore decisão | `run-tree` | **NÃO (regras)** | guiada p/ slots | incompleta (24) | — | `src/ragbench/engines/decision_tree_engine.py` + `src/ragbench/cli_commands/run_tree_cmd.py`: ~40 ramos dos 2 POPs, templates fixos, `mode=tree` + `source=tree_engine` |
 | Série `_35` | mesmos 4 comandos | idem | idem | idem | **3.5** | Mesmos arquivos; só `CHAT__LLM_MODEL` trocado no `.env` |
 
 Configuração dos modelos: `src/ragbench/config.py` (+ `.env`, não versionado;

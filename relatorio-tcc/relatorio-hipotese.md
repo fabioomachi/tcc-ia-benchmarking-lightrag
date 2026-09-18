@@ -34,6 +34,7 @@ comando processa *todos* os itens da entrada — ver seção 5 do
 | Baseline | hybrid/k5 | nenhuma | completa (4) | 3.1 | 4 | 0.6786 | 0.6647 |
 | Clarify fixo | hybrid/k5 | fixa (3 turnos) | incompleta (24) | 3.1 | 24 | 0.7349 | 0.6980 |
 | Roteado | roteado | guiada p/ margem | incompleta (24) | 3.1 | 24 | 0.8588 | 0.7788 |
+| **Árvore decisão** | **NÃO (regras)** | **guiada p/ slots** | incompleta (24) | — | 24 | **0.8631** | 0.7103 |
 | Direto completa | NÃO | nenhuma | completa (24) | 3.1 | 24 | 0.1834 | 0.8195 |
 | Direto incompleta | NÃO | nenhuma | incompleta (24) | 3.1 | 24 | 0.2441 | 0.8417 |
 | Baseline_35 | hybrid/k5 | nenhuma | completa (4) | 3.5 | 4 | 0.7143 | 0.6590 |
@@ -117,6 +118,18 @@ faithfulness contra ≈ 0.2 do LLM puro (~4–5×); LLM puro mantém relevancy
 ~0.82 — fluente, pertinente e infiel. A hipótese está sustentada como
 indício forte: a conversa guiada pelo grafo coleta o que falta e o
 roteador entrega cada pergunta ao modo que a resolve.
+
+## 5º braço — chatbot tradicional por árvore (`exp_tree_24`, n=24)
+
+Regras dos 2 POPs codificadas à mão (`engines/decision_tree_engine.py`,
+~40 ramos com citação de seção), templates fixos, zero LLM/grafo:
+faithfulness **0.8631**, relevancy 0.7103 (12 ramos ACESSO + 12 CDC, 0
+fallbacks; manifest em `evidencias/exp_tree_24_manifest.json`).
+Empate técnico com o roteado (0.8588) — e isso **não** significa “árvore
+vence”: ela mede a qualidade da *codificação manual do autor* (teto
+determinístico). A tese é de **custo**: ~600 linhas de POP viraram ramos
+escritos à mão, frágeis a qualquer mudança de norma, contra o grafo que se
+constrói sozinho (≈ 0.86) e o roteador que se adapta.
 
 ## Arquivos de evidência (pasta `evidencias/`)
 
