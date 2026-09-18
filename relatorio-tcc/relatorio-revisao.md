@@ -62,12 +62,14 @@ os itens da entrada (ver seção 5):
    completa “salva” o modelo sem grafo — não salva).
 4. **Modelo de chat**: 3.1 vs 3.5 (replicação: prova que o ganho é do método).
 
-| Braço | Comando | Grafo? | Clarify | Input | Chat | Código que o implementa |
-|---|---|---|---|---|---|---|
-| Baseline LightRAG | `run` | hybrid/k5 | nenhuma | completa (4) | 3.1 | `src/ragbench/cli_commands/run_cmd.py` + `src/ragbench/runner.py` |
-| Clarify fixo | `run-clarify` | hybrid/k5 | fixa (3 turnos) | incompleta (24) | 3.1 | `src/ragbench/cli_commands/run_clarify_cmd.py` + `src/ragbench/conversational/batch.py` (`simulate_clarification`) |
-| Clarify roteado | `run-clarify` (roteador ligado) | **roteado** | **guiada p/ margem** | incompleta (24) | 3.1 | + `src/ragbench/conversational/router.py` (`route_by_graph`, `simulate_clarification_guided`): slot discriminativo primeiro, parada por margem, modo por documento (acesso→`local/k10`, CDC→`hybrid/k5`) |
-| LLM direto | `run-direct --input completa\|incompleta` | **NÃO** | nenhuma | completa/incompleta (24) | 3.1 | `src/ragbench/engines/direct_llm_engine.py` + `src/ragbench/cli_commands/run_direct_cmd.py`: **zero grafo/retrieval**, só conhecimento geral |
+| Braço | Comando | Definição do cenário | Código que o implementa |
+|---|---|---|---|
+| Baseline LightRAG | `run` | Pergunta completa respondida pelo grafo LightRAG (`hybrid/k5`), sem conversa | `src/ragbench/cli_commands/run_cmd.py` + `src/ragbench/runner.py` |
+| Clarify fixo | `run-clarify` | Pergunta incompleta + até 3 esclarecimentos em ordem fixa, resposta pelo grafo (`hybrid/k5`) | `src/ragbench/cli_commands/run_clarify_cmd.py` + `src/ragbench/conversational/batch.py` (`simulate_clarification`) |
+| Clarify roteado | `run-clarify` (roteador ligado) | Pergunta incompleta + esclarecimento guiado pelo grafo (pergunta discriminativa, parada por margem) + modo de busca por documento (acesso→`local/k10`, CDC→`hybrid/k5`) | + `src/ragbench/conversational/router.py` (`route_by_graph`, `simulate_clarification_guided`) |
+| LLM direto | `run-direct --input completa\|incompleta` | Pergunta completa ou incompleta respondida só pelo LLM (mesmo modelo, **zero grafo/retrieval**, só conhecimento geral) | `src/ragbench/engines/direct_llm_engine.py` + `src/ragbench/cli_commands/run_direct_cmd.py` |
+| Árvore decisão | `run-tree` | Pergunta incompleta + esclarecimento + resposta de **template de regras codificadas** dos POPs (sem LLM, sem grafo) | `src/ragbench/engines/decision_tree_engine.py` + `src/ragbench/cli_commands/run_tree_cmd.py` (`mode=tree`, `source=tree_engine`) |
+| Série `_35` | mesmos 4 comandos | Idem acima, com chat 3.5 (replicação: prova que o ganho é do método) | Mesmos arquivos; só `CHAT__LLM_MODEL` trocado no `.env` |
 | Árvore decisão | `run-tree` | **NÃO (regras)** | guiada p/ slots | incompleta (24) | — | `src/ragbench/engines/decision_tree_engine.py` + `src/ragbench/cli_commands/run_tree_cmd.py`: ~40 ramos dos 2 POPs, templates fixos, `mode=tree` + `source=tree_engine` |
 | Série `_35` | mesmos 4 comandos | idem | idem | idem | **3.5** | Mesmos arquivos; só `CHAT__LLM_MODEL` trocado no `.env` |
 
