@@ -68,6 +68,26 @@ Clarify fixo 47.4s · roteado 40.5s · direto 10.9s. Roteado é mais rápido que
 5. Tentativa de juiz `3.7-flash`: existe no endpoint, mas a cota free é 20 req/dia (vs 500 do lite) — inviável para evals; mantido `3.5-flash-lite`.
 6. `.env` atual da branch: index 3.5-lite, chat 3.1-lite, juiz 3.5-lite (revertido após o experimento _35).
 
+## Conclusão final — matriz completa (9 avaliações, 188 amostras)
+
+| Braço | n | Faithfulness | Relevancy |
+|---|---|---|---|
+| Roteado (chat 3.1) | 24 | **0.8588** | 0.7788 |
+| Roteado_35 (chat 3.5) | 24 | **0.8720** | 0.7829 |
+| Clarify fixo | 24 | 0.7349 | 0.6980 |
+| Baseline_35 | 4 | 0.7143 | 0.6590 |
+| Baseline | 4 | 0.6786 | 0.6647 |
+| Direto incompleta | 24 | 0.2441 | 0.8417 |
+| Direto incompleta_35 | 24 | 0.2189 | 0.8413 |
+| Direto completa | 24 | 0.1834 | 0.8195 |
+| Direto completa_35 | 24 | 0.1513 | 0.8166 |
+
+Invariantes (valem nos dois modelos de chat): grafo+roteador ≈ 0.86 de
+faithfulness contra ≈ 0.2 do LLM puro (~4–5×); LLM puro mantém relevancy
+~0.82 — fluente, pertinente e infiel. A hipótese está sustentada como
+indício forte: a conversa guiada pelo grafo coleta o que falta e o
+roteador entrega cada pergunta ao modo que a resolve.
+
 ## Arquivos de evidência (pasta `evidencias/`)
 
 - `<braco>_ragas.csv`: RAGAS por pergunta · `tabela_bracos.csv` (com n), `por_tipo.csv`
