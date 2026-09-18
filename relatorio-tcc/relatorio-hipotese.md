@@ -29,18 +29,18 @@ comando processa *todos* os itens da entrada — ver seção 5 do
    completa “salva” o modelo sem grafo — não salva).
 4. **Modelo de chat**: 3.1 vs 3.5 (replicação: prova que o ganho é do método).
 
-| Braço | Grafo? | Clarify | Input | Chat | n | Faithfulness | Relevancy |
-|---|---|---|---|---|---|---|---|
-| Baseline | hybrid/k5 | nenhuma | completa (4) | 3.1 | 4 | 0.6786 | 0.6647 |
-| Clarify fixo | hybrid/k5 | fixa (3 turnos) | incompleta (24) | 3.1 | 24 | 0.7349 | 0.6980 |
-| Roteado | roteado | guiada p/ margem | incompleta (24) | 3.1 | 24 | 0.8588 | 0.7788 |
-| **Árvore decisão** | **NÃO (regras)** | **guiada p/ slots** | incompleta (24) | — | 24 | **0.8631** | 0.7103 |
-| Direto completa | NÃO | nenhuma | completa (24) | 3.1 | 24 | 0.1834 | 0.8195 |
-| Direto incompleta | NÃO | nenhuma | incompleta (24) | 3.1 | 24 | 0.2441 | 0.8417 |
-| Baseline_35 | hybrid/k5 | nenhuma | completa (4) | 3.5 | 4 | 0.7143 | 0.6590 |
-| Roteado_35 | roteado | guiada p/ margem | incompleta (24) | 3.5 | 24 | 0.8720 | 0.7829 |
-| Direta_completa_35 | NÃO | nenhuma | completa (24) | 3.5 | 24 | 0.1513 | 0.8166 |
-| Direta_incompleta_35 | NÃO | nenhuma | incompleta (24) | 3.5 | 24 | 0.2189 | 0.8413 |
+| Braço | Definição do cenário | n | Faithfulness | Relevancy |
+|---|---|---|---|---|
+| Baseline | Pergunta completa respondida pelo grafo LightRAG (`hybrid/k5`), sem conversa | 4 | 0.6786 | 0.6647 |
+| Clarify fixo | Pergunta incompleta + até 3 esclarecimentos em ordem fixa, resposta pelo grafo (`hybrid/k5`) | 24 | 0.7349 | 0.6980 |
+| Roteado | Pergunta incompleta + esclarecimento guiado pelo grafo (pergunta discriminativa, parada por margem) + modo de busca por documento (acesso→`local/k10`, CDC→`hybrid/k5`) | 24 | 0.8588 | 0.7788 |
+| **Árvore decisão** | Pergunta incompleta + esclarecimento + resposta de **template de regras codificadas** dos POPs (sem LLM, sem grafo) | 24 | **0.8631** | 0.7103 |
+| Direto completa | Pergunta completa respondida só pelo LLM (mesmo modelo, zero retrieval) | 24 | 0.1834 | 0.8195 |
+| Direto incompleta | Pergunta incompleta respondida só pelo LLM, sem esclarecer | 24 | 0.2441 | 0.8417 |
+| Baseline_35 | Idem baseline, com chat 3.5 | 4 | 0.7143 | 0.6590 |
+| Roteado_35 | Idem roteado, com chat 3.5 | 24 | 0.8720 | 0.7829 |
+| Direta_completa_35 | Idem direto completa, com chat 3.5 | 24 | 0.1513 | 0.8166 |
+| Direta_incompleta_35 | Idem direto incompleta, com chat 3.5 | 24 | 0.2189 | 0.8413 |
 
 Leituras por dimensão: (1) grafo ≈ 0.86 vs sem grafo ≈ 0.2; (2) guiada
 (0.86) > fixa (0.73) > nenhuma (0.68); (3) completa não salva o LLM puro
