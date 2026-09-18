@@ -13,17 +13,16 @@ single-turn direto — e o próprio grafo indica o que ainda falta perguntar?
 **Desenho:** 24 cenários sobre 2 POPs bancários (senhas e CDC), avaliados em
 até 5 braços (LightRAG, clarify fixo, clarify roteado, LLM puro, árvore de
 decisão) com juiz RAGAS, nos mesmos modelos — [matriz completa e
-metodologia](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/tree/hypothesis/chatbot-arvore-decisao/relatorio-tcc).
+metodologia](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/tree/main/relatorio-tcc).
 
 **Resultado principal:** grafo + roteador ≈ 0.86 de faithfulness contra ≈ 0.2
 do LLM puro (~4–5×); árvore de decisão empatada (0.86) como teto simbólico.
 
-**Dados e relatório do estudo** (pasta `relatorio-tcc/` na branch
-`hypothesis/chatbot-arvore-decisao`):
+**Dados e relatório do estudo** (pasta `relatorio-tcc/` na `main`):
 
-- [Relatório da hipótese](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/blob/hypothesis/chatbot-arvore-decisao/relatorio-tcc/relatorio-hipotese.md) — tabelas, leitura das métricas, limites
-- [Guia de revisão para leigos](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/blob/hypothesis/chatbot-arvore-decisao/relatorio-tcc/relatorio-revisao.md) — dados, replicação, mapa de auditoria
-- [Evidências](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/tree/hypothesis/chatbot-arvore-decisao/relatorio-tcc/evidencias) — RAGAS por pergunta, manifests, probes, cenários, testes linha a linha
+- [Relatório da hipótese](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/blob/main/relatorio-tcc/relatorio-hipotese.md) — tabelas, leitura das métricas, limites
+- [Guia de revisão para leigos](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/blob/main/relatorio-tcc/relatorio-revisao.md) — dados, replicação, mapa de auditoria
+- [Evidências](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/tree/main/relatorio-tcc/evidencias) — RAGAS por pergunta, manifests, probes, cenários, testes linha a linha
 
 ---
 
