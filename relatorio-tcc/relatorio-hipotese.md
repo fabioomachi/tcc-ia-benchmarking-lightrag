@@ -36,11 +36,11 @@ Juiz: LLM-as-a-Judge (RAGAS) sobre o mesmo transporte Gemini.
 | Baseline_35 | 4 | 0.7143 | 0.6590 | 0.9167 |
 | Roteado_35 | 24 | **0.8720** | 0.7829 | 0.9583 |
 | Direto_incompleta_35 | 24 | 0.2189 | 0.8413 | 0.9375 |
-| Direto_completa_35 | — | pendente (cota) | — | — |
+| Direto_completa_35 | 24 | 0.1513 | 0.8166 | 0.8750 |
 
 - O padrão se replica com outro modelo de chat: roteado 0.8720 vs direto 0.2189 (~4.0×).
 - Roteado_35 (0.8720) ≈ roteado original (0.8588): o ganho é do método, não do modelo.
-- `exp_direct_completa_35`: checkpoint com 24 success pronto; eval travou na cota do juiz. Comando: `uv run ragbench eval --run-id exp_direct_completa_35`.
+- `exp_direct_completa_35`: fechado em 18/09 via execução agendada. Comando: `uv run ragbench eval --run-id exp_direct_completa_35`.
 
 ## O que as 3 métricas significam (para a banca)
 
