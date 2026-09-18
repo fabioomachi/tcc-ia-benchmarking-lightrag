@@ -79,12 +79,16 @@ template em `.env.example`). Na época dos experimentos: index
 
 ## 5. Como os testes foram feitos (3 camadas, todas reproduzíveis)
 
-### Camada 1 — Testes unitários (126, sem rede, sem custo)
+### Camada 1 — Testes unitários (158, sem rede, sem custo)
 
 ```bash
-uv run pytest tests/ --no-cov -q   # esperado: 126 passed
-uv run ruff check src/ragbench tests/unit/test_clarifier.py tests/unit/test_direct.py tests/unit/test_router.py tests/unit/test_run_clarify.py
+uv run pytest tests/ --no-cov -q   # esperado: 158 passed
+uv run ruff check src/ragbench tests/unit/test_clarifier.py tests/unit/test_direct.py tests/unit/test_router.py tests/unit/test_run_clarify.py tests/unit/test_tree.py
 ```
+
+> O que cada teste verifica, linha a linha (tabela por ramo da árvore
+> incluída): `relatorio-tcc/evidencias/testes-detalhados.md`. Resumo por
+> arquivo abaixo.
 
 | Arquivo de teste | O que prova (aponte direto) |
 |---|---|
@@ -157,7 +161,7 @@ uv run ragbench health                       # valida transporte
 uv run ragbench index                        # constrói o grafo a partir de data/pops/
 uv run ragbench run-clarify --run-name REP --no-resume
 uv run ragbench eval --run-id REP
-uv run pytest tests/ --no-cov -q             # 126 passed
+uv run pytest tests/ --no-cov -q             # 158 passed
 ```
 
 Notas de custo: cada eval de 24 amostras ≈ 96 tarefas do juiz (≈ 7–15 min);
