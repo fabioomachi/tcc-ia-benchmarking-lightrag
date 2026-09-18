@@ -48,17 +48,27 @@ Exemplo de cenário (id `acesso_bloqueio_u8_site`): incompleta
 `codigo_bloqueio=U, alfa_code=não, biometria_dias=5…` → ground-truth: “só
 presencial, 8 dígitos antes da de 6”.
 
-## 4. Como o experimento foi montado (os “braços”)
+## 4. Como o experimento foi montado (os “braços” e as 4 dimensões)
 
 Todos os braços usam o **mesmo modelo de chat** e o **mesmo juiz**, isolando
-só o método de resposta. O que muda entre braços está no código:
+só o método de resposta. O experimento varia **4 dimensões independentes** —
+cada braço é uma combinação explícita delas, e cada comando processa *todos*
+os itens da entrada (ver seção 5):
 
-| Braço | Comando | Código que o implementa | O que faz |
-|---|---|---|---|
-| Baseline LightRAG | `run` | `src/ragbench/cli_commands/run_cmd.py` + `src/ragbench/runner.py` | Pergunta completa → grafo (`hybrid/k5`) → resposta |
-| Clarify fixo | `run-clarify` | `src/ragbench/cli_commands/run_clarify_cmd.py` + `src/ragbench/conversational/batch.py` (`simulate_clarification`) | Pergunta incompleta → até 3 perguntas de esclarecimento (ordem fixa) → grafo |
-| Clarify roteado | `run-clarify` (com roteador ligado) | + `src/ragbench/conversational/router.py` (`route_by_graph`, `simulate_clarification_guided`) | Igual ao fixo, mas: pergunta o slot mais discriminativo primeiro, para quando o grafo “se decide” (margem entre docs), e escolhe o modo de busca por documento (acesso→`local/k10`, CDC→`hybrid/k5`) |
-| LLM direto | `run-direct --input completa\|incompleta` | `src/ragbench/engines/direct_llm_engine.py` + `src/ragbench/cli_commands/run_direct_cmd.py` | Mesmo modelo, **zero grafo/retrieval**: responde só com conhecimento geral |
+1. **Método de resposta**: com grafo (LightRAG) vs sem grafo (LLM puro).
+2. **Clarificação**: nenhuma vs fixa (3 turnos, ordem fixa) vs guiada pelo
+   grafo (slot discriminativo, parada por margem, roteador de modo).
+3. **Input no LLM puro**: pergunta completa vs incompleta (testa se a pergunta
+   completa “salva” o modelo sem grafo — não salva).
+4. **Modelo de chat**: 3.1 vs 3.5 (replicação: prova que o ganho é do método).
+
+| Braço | Comando | Grafo? | Clarify | Input | Chat | Código que o implementa |
+|---|---|---|---|---|---|---|
+| Baseline LightRAG | `run` | hybrid/k5 | nenhuma | completa (4) | 3.1 | `src/ragbench/cli_commands/run_cmd.py` + `src/ragbench/runner.py` |
+| Clarify fixo | `run-clarify` | hybrid/k5 | fixa (3 turnos) | incompleta (24) | 3.1 | `src/ragbench/cli_commands/run_clarify_cmd.py` + `src/ragbench/conversational/batch.py` (`simulate_clarification`) |
+| Clarify roteado | `run-clarify` (roteador ligado) | **roteado** | **guiada p/ margem** | incompleta (24) | 3.1 | + `src/ragbench/conversational/router.py` (`route_by_graph`, `simulate_clarification_guided`): slot discriminativo primeiro, parada por margem, modo por documento (acesso→`local/k10`, CDC→`hybrid/k5`) |
+| LLM direto | `run-direct --input completa\|incompleta` | **NÃO** | nenhuma | completa/incompleta (24) | 3.1 | `src/ragbench/engines/direct_llm_engine.py` + `src/ragbench/cli_commands/run_direct_cmd.py`: **zero grafo/retrieval**, só conhecimento geral |
+| Série `_35` | mesmos 4 comandos | idem | idem | idem | **3.5** | Mesmos arquivos; só `CHAT__LLM_MODEL` trocado no `.env` |
 
 Configuração dos modelos: `src/ragbench/config.py` (+ `.env`, não versionado;
 template em `.env.example`). Na época dos experimentos: index

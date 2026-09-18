@@ -15,6 +15,36 @@ Juiz: LLM-as-a-Judge (RAGAS) sobre o mesmo transporte Gemini.
 > antes de consultar o grafo produz respostas mais acuradas do que o
 > single-turn direto — e o próprio grafo indica o que ainda falta perguntar.
 
+## Desenho experimental — 4 dimensões (leia isto antes das tabelas)
+
+O experimento varia **4 dimensões independentes**, e cada braço abaixo é uma
+combinação explícita delas (nada foi escolhido a dedo na execução: cada
+comando processa *todos* os itens da entrada — ver seção 5 do
+`relatorio-revisao.md`):
+
+1. **Método de resposta**: com grafo (LightRAG) vs sem grafo (LLM puro).
+2. **Clarificação**: nenhuma vs fixa (3 turnos, ordem fixa) vs guiada pelo
+   grafo (pergunta discriminativa, parada por margem, roteador de modo).
+3. **Input no LLM puro**: pergunta completa vs incompleta (testa se a pergunta
+   completa “salva” o modelo sem grafo — não salva).
+4. **Modelo de chat**: 3.1 vs 3.5 (replicação: prova que o ganho é do método).
+
+| Braço | Grafo? | Clarify | Input | Chat | n | Faithfulness | Relevancy |
+|---|---|---|---|---|---|---|---|
+| Baseline | hybrid/k5 | nenhuma | completa (4) | 3.1 | 4 | 0.6786 | 0.6647 |
+| Clarify fixo | hybrid/k5 | fixa (3 turnos) | incompleta (24) | 3.1 | 24 | 0.7349 | 0.6980 |
+| Roteado | roteado | guiada p/ margem | incompleta (24) | 3.1 | 24 | 0.8588 | 0.7788 |
+| Direto completa | NÃO | nenhuma | completa (24) | 3.1 | 24 | 0.1834 | 0.8195 |
+| Direto incompleta | NÃO | nenhuma | incompleta (24) | 3.1 | 24 | 0.2441 | 0.8417 |
+| Baseline_35 | hybrid/k5 | nenhuma | completa (4) | 3.5 | 4 | 0.7143 | 0.6590 |
+| Roteado_35 | roteado | guiada p/ margem | incompleta (24) | 3.5 | 24 | 0.8720 | 0.7829 |
+| Direta_completa_35 | NÃO | nenhuma | completa (24) | 3.5 | 24 | 0.1513 | 0.8166 |
+| Direta_incompleta_35 | NÃO | nenhuma | incompleta (24) | 3.5 | 24 | 0.2189 | 0.8413 |
+
+Leituras por dimensão: (1) grafo ≈ 0.86 vs sem grafo ≈ 0.2; (2) guiada
+(0.86) > fixa (0.73) > nenhuma (0.68); (3) completa não salva o LLM puro
+(0.18 vs 0.24, ambas no piso); (4) o padrão se repete nos dois modelos.
+
 ## Matriz principal — modelos originais (mesmo juiz, comparável)
 
 | Braço | n | Faithfulness | Relevancy | Recall | Precision |
