@@ -53,6 +53,8 @@ def _ensure_file_handler(
 ) -> None:
     if _has_file_handler(logger, log_file):
         return
+    from ragbench.infrastructure.secrets import SecretScrubFilter
+
     handler = RotatingFileHandler(
         log_file,
         maxBytes=max_bytes,
@@ -61,6 +63,8 @@ def _ensure_file_handler(
     )
     handler.setLevel(level)
     handler.setFormatter(logging.Formatter(LOG_FORMAT))
+    if not any(isinstance(f, SecretScrubFilter) for f in handler.filters):
+        handler.addFilter(SecretScrubFilter())
     logger.addHandler(handler)
     _configured_files.add(str(log_file.resolve()))
 
@@ -123,9 +127,12 @@ def _setup_logging(settings: BenchmarkSettings, run_id: str | None = None) -> Pa
         isinstance(h, logging.StreamHandler) and getattr(h, "baseFilename", None) is None
         for h in root.handlers
     ):
+        from ragbench.infrastructure.secrets import SecretScrubFilter
+
         console = logging.StreamHandler(sys.stderr)
         console.setLevel(logging.WARNING)
         console.setFormatter(logging.Formatter(LOG_FORMAT))
+        console.addFilter(SecretScrubFilter())
         root.addHandler(console)
 
     # Hierarquia ragbench propaga para o root (arquivo global).

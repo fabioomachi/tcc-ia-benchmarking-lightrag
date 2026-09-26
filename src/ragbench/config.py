@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,7 +9,9 @@ class OllamaSettings(BaseModel):
     """Configurações da API local do Ollama / Gemini."""
 
     base_url: str = "http://localhost:11434/v1/"
-    api_key: str = "ollama_local"
+    # SecretStr: repr/print/model_dump nunca expõem o valor (exige
+    # .get_secret_value() nos pontos de uso real: clientes HTTP e headers).
+    api_key: SecretStr = Field(default_factory=lambda: SecretStr("ollama_local"))
     request_timeout: float = 900.0
     max_retries: int = 3
     connect_timeout: float = 10.0
@@ -93,7 +95,7 @@ class ChatSettings(BaseModel):
     """
 
     base_url: str = "http://localhost:11434/v1/"
-    api_key: str = "ollama"
+    api_key: SecretStr = Field(default_factory=lambda: SecretStr("ollama"))
     llm_model: str = "gemini-3.1-flash-lite"
     embed_model: str = "gemini-embedding-001"
     embed_dim: int = 768

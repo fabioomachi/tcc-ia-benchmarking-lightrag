@@ -136,7 +136,7 @@ class RagasEvaluator:
             return ChatOpenAI(
                 model=model,
                 openai_api_base=self.settings.ollama.base_url,
-                openai_api_key=self.settings.ollama.api_key,
+                openai_api_key=self.settings.ollama.api_key.get_secret_value(),
                 temperature=0.0,
                 timeout=self.settings.ragas.timeout,
                 max_retries=self.settings.ragas.judge_max_retries,
@@ -160,7 +160,7 @@ class RagasEvaluator:
         model = self.settings.ragas.embed_model
         if self._is_gemini_model(model):
             return GeminiRestEmbeddings(
-                api_key=self.settings.ollama.api_key,
+                api_key=self.settings.ollama.api_key.get_secret_value(),
                 api_base_url=self.settings.ollama.embedding_api_base_url,
                 model=model,
                 dim=self.settings.ollama.embedding_default_dim,

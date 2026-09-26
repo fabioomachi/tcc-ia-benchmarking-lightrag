@@ -5,6 +5,7 @@ import typer
 from ragbench.cli_commands import (
     chat_cmd,
     clarify_cmd,
+    config_cmd,
     dataset,
     deps,
     eval_cmd,
@@ -36,6 +37,7 @@ def _init_logging() -> None:
 
 
 app.command("health")(health.check_health)
+app.command("config-check")(config_cmd.check_config)
 app.command("index")(index_cmd.index_documents)
 app.command("generate-dataset")(dataset.generate_dataset)
 app.command("run")(run_cmd.run_benchmark)

@@ -43,13 +43,15 @@ class ResilientOllamaClient:
         # Cliente OpenAI para a API Gemini (Chat / Completions)
         self.client = client or AsyncOpenAI(
             base_url=settings.base_url,
-            api_key=settings.api_key,
+            api_key=settings.api_key.get_secret_value(),
             timeout=httpx.Timeout(settings.request_timeout, connect=settings.connect_timeout),
             max_retries=settings.max_retries,
         )
 
         # Cliente oficial do Google para Embeddings
-        self.genai_client = genai_client or genai.Client(api_key=settings.api_key)
+        self.genai_client = genai_client or genai.Client(
+            api_key=settings.api_key.get_secret_value()
+        )
 
         self._request_interval_seconds = settings.rate_limit_interval_seconds
         self._rate_limit_lock = asyncio.Lock()
@@ -75,7 +77,7 @@ class ResilientOllamaClient:
 
     async def check_health(self) -> bool:
         """Verifica a conectividade básica com a API Gemini."""
-        return bool(self.settings.api_key)
+        return bool(self.settings.api_key.get_secret_value())
 
     async def generate_completion(
         self,
@@ -150,7 +152,7 @@ class ResilientOllamaClient:
     async def get_embeddings(self, model: str, texts: list[str], **kwargs: Any) -> np.ndarray:
         """Gera vetores via HTTP REST nativo com micro-lotes para evitar Timeouts."""
         dim = kwargs.get("embedding_dim", self.settings.embedding_default_dim)
-        api_key = self.settings.api_key
+        api_key = self.settings.api_key.get_secret_value()
 
         url = (
             f"{self.settings.embedding_api_base_url.rstrip('/')}"
