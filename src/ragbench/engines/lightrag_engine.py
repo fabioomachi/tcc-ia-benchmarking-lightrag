@@ -1,3 +1,5 @@
+import asyncio
+import json
 from collections.abc import AsyncGenerator, Callable
 from pathlib import Path
 from typing import Any
@@ -339,6 +341,70 @@ class LightRAGEngine:
         if not self.rag:
             raise RuntimeError("Motor LightRAG não foi inicializado.")
         await self.rag.ainsert(text)
+
+    async def get_doc_status_by_filename(self, filename: str) -> str | None:
+        """Retorna o status do documento no `doc_status` (None se ausente/ilegível)."""
+        try:
+            from ragbench.infrastructure.index_reconcile import strip_origin_prefix
+
+            status_path = Path(self.settings.storage_dir) / "kv_store_doc_status.json"
+            if not status_path.exists():
+                return None
+            raw = await asyncio.to_thread(status_path.read_text, encoding="utf-8")
+            doc_status = json.loads(raw)
+            if not isinstance(doc_status, dict):
+                return None
+            for entry in doc_status.values():
+                if not isinstance(entry, dict):
+                    continue
+                name, _ = strip_origin_prefix(str(entry.get("content_summary") or ""))
+                if name == filename:
+                    status = entry.get("status")
+                    return str(status) if status is not None else None
+            return None
+        except Exception:
+            logger.warning("Falha ao ler status de %s.", filename, exc_info=True)
+            return None
+
+    async def adelete_doc_by_filename(self, filename: str) -> bool:
+        """Remove o resíduo parcial de um documento não-processado (best-effort).
+
+        Localiza no `doc_status` os IDs com prefixo `DOCUMENTO_ORIGEM: <filename>`
+        cujo status não seja `processed` e os remove via `adelete_by_doc_id`
+        (chunks, entidades/relações derivadas e vetores). Nunca lança: retorna
+        True se não havia resíduo ou tudo foi removido, False caso contrário.
+        """
+        if not self.rag:
+            return False
+        try:
+            from ragbench.infrastructure.index_reconcile import strip_origin_prefix
+
+            status_path = Path(self.settings.storage_dir) / "kv_store_doc_status.json"
+            if not status_path.exists():
+                return True
+            raw = await asyncio.to_thread(status_path.read_text, encoding="utf-8")
+            doc_status = json.loads(raw)
+            if not isinstance(doc_status, dict):
+                return False
+
+            target_ids = []
+            for doc_id, entry in doc_status.items():
+                if not isinstance(entry, dict) or entry.get("status") == "processed":
+                    continue
+                name, _ = strip_origin_prefix(str(entry.get("content_summary") or ""))
+                if name == filename:
+                    target_ids.append(doc_id)
+
+            for doc_id in target_ids:
+                result = await self.rag.adelete_by_doc_id(doc_id)
+                status = getattr(result, "status", "success")
+                if status not in ("success", "not_found"):
+                    logger.warning("Limpeza parcial de %s retornou %s.", doc_id, status)
+                    return False
+            return True
+        except Exception:
+            logger.warning("Falha ao limpar resíduo parcial de %s.", filename, exc_info=True)
+            return False
 
     async def finalize(self) -> None:
         """Encerra e persiste storages."""

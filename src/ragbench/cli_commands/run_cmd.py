@@ -8,11 +8,16 @@ from typing import Annotated
 import typer
 
 from ragbench.cli_commands import deps
+from ragbench.cli_commands.quota_support import (
+    QUOTA_EXIT_CODE,
+    export_run_reports,
+    print_quota_stopped,
+)
+from ragbench.core.exceptions import QuotaExhaustedError
 from ragbench.core.models import SearchMode
 from ragbench.engines.lightrag_engine import LightRAGEngine
 from ragbench.infrastructure.logging import setup_logging
 from ragbench.infrastructure.storage import SQLiteExecutionStorage
-from ragbench.reporting.reporters import BenchmarkReporter
 from ragbench.runner import BenchmarkRunner
 
 
@@ -31,7 +36,12 @@ def run_benchmark(
     resume: Annotated[bool, typer.Option(help="Retoma de checkpoint anterior")] = True,
     run_name: Annotated[str | None, typer.Option(help="Nome identificador da execução")] = None,
 ) -> None:
-    """Executa a bateria de testes de benchmark em lote com checkpointing e relatórios automáticos."""
+    """Executa a bateria de testes de benchmark em lote com checkpointing e relatórios automáticos.
+
+    Sai com código 3 (QUOTA_EXIT_CODE) se a cota da API for esgotada: o lote é
+    interrompido, o progresso é exportado parcialmente e a retomada posterior
+    (mesmo --run-name) continua de onde parou.
+    """
     settings = deps.get_settings()
     target_path = target or settings.questions_dir
     search_mode = SearchMode(mode)
@@ -58,37 +68,39 @@ def run_benchmark(
             f"[bold blue]Disparando benchmark: {len(queries)} perguntas | Modo: {mode} | Concorrência: {concurrency}[/bold blue]"
         )
 
-        records = await runner.execute_batch(
-            queries=queries,
-            mode=search_mode,
-            top_k=top_k,
-            concurrency=concurrency,
-            resume=resume,
-        )
+        try:
+            records = await runner.execute_batch(
+                queries=queries,
+                mode=search_mode,
+                top_k=top_k,
+                concurrency=concurrency,
+                resume=resume,
+            )
+        except QuotaExhaustedError as e:
+            try:
+                await engine.finalize()
+            except Exception as fe:
+                deps.console.print(f"[yellow]⚠ Falha ao persistir storages: {fe}[/yellow]")
+            records = await asyncio.to_thread(storage.load_all_records)
+            await asyncio.to_thread(export_run_reports, records, run_dir, settings.results_dir)
+            completed = await asyncio.to_thread(storage.get_completed_indices)
+            target_opt = f" --target {target_path}" if target else ""
+            print_quota_stopped(
+                deps.console,
+                resume_cmd=(
+                    f"uv run ragbench run --run-name {run_id} "
+                    f"--mode {mode} --top-k {top_k}{target_opt}"
+                ),
+                remaining=len(queries) - len(completed),
+                checkpoint=db_path,
+            )
+            raise typer.Exit(code=QUOTA_EXIT_CODE) from e
 
         await engine.finalize()
 
         # Exportações automáticas (I/O de disco fora do loop)
-        csv_path = run_dir / "benchmark_analise_detalhada.csv"
-        md_path = run_dir / "resumo_benchmark.md"
-        await asyncio.to_thread(BenchmarkReporter.export_execution_csv, records, csv_path)
-        await asyncio.to_thread(
-            BenchmarkReporter.generate_execution_markdown_report, records, md_path
-        )
-
-        # Cópia para o diretório legado de resultados para compatibilidade
-        target_results_dir = settings.results_dir
-        target_results_dir.mkdir(parents=True, exist_ok=True)
-
-        await asyncio.to_thread(
-            BenchmarkReporter.export_execution_csv,
-            records,
-            target_results_dir / "benchmark_analise_detalhada.csv",
-        )
-        await asyncio.to_thread(
-            BenchmarkReporter.generate_execution_markdown_report,
-            records,
-            target_results_dir / "resumo_benchmark.md",
+        csv_path, md_path = await asyncio.to_thread(
+            export_run_reports, records, run_dir, settings.results_dir
         )
 
         deps.console.print("\n[bold green]✅ Execução finalizada![/bold green]")

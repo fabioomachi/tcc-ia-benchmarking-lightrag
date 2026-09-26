@@ -19,6 +19,16 @@ class OllamaConnectionError(RagBenchException):
     pass
 
 
+class QuotaExhaustedError(RagBenchException):
+    """Lançada quando a cota da API (429 persistente) foi esgotada.
+
+    Sinal distinto de falha transitória: o chamador deve interromper o lote,
+    limpar o estado parcial e orientar retomada posterior (exit code próprio).
+    """
+
+    pass
+
+
 class DatasetError(RagBenchException):
     """Lançada quando arquivos de entrada ou golden dataset estão ausentes ou corrompidos."""
 

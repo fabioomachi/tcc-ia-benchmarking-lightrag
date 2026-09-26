@@ -7,6 +7,8 @@ from typing import Annotated
 import typer
 
 from ragbench.cli_commands import deps
+from ragbench.cli_commands.quota_support import QUOTA_EXIT_CODE, print_quota_stopped
+from ragbench.core.exceptions import QuotaExhaustedError
 from ragbench.evaluation.ragas_evaluator import RagasEvaluator
 from ragbench.infrastructure.storage import SQLiteExecutionStorage
 from ragbench.reporting.reporters import BenchmarkReporter
@@ -37,7 +39,12 @@ def evaluate_run(
     checkpoint: Annotated[Path | None, typer.Option(help="Caminho do checkpoint.sqlite3")] = None,
     golden: Annotated[Path | None, typer.Option(help="Golden dataset específico")] = None,
 ) -> None:
-    """Executa a avaliação de qualidade LLM-as-a-Judge (RAGAS) em uma execução anterior."""
+    """Executa a avaliação de qualidade LLM-as-a-Judge (RAGAS) em uma execução anterior.
+
+    Sai com código 3 (QUOTA_EXIT_CODE) se a cota da API for esgotada: nenhum
+    arquivo de resultado é sobrescrito e a reexecução posterior (mesmo comando)
+    refaz a avaliação por inteiro.
+    """
     settings = deps.get_settings()
     try:
         db_path = resolve_eval_db_path(settings.runs_dir, run_id, checkpoint)
@@ -60,7 +67,28 @@ def evaluate_run(
             deps.console.print(f"[dim]Usando golden da run: {golden_path}[/dim]")
 
     evaluator = RagasEvaluator(settings=settings)
-    df_results = evaluator.run_evaluation(records, golden_path=golden_path)
+    if checkpoint:
+        retry_cmd = f"uv run ragbench eval --checkpoint {checkpoint}"
+    elif run_id:
+        retry_cmd = f"uv run ragbench eval --run-id {run_id}"
+    else:
+        retry_cmd = "uv run ragbench eval"
+    if golden:
+        retry_cmd += f" --golden {golden}"
+    try:
+        if not evaluator.probe_quota():
+            raise QuotaExhaustedError("Sonda pré-voo indicou cota indisponível.")
+        df_results = evaluator.run_evaluation(records, golden_path=golden_path)
+    except QuotaExhaustedError as e:
+        # Preserva CSV/MD bons anteriores: nada é sobrescrito aqui.
+        print_quota_stopped(
+            deps.console,
+            resume_cmd=retry_cmd,
+            remaining=len(records),
+            checkpoint=db_path,
+        )
+        deps.console.print(f"[dim]Detalhe: {e}[/dim]")
+        raise typer.Exit(code=QUOTA_EXIT_CODE) from e
 
     out_csv = db_path.parent / "ragas_evaluation_results.csv"
     out_md = db_path.parent / "resumo_qualidade_ragas.md"

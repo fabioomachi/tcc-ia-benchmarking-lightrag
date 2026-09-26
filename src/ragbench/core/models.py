@@ -92,6 +92,48 @@ class EvaluatedSample(BaseModel):
     search_mode: str | None = None
 
 
+class IndexedDocument(BaseModel):
+    """Registro de um POP já inserido no grafo (anti-duplicata por hash)."""
+
+    filename: str
+    sha256: str
+    num_bytes: int = 0
+    indexed_at: str = Field(default_factory=lambda: datetime.now().isoformat())
+
+
+class IndexManifest(BaseModel):
+    """Manifesto de indexação: quais hashes de conteúdo já estão no grafo."""
+
+    version: int = 1
+    documents: list[IndexedDocument] = []
+
+    def known_hashes(self) -> set[str]:
+        """Hashes já indexados (para skip incremental)."""
+        return {doc.sha256 for doc in self.documents}
+
+    def known_filenames(self) -> set[str]:
+        """Nomes de arquivo já vistos (para detectar conteúdo alterado)."""
+        return {doc.filename for doc in self.documents}
+
+    def upsert(self, entry: IndexedDocument) -> None:
+        """Insere ou atualiza o registro de um arquivo pelo nome."""
+        for i, doc in enumerate(self.documents):
+            if doc.filename == entry.filename:
+                self.documents[i] = entry
+                return
+        self.documents.append(entry)
+
+
+class ReconcileReport(BaseModel):
+    """Resultado da reconciliação do manifesto com o grafo LightRAG existente."""
+
+    reconciled: list[str] = Field(default_factory=list)
+    altered: list[str] = Field(default_factory=list)
+    missing_on_disk: list[str] = Field(default_factory=list)
+    ignored_non_processed: int = 0
+    manifest_written: bool = False
+
+
 class RunManifest(BaseModel):
     """Manifesto com metadados para reprodutibilidade científica do experimento."""
 

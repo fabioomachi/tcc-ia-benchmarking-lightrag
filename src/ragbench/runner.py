@@ -14,6 +14,7 @@ from rich.progress import (
 )
 
 from ragbench.config import BenchmarkSettings, get_settings
+from ragbench.core.exceptions import QuotaExhaustedError
 from ragbench.core.interfaces import BaseCache, BaseExecutionStorage, BaseRAGPipeline
 from ragbench.core.models import (
     QueryExecutionRecord,
@@ -102,14 +103,20 @@ class BenchmarkRunner:
             )
 
         semaphore = asyncio.Semaphore(concurrency)
+        quota_stop = asyncio.Event()
         results: list[QueryExecutionRecord] = []
 
         async def worker(idx: int, query_text: str) -> QueryExecutionRecord | None:
             if idx in completed_indices:
                 # Já executado e salvo anteriormente
                 return None
+            if quota_stop.is_set():
+                # Lote abortado por cota: não inicia novas chamadas à API.
+                return None
 
             async with semaphore:
+                if quota_stop.is_set():
+                    return None
                 start_time = time.perf_counter()
                 record = QueryExecutionRecord(
                     index=idx,
@@ -134,6 +141,9 @@ class BenchmarkRunner:
                             record.status = RagExecutionStatus.SUCCESS
                             await asyncio.to_thread(self.storage.save_record, record)
                             return record
+                except QuotaExhaustedError:
+                    # Quota não é transitória: propaga para abortar o lote.
+                    raise
                 except Exception as e:
                     logger.debug(f"Bypass de cache devido a erro transitório: {e}")
 
@@ -173,6 +183,15 @@ class BenchmarkRunner:
                     if len(query_embs) > 0 and response_text.strip():
                         self.cache.add(query_embs[0], response_text)
 
+                except QuotaExhaustedError as e:
+                    total_latency = time.perf_counter() - start_time
+                    record.status = RagExecutionStatus.ERROR
+                    record.error_message = f"QuotaExhaustedError: {e}"
+                    record.total_latency_seconds = round(total_latency, 4)
+                    logger.error(f"Cota esgotada na query #{idx}; interrompendo lote.")
+                    await asyncio.to_thread(self.storage.save_record, record)
+                    quota_stop.set()
+                    raise
                 except Exception as e:
                     total_latency = time.perf_counter() - start_time
                     record.status = RagExecutionStatus.ERROR
@@ -183,17 +202,27 @@ class BenchmarkRunner:
                 await asyncio.to_thread(self.storage.save_record, record)
                 return record
 
-        tasks = [worker(i, q) for i, q in enumerate(queries)]
+        tasks = [asyncio.create_task(worker(i, q)) for i, q in enumerate(queries)]
+
+        async def _cancel_pending() -> None:
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
 
         if not show_progress:
             # Caminho silencioso para testes e uso programático (sem rich).
-            for coro in asyncio.as_completed(tasks):
-                res = await coro
-                if res is not None:
-                    results.append(res)
-                    if on_progress:
-                        on_progress(len(results), total_queries, res)
+            try:
+                for coro in asyncio.as_completed(tasks):
+                    res = await coro
+                    if res is not None:
+                        results.append(res)
+                        if on_progress:
+                            on_progress(len(results), total_queries, res)
                 return await asyncio.to_thread(self.storage.load_all_records)
+            except QuotaExhaustedError:
+                await _cancel_pending()
+                raise
 
         with Progress(
             SpinnerColumn(),
@@ -206,12 +235,16 @@ class BenchmarkRunner:
             task_id = progress.add_task("Executando benchmark...", total=total_queries)
             progress.update(task_id, completed=len(completed_indices))
 
-            for coro in asyncio.as_completed(tasks):
-                res = await coro
-                if res is not None:
-                    results.append(res)
-                    progress.update(task_id, advance=1)
-                    if on_progress:
-                        on_progress(len(results), total_queries, res)
+            try:
+                for coro in asyncio.as_completed(tasks):
+                    res = await coro
+                    if res is not None:
+                        results.append(res)
+                        progress.update(task_id, advance=1)
+                        if on_progress:
+                            on_progress(len(results), total_queries, res)
 
-            return await asyncio.to_thread(self.storage.load_all_records)
+                return await asyncio.to_thread(self.storage.load_all_records)
+            except QuotaExhaustedError:
+                await _cancel_pending()
+                raise

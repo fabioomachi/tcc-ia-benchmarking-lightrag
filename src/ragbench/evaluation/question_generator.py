@@ -86,7 +86,17 @@ def parse_questions(content: str, doc_name: str) -> list[GoldenQuestion]:
             logger.error(f"Falha ao decodificar JSON (fallback) para {doc_name}")
             return []
 
-    raw_questions = parsed_data.get("questions", [])
+    if isinstance(parsed_data, list):
+        # LLM às vezes devolve a lista pura em vez do envelope {"questions": [...]}.
+        raw_questions = parsed_data
+    elif isinstance(parsed_data, dict):
+        raw_questions = parsed_data.get("questions", [])
+    else:
+        logger.error(f"Formato JSON inesperado para {doc_name}: {type(parsed_data).__name__}")
+        return []
+    if not isinstance(raw_questions, list):
+        logger.error(f"Campo 'questions' não é lista para {doc_name}")
+        return []
     questions: list[GoldenQuestion] = []
     for item in raw_questions:
         if isinstance(item, dict):

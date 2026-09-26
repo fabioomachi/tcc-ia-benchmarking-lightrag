@@ -69,6 +69,12 @@ class _FakeEngine:
     async def ainsert(self, text: str):
         type(self).inserted.append(text)
 
+    async def adelete_doc_by_filename(self, filename: str) -> bool:
+        return True
+
+    async def get_doc_status_by_filename(self, filename: str) -> str | None:
+        return "processed"
+
     async def get_query_embeddings(self, texts: list[str]):
         return np.zeros((len(texts), 3))
 
@@ -97,6 +103,9 @@ class _FakeGenerator:
 class _FakeEvaluator:
     def __init__(self, settings=None):
         pass
+
+    def probe_quota(self):
+        return True
 
     def run_evaluation(self, records, golden_path=None):
         return pd.DataFrame(

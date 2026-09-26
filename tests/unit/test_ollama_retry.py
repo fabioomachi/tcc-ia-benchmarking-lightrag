@@ -8,7 +8,7 @@ import pytest
 from openai import RateLimitError
 
 from ragbench.config import OllamaSettings
-from ragbench.core.exceptions import OllamaConnectionError
+from ragbench.core.exceptions import OllamaConnectionError, QuotaExhaustedError
 from ragbench.infrastructure.ollama_client import ResilientOllamaClient
 
 
@@ -116,10 +116,20 @@ async def test_completion_rate_limit_then_success(_no_sleep):
 
 @pytest.mark.asyncio
 async def test_completion_rate_limit_exhausted(_no_sleep):
+    # 429 em todas as tentativas = cota esgotada (sinal distinto de erro transitório).
     client, _ = _resilient([_rate_limit_error(), _rate_limit_error()])
-    with pytest.raises(OllamaConnectionError, match="Rate limit"):
+    with pytest.raises(QuotaExhaustedError, match="Cota"):
         await client.generate_completion(model="m", messages=[])
     assert len(_no_sleep) == 1  # dorme entre tentativas, mas não após a última
+
+
+@pytest.mark.asyncio
+async def test_completion_rate_limit_mixed_stays_connection_error(_no_sleep):
+    # Erro genérico no meio descaracteriza "só 429" e a mensagem não tem
+    # keyword de quota -> mantém OllamaConnectionError.
+    client, _ = _resilient([RuntimeError("x"), _rate_limit_error()])
+    with pytest.raises(OllamaConnectionError, match="Rate limit"):
+        await client.generate_completion(model="m", messages=[])
 
 
 @pytest.mark.asyncio

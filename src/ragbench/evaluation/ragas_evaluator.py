@@ -12,6 +12,7 @@ from langchain_community.chat_models import ChatOllama
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain_core.embeddings import Embeddings
 from langchain_openai import ChatOpenAI
+from openai import RateLimitError
 from ragas import evaluate
 from ragas.metrics import (
     AnswerRelevancy,
@@ -23,9 +24,10 @@ from ragas.metrics import (
 from ragas.run_config import RunConfig
 
 from ragbench.config import BenchmarkSettings, get_settings
-from ragbench.core.exceptions import EvaluationError, OllamaConnectionError
+from ragbench.core.exceptions import EvaluationError, OllamaConnectionError, QuotaExhaustedError
 from ragbench.core.models import QueryExecutionRecord
 from ragbench.infrastructure.logging import get_logger
+from ragbench.infrastructure.ollama_client import is_quota_message
 
 logger = get_logger("ragbench.evaluation.ragas")
 
@@ -68,10 +70,16 @@ class GeminiRestEmbeddings(Embeddings):
             try:
                 resp = client.post(self.url, json=payload, headers=headers)
                 if resp.status_code == 429:
+                    if attempt == self.max_attempts:
+                        raise QuotaExhaustedError(
+                            "Cota da API de embeddings esgotada (429 persistente)."
+                        )
                     time.sleep(self.retry_delay * attempt)
                     continue
                 resp.raise_for_status()
                 return resp.json().get("embedding", {}).get("values", [0.0] * self.dim)
+            except QuotaExhaustedError:
+                raise
             except Exception as e:
                 last_error = e
                 if attempt < self.max_attempts:
@@ -253,6 +261,32 @@ class RagasEvaluator:
             }
         )
 
+    def probe_quota(self) -> bool:
+        """Sonda a cota com ~2 chamadas baratas (1 tentativa cada, sem retry).
+
+        Retorna False apenas em sinal de quota esgotada; qualquer outro erro
+        propaga (sem mascarar falhas de auth/rede).
+        """
+        try:
+            embeddings = self._embeddings_factory()
+            embeddings.embed_query("teste de cota")
+        except QuotaExhaustedError:
+            return False
+        except Exception as e:
+            if isinstance(e, RateLimitError) or is_quota_message(str(e)):
+                return False
+            raise
+        try:
+            llm = self._judge_llm_factory()
+            llm.invoke("Responda apenas com a palavra: OK")
+        except QuotaExhaustedError:
+            return False
+        except Exception as e:
+            if isinstance(e, RateLimitError) or is_quota_message(str(e)):
+                return False
+            raise
+        return True
+
     def run_evaluation(
         self,
         records: list[QueryExecutionRecord],
@@ -303,10 +337,17 @@ class RagasEvaluator:
             if n_nan:
                 logger.warning(
                     f"{n_nan}/{len(df_ragas)} linhas com NaN nas métricas (jobs que "
-                    "esgotaram retries após 4xx/5xx do Gemini — ex: 429/503 em "
+                    "esgotarem retries após 4xx/5xx do Gemini — ex: 429/503 em "
                     "pico de demanda. Reexecute o eval, picos são temporários)."
                 )
+            if 0 < len(df_ragas) <= n_nan:
+                raise QuotaExhaustedError(
+                    f"Avaliação 100% NaN ({n_nan}/{len(df_ragas)}): provável cota "
+                    "esgotada — confira também o modelo do juiz e a conectividade."
+                )
             return df_ragas
+        except QuotaExhaustedError:
+            raise
         except Exception as e:
             logger.error(f"Falha na orquestração do RAGAS: {e}")
             raise EvaluationError(f"Erro no pipeline RAGAS: {e}") from e

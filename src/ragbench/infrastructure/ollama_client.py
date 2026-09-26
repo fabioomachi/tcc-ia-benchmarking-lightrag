@@ -10,10 +10,19 @@ from google import genai
 from openai import AsyncOpenAI, RateLimitError
 
 from ragbench.config import ChatSettings, OllamaSettings
-from ragbench.core.exceptions import OllamaConnectionError
+from ragbench.core.exceptions import OllamaConnectionError, QuotaExhaustedError
 from ragbench.infrastructure.logging import get_logger
 
 logger = get_logger("ragbench.ollama")
+
+_QUOTA_KEYWORDS = ("quota", "resource_exhausted", "exhausted", "billing", "rate_limit_exceeded")
+
+
+def is_quota_message(message: str) -> bool:
+    """Indica se a mensagem de erro sugere cota esgotada (puro: sem I/O, testável)."""
+    lowered = message.lower()
+    return any(keyword in lowered for keyword in _QUOTA_KEYWORDS)
+
 
 # Factory de cliente HTTP: retorna um httpx.AsyncClient ou fake compatível
 # (async CM com get/post/stream). Permite testes sem rede via injeção.
@@ -85,6 +94,7 @@ class ResilientOllamaClient:
         valid_kwargs = {k: v for k, v in kwargs.items() if k in ["top_p", "response_format"]}
         max_attempts = self.settings.completion_max_attempts
         backoff = self.settings.retry_backoff
+        only_rate_limits = True
 
         for attempt in range(1, max_attempts + 1):
             try:
@@ -113,6 +123,10 @@ class ResilientOllamaClient:
 
             except RateLimitError as e:
                 if attempt == max_attempts:
+                    if only_rate_limits or is_quota_message(str(e)):
+                        raise QuotaExhaustedError(
+                            f"Cota da API esgotada no modelo {model}: {e}"
+                        ) from e
                     raise OllamaConnectionError(
                         f"Rate limit esgotado no modelo {model}: {e}"
                     ) from e
@@ -125,6 +139,7 @@ class ResilientOllamaClient:
                 await asyncio.sleep(jittered_delay)
 
             except Exception as e:
+                only_rate_limits = False
                 logger.warning(f"Tentativa {attempt}/{max_attempts} de completion falhou: {e}")
                 if attempt == max_attempts:
                     raise OllamaConnectionError(f"Falha no modelo ({model}): {e}") from e
@@ -159,12 +174,18 @@ class ResilientOllamaClient:
                             resp = await client.post(url, json=payload, headers=headers)
 
                             if resp.status_code == 429:
+                                if attempt == self.settings.embedding_max_attempts:
+                                    raise QuotaExhaustedError(
+                                        "Cota da API de embeddings esgotada (429 persistente)."
+                                    )
                                 await asyncio.sleep(self.settings.embedding_retry_delay * attempt)
                                 continue
 
                             resp.raise_for_status()
                             return resp.json().get("embedding", {}).get("values", [0.0] * dim)
 
+                    except QuotaExhaustedError:
+                        raise
                     except Exception as e:
                         if attempt == self.settings.embedding_max_attempts:
                             logger.error(f"Falha REST no embedding: {e}")

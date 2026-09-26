@@ -16,8 +16,13 @@ from typing import Annotated
 import typer
 
 from ragbench.cli_commands import deps
+from ragbench.cli_commands.quota_support import (
+    QUOTA_EXIT_CODE,
+    print_quota_stopped,
+)
 from ragbench.cli_commands.run_cmd import build_run_id
 from ragbench.conversational.batch import load_scenarios
+from ragbench.core.exceptions import QuotaExhaustedError
 from ragbench.core.models import (
     QueryExecutionRecord,
     QueryInteractionSource,
@@ -38,7 +43,10 @@ def run_direct_batch(
     run_name: Annotated[str | None, typer.Option(help="Nome da run")] = None,
     resume: Annotated[bool, typer.Option(help="Retoma checkpoint")] = True,
 ) -> None:
-    """Responde os cenários só com conhecimento geral do LLM (sem retrieval)."""
+    """Responde os cenários só com conhecimento geral do LLM (sem retrieval).
+
+    Sai com código 3 se a cota da API for esgotada (retome com o mesmo --run-name).
+    """
     if input not in ("completa", "incompleta"):
         deps.console.print("[red]--input deve ser 'completa' ou 'incompleta'.[/red]")
         raise typer.Exit(code=1)
@@ -69,14 +77,19 @@ def run_direct_batch(
                 f"| modelo={engine.llm_model} (sem grafo, sem cache)[/bold blue]"
             )
             sem = asyncio.Semaphore(2)
+            quota_stop = asyncio.Event()
             manifest: list[dict] = []
 
             async def worker(idx: int, item: dict) -> None:
                 if idx in completed:
                     return
+                if quota_stop.is_set():
+                    return
                 key = "pergunta_completa" if input == "completa" else "pergunta_incompleta"
                 question = str(item.get(key, ""))
                 async with sem:
+                    if quota_stop.is_set():
+                        return
                     start = time.perf_counter()
                     record = QueryExecutionRecord(
                         index=idx,
@@ -98,6 +111,13 @@ def run_direct_batch(
                         )
                         if not resp_text.strip():
                             record.error_message = "Resposta vazia do LLM."
+                    except QuotaExhaustedError as e:
+                        record.total_latency_seconds = round(time.perf_counter() - start, 4)
+                        record.status = RagExecutionStatus.ERROR
+                        record.error_message = f"QuotaExhaustedError: {e}"
+                        await asyncio.to_thread(storage.save_record, record)
+                        quota_stop.set()
+                        raise
                     except Exception as e:
                         record.total_latency_seconds = round(time.perf_counter() - start, 4)
                         record.status = RagExecutionStatus.ERROR
@@ -114,7 +134,14 @@ def run_direct_batch(
                         }
                     )
 
-            await asyncio.gather(*(worker(i, it) for i, it in enumerate(items)))
+            tasks = [asyncio.create_task(worker(i, it)) for i, it in enumerate(items)]
+            try:
+                await asyncio.gather(*tasks)
+            except QuotaExhaustedError:
+                for task in tasks:
+                    if not task.done():
+                        task.cancel()
+                await asyncio.gather(*tasks, return_exceptions=True)
             manifest.sort(key=lambda m: m["index"])
             records = await asyncio.to_thread(storage.load_all_records)
             csv_path = run_dir / "benchmark_analise_detalhada.csv"
@@ -158,6 +185,19 @@ def run_direct_batch(
                 records,
                 settings.results_dir / "resumo_benchmark.md",
             )
+            if quota_stop.is_set():
+                done = storage.get_completed_indices()
+                scenarios_opt = f" --scenarios {scenarios_path}" if scenarios else ""
+                print_quota_stopped(
+                    deps.console,
+                    resume_cmd=(
+                        f"uv run ragbench run-direct --run-name {run_id} "
+                        f"--input {input}{scenarios_opt}"
+                    ),
+                    remaining=len(items) - len(done),
+                    checkpoint=db_path,
+                )
+                raise typer.Exit(code=QUOTA_EXIT_CODE)
             deps.console.print("\n[bold green]✅ run-direct finalizado![/bold green]")
             deps.console.print(f"📁 Checkpoint: [cyan]{db_path}[/cyan]")
             deps.console.print(f"📊 Relatório: [cyan]{md_path}[/cyan]")

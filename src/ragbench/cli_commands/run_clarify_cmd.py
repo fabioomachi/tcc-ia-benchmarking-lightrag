@@ -19,6 +19,10 @@ import typer
 
 from ragbench.cli_commands import deps
 from ragbench.cli_commands.probe_cmd import classify_context
+from ragbench.cli_commands.quota_support import (
+    QUOTA_EXIT_CODE,
+    print_quota_stopped,
+)
 from ragbench.cli_commands.run_cmd import build_run_id
 from ragbench.conversational.batch import (
     load_scenarios,
@@ -26,7 +30,13 @@ from ragbench.conversational.batch import (
     simulate_clarification_guided,
 )
 from ragbench.conversational.router import DOC_ACESSO, load_entity_index
-from ragbench.core.models import QueryExecutionRecord, QueryInteractionSource, SearchMode
+from ragbench.core.exceptions import QuotaExhaustedError
+from ragbench.core.models import (
+    QueryExecutionRecord,
+    QueryInteractionSource,
+    RagExecutionStatus,
+    SearchMode,
+)
 from ragbench.engines.lightrag_engine import LightRAGEngine
 from ragbench.infrastructure.logging import setup_logging
 from ragbench.infrastructure.storage import SQLiteExecutionStorage
@@ -45,7 +55,10 @@ def run_clarify_batch(
     run_name: Annotated[str | None, typer.Option(help="Nome da run")] = None,
     resume: Annotated[bool, typer.Option(help="Retoma checkpoint")] = True,
 ) -> None:
-    """Executa os cenários incompletos com clarificação simulada + grafo."""
+    """Executa os cenários incompletos com clarificação simulada + grafo.
+
+    Sai com código 3 se a cota da API for esgotada (retome com o mesmo --run-name).
+    """
     settings = deps.get_settings()
     scenarios_path = scenarios or (settings.questions_dir / "hypothesis_inicial_scenarios.json")
     if not scenarios_path.exists():
@@ -78,6 +91,7 @@ def run_clarify_batch(
                 f"| roteador={'on' if routing_enabled else 'off'}[/bold blue]"
             )
             manifest: list[dict] = []
+            quota_stop = False
             for idx, item in enumerate(items):
                 if idx in completed:
                     continue
@@ -151,6 +165,8 @@ def run_clarify_batch(
                                 )
                                 eff_mode = SearchMode(route["mode"])
                                 eff_top_k = int(route["top_k"])
+                    except QuotaExhaustedError:
+                        raise
                     except Exception:
                         pass
                 start = time.perf_counter()
@@ -182,6 +198,13 @@ def run_clarify_batch(
                     )
                     if not resp_text.strip():
                         record.error_message = "Resposta vazia do engine."
+                except QuotaExhaustedError as e:
+                    record.total_latency_seconds = round(time.perf_counter() - start, 4)
+                    record.status = RagExecutionStatus.ERROR
+                    record.error_message = f"QuotaExhaustedError: {e}"
+                    await asyncio.to_thread(storage.save_record, record)
+                    quota_stop = True
+                    break
                 except Exception as e:
                     record.total_latency_seconds = round(time.perf_counter() - start, 4)
                     record.status = record.status.__class__.ERROR
@@ -248,6 +271,19 @@ def run_clarify_batch(
                 records,
                 settings.results_dir / "resumo_benchmark.md",
             )
+            if quota_stop:
+                done = storage.get_completed_indices()
+                scenarios_opt = f" --scenarios {scenarios_path}" if scenarios else ""
+                print_quota_stopped(
+                    deps.console,
+                    resume_cmd=(
+                        f"uv run ragbench run-clarify --run-name {run_id} "
+                        f"--mode {mode} --top-k {top_k}{scenarios_opt}"
+                    ),
+                    remaining=len(items) - len(done),
+                    checkpoint=db_path,
+                )
+                raise typer.Exit(code=QUOTA_EXIT_CODE)
             deps.console.print("\n[bold green]✅ run-clarify finalizado![/bold green]")
             deps.console.print(f"📁 Checkpoint: [cyan]{db_path}[/cyan]")
             deps.console.print(f"📑 Manifest clarify: [cyan]{manifest_path}[/cyan]")
