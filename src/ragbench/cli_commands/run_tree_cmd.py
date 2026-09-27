@@ -73,8 +73,8 @@ def run_tree_batch(
                 filled, turns, enriched = simulate_clarification(
                     q_incomplete, simulated, max_turns=max_clarify_turns
                 )
-                decision = await asyncio.to_thread(decide, enriched)
                 start = time.perf_counter()
+                decision = await asyncio.to_thread(decide, enriched)
                 record = QueryExecutionRecord(
                     index=idx,
                     query=enriched,
