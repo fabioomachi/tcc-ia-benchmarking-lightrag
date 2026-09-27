@@ -131,35 +131,8 @@ determinístico). A tese é de **custo**: ~600 linhas de POP viraram ramos
 escritos à mão, frágeis a qualquer mudança de norma, contra o grafo que se
 constrói sozinho (≈ 0.86) e o roteador que se adapta.
 
-## Série golden-8 — base completa, 16 perguntas adversariais (26/09/2026)
-
-Base: 8 POPs indexados (`hybrid/k5`), 22 chunks, 233 nós / 131 arestas, manifesto
-com 8 hashes. Dataset: `data/golden_dataset.json`, 16 perguntas (2/doc:
-CONDITIONAL_WORKFLOW 6, EDGE_CASE 5, ROLE_RESTRICTION 3, REGULATORY_TIMELINE 2).
-Modelos: index `gemini-3.5-flash-lite`, chat `gemini-3.1-flash-lite`, juiz
-`gemini-3.5-flash-lite` (mesmo juiz da hipótese — comparável), embeddings
-`gemini-embedding-001`/768. Run `golden_full_hybrid`, 0 NaN.
-
-| Braço | n | Faithfulness | Relevancy | Recall | Precision |
-|---|---|---|---|---|---|
-| golden_full_hybrid_16 | 16 | 0.2715 | 0.3835 | 1.0000 | 1.0000 |
-
-- Bimodal: 8 amostras saudáveis (faithfulness até 0.92) e 8 zeradas — as zeradas
-  são abstenções honestas ("não há dados que confirmem...") em cenários
-  multi-condição, não artefato de métrica.
-- Por tipo (detalhe em `evidencias/por_tipo.csv`): ROLE_RESTRICTION 0.5593 lidera;
-  CONDITIONAL_WORKFLOW afunda (0.0972) — combinar pré-requisitos é o ponto fraco
-  do modo hybrid sem clarificação, consistente com a hipótese (o roteado com
-  clarificação fazia 0.86 nos 2 docs).
-- Latência média 65.6s/query (soma ~17.5min com concorrência 10), sem cache.
-- Limites: mesmo artefato de precision/recall = 1.0 (contexto = arquivo-fonte);
-  n=16, spike; 1 doc (`POP_Cartoes_SAC`) exigiu 3 tentativas por falha silenciosa
-  de merge do LightRAG (status `failed` sem exceção — motivou a verificação
-  pós-insert do `index`).
-
 ## Arquivos de evidência (pasta `evidencias/`)
 
 - `<braco>_ragas.csv`: RAGAS por pergunta · `tabela_bracos.csv` (com n), `por_tipo.csv`
 - `exp_routed_24_manifest.json`: rota, margem, scores e turnos por pergunta
 - `cenarios_24.json` · `piores_casos.md` · `probe_piores_5.md` · `sweep_topk.md` · `ambiente.md`
-- `golden_full_hybrid_16_ragas.csv`: as 16 avaliações da série golden-8 (dataset em `data/golden_dataset.json`)
