@@ -131,8 +131,50 @@ determinístico). A tese é de **custo**: ~600 linhas de POP viraram ramos
 escritos à mão, frágeis a qualquer mudança de norma, contra o grafo que se
 constrói sozinho (≈ 0.86) e o roteador que se adapta.
 
+## Série golden-8 — base completa, 16 perguntas adversariais (26–27/09/2026)
+
+Base: 8 POPs indexados (`hybrid/k5`), 22 chunks, 233 nós / 131 arestas, manifesto
+com 8 hashes. Dataset: `data/golden_dataset.json`, 16 perguntas (2/doc:
+CONDITIONAL_WORKFLOW 6, EDGE_CASE 5, ROLE_RESTRICTION 3, REGULATORY_TIMELINE 2).
+Modelos: index `gemini-3.5-flash-lite`, chat `gemini-3.1-flash-lite`, juiz
+`gemini-3.5-flash-lite` (mesmo juiz da hipótese — comparável), embeddings
+`gemini-embedding-001`/768. Três braços, 0 NaN em todas as avaliações.
+
+| Braço | n | Faithfulness | Relevancy | Recall | Precision |
+|---|---|---|---|---|---|
+| golden_full_hybrid_16 | 16 | 0.2715 | 0.3835 | 1.0000 | 1.0000 |
+| golden_direct_completa_16 | 16 | 0.1310 | 0.8110 | 1.0000 | 1.0000 |
+| golden_tree_v2_16 | 16 | 0.7761 | 0.7386 | 1.0000 | 1.0000 |
+
+Baseline LLM puro (`run-direct --input completa`, run `golden_direct_completa`,
+cenários em `data/golden_scenarios_completa.json`, 16/16 success, 10.0s/query):
+faithfulness 0.1310 com relevancy 0.8110 — a assinatura de alucinação confiante
+se replica na base de 8 docs (fluente, pertinente e infiel). Hybrid (0.2715) ≈
+2× o direto (0.1310): gap menor que os 4–5× da hipótese porque o hybrid também
+sofre no dataset mais duro — metade das respostas são abstenções honestas ("não
+há dados que confirmem...") em cenários multi-condição.
+
+Árvore reescrita para os 8 POPs (motor v2.0, ~75 ramos, run `golden_tree_v2`,
+0.0s/query, sem API): 16/16 documentos corretos, 0 abstenções, faithfulness
+0.7761 consistente em todos os tipos (0.65–0.80) — melhor braço da série. A v1
+(só 2 POPs) errava confiante ou abstinha em 11/16 desta mesma base.
+
+Ponte com a hipótese: o invariante se mantém em escala maior — grafo > LLM puro;
+relevancy alta + faithfulness no piso sem grafo, em todos os tipos; e a árvore
+vence onde o domínio está codificado à mão (teto determinístico, tese de
+**custo**: cada POP novo exigiu ramos escritos à mão, frágeis a mudanças de
+norma, contra o grafo que se constrói sozinho).
+
+Limites: mesmo artefato de precision/recall = 1.0 (contexto = arquivo-fonte);
+n=16, spike; 1 doc (`POP_Cartoes_SAC`) exigiu 3 tentativas por falha silenciosa
+de merge do LightRAG (status `failed` sem exceção — motivou a verificação
+pós-insert do `index`).
+
 ## Arquivos de evidência (pasta `evidencias/`)
 
 - `<braco>_ragas.csv`: RAGAS por pergunta · `tabela_bracos.csv` (com n), `por_tipo.csv`
 - `exp_routed_24_manifest.json`: rota, margem, scores e turnos por pergunta
 - `cenarios_24.json` · `piores_casos.md` · `probe_piores_5.md` · `sweep_topk.md` · `ambiente.md`
+- `golden_full_hybrid_16_ragas.csv`: as 16 avaliações da série golden-8 (dataset em `data/golden_dataset.json`)
+- `golden_direct_completa_16_ragas.csv`: as 16 avaliações do baseline LLM puro (cenários em `data/golden_scenarios_completa.json`)
+- `golden_tree_v2_16_ragas.csv`: as 16 avaliações da árvore v2 (8 POPs; manifest em `runs/golden_tree_v2/tree_manifest.json`)

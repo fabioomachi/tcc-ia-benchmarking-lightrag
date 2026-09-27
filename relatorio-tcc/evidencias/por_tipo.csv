@@ -24,3 +24,24 @@ EDGE_CASE,0.2365,0.8526,0.9333,1.0
 REGULATORY_TIMELINE,0.2125,0.8335,1.0,1.0
 ROLE_RESTRICTION,0.0877,0.7926,1.0,1.0
 
+# golden_full_hybrid_16
+question_type,faithfulness,answer_relevancy,context_recall,context_precision
+CONDITIONAL_WORKFLOW,0.0972,0.255,1.0,1.0
+EDGE_CASE,0.3833,0.4366,1.0,1.0
+REGULATORY_TIMELINE,0.0833,0.3779,1.0,1.0
+ROLE_RESTRICTION,0.5593,0.5558,1.0,1.0
+
+# golden_direct_completa_16
+question_type,faithfulness,answer_relevancy,context_recall,context_precision
+CONDITIONAL_WORKFLOW,0.1158,0.8261,1.0,1.0
+EDGE_CASE,0.1625,0.7863,1.0,1.0
+REGULATORY_TIMELINE,0.0455,0.7829,1.0,1.0
+ROLE_RESTRICTION,0.166,0.8407,1.0,1.0
+
+# golden_tree_v2_16
+question_type,faithfulness,answer_relevancy,context_recall,context_precision
+CONDITIONAL_WORKFLOW,0.8021,0.7688,1.0,1.0
+EDGE_CASE,0.7944,0.7042,1.0,1.0
+REGULATORY_TIMELINE,0.65,0.7099,1.0,1.0
+ROLE_RESTRICTION,0.7778,0.7546,1.0,1.0
+
