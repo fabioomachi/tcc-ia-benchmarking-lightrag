@@ -40,9 +40,13 @@ preenche e só então consulta o grafo — em vez de chutar.
 | POP de crédito | `data/pops/pop_cdc_pf.md` (29 KB) | Regras de CDC: cancelamento (linha 2881, DOC 800020), duplicidade boleto/débito, amortização, alçadas |
 | Golden inicial | `data/golden_dataset.json` (4 perguntas completas com ground-truth) | Base do braço baseline |
 | Cenários da hipótese | `data/hypothesis_inicial_scenarios.json` (24 cenários) | Cada cenário tem: `pergunta_incompleta` (vaga, como usuário real), `slots_simulados` (respostas do usuário fictício), `pergunta_completa`, `ground_truth` (resposta correta extraída do POP), `source_document`, `tipo` |
+| 6 POPs novos (série golden-8, 26/09) | `data/pops/POP_Cartoes_SAC_anonimizado.md`, `POP_Fatura_Envio_Email_anonimizado.md`, `POP_INSS_Beneficios_Sociais_anonimizado.md`, `POP_Limites_Cartao_Credito_PF_anonimizado.md`, `POP_Bloqueio_Judicial_anonimizado.md`, `POP_Alfa_Rende_Facil_Adesao_anonimizado.md` | Cartões/SAC, fatura por e-mail, INSS/benefícios, limites do cartão, bloqueio judicial, Alfa Rende Fácil |
+| Golden 16 (série golden-8) | `data/golden_dataset.json` (16 perguntas, 2 por POP) + `data/golden_scenarios_completa.json` (cenários derivados p/ `run-direct`/`run-tree`) | Perguntas adversariais com ground-truth, mesmos 4 tipos |
 
 Cobertura dos 24 cenários: 12 por POP; tipos `CONDITIONAL_WORKFLOW` (8),
 `ROLE_RESTRICTION` (6), `EDGE_CASE` (5), `REGULATORY_TIMELINE` (5).
+Cobertura do golden 16: 2 por POP (8 POPs); tipos `CONDITIONAL_WORKFLOW` (6),
+`EDGE_CASE` (5), `ROLE_RESTRICTION` (3), `REGULATORY_TIMELINE` (2).
 Exemplo de cenário (id `acesso_bloqueio_u8_site`): incompleta
 *“Minha senha bloqueou, como desbloqueio pelo site?”* → slots
 `codigo_bloqueio=U, alfa_code=não, biometria_dias=5…` → ground-truth: “só
@@ -72,6 +76,15 @@ os itens da entrada (ver seção 5):
 | Série `_35` | mesmos 4 comandos | Idem acima, com chat 3.5 (replicação: prova que o ganho é do método) | Mesmos arquivos; só `CHAT__LLM_MODEL` trocado no `.env` |
 | Árvore decisão | `run-tree` | **NÃO (regras)** | guiada p/ slots | incompleta (24) | — | `src/ragbench/engines/decision_tree_engine.py` + `src/ragbench/cli_commands/run_tree_cmd.py`: ~40 ramos dos 2 POPs, templates fixos, `mode=tree` + `source=tree_engine` |
 | Série `_35` | mesmos 4 comandos | idem | idem | idem | **3.5** | Mesmos arquivos; só `CHAT__LLM_MODEL` trocado no `.env` |
+| Golden hybrid (26/09) | `run --target data/golden_dataset.json --mode hybrid` | SIM (LightRAG) | NÃO | completa (16) | 3.1 | Mesmo `run_cmd.py`; base de 8 POPs, 22 chunks, 233 nós/131 arestas |
+| Golden direto (26/09) | `run-direct --input completa --scenarios data/golden_scenarios_completa.json` | NÃO (LLM puro) | NÃO | completa (16) | 3.1 | `direct_llm_engine.py`: 16/16 success, ~10s/query |
+| Golden árvore v2 (26/09) | `run-tree --scenarios data/golden_scenarios_completa.json` | **NÃO (regras)** | NÃO | completa (16) | — (zero API) | Motor v2.0: ~75 ramos dos 8 POPs, 16/16 documentos corretos, 0 abstenções |
+
+Notas operacionais da série golden-8 (código em `src/ragbench/cli_commands/quota_support.py`,
+`engines/lightrag_engine.py`): `index` incremental com manifesto anti-duplicata
+(`--reconcile` para bases legadas); `index`/`run*`/`eval` param com exit 3 em
+cota esgotada, limpam o resíduo parcial e mandam retomar com o mesmo `--run-name`;
+`eval` tem sonda pré-voo e só sobrescreve resultados se nem tudo for NaN.
 
 Configuração dos modelos: `src/ragbench/config.py` (+ `.env`, não versionado;
 template em `.env.example`). Na época dos experimentos: index
@@ -81,12 +94,15 @@ template em `.env.example`). Na época dos experimentos: index
 
 ## 5. Como os testes foram feitos (3 camadas, todas reproduzíveis)
 
-### Camada 1 — Testes unitários (158, sem rede, sem custo)
+### Camada 1 — Testes unitários (223, sem rede, sem custo)
 
 ```bash
-uv run pytest tests/ --no-cov -q   # esperado: 158 passed
+uv run pytest tests/ --no-cov -q   # esperado: 223 passed
 uv run ruff check src/ragbench tests/unit/test_clarifier.py tests/unit/test_direct.py tests/unit/test_router.py tests/unit/test_run_clarify.py tests/unit/test_tree.py
 ```
+
+> Desde a hipótese: +65 testes (quota/cota em index·run·eval, árvore v2 com os
+> 8 POPs, segredos sem vazamento, reconciliação de manifesto).
 
 > O que cada teste verifica, linha a linha (tabela por ramo da árvore
 > incluída): `relatorio-tcc/evidencias/testes-detalhados.md`. Resumo por
@@ -125,6 +141,18 @@ uv run ragbench run-direct --input completa|incompleta --run-name EXP --no-resum
 uv run ragbench eval --run-id EXP
 ```
 
+Série golden-8 (braços executados em 26/09, runs `golden_full_hybrid`,
+`golden_direct_completa`, `golden_tree_v2`):
+
+```bash
+uv run ragbench run --run-name golden_full_hybrid --mode hybrid --top-k 5 --target data/golden_dataset.json
+uv run ragbench run-direct --run-name golden_direct_completa --input completa --scenarios data/golden_scenarios_completa.json
+uv run ragbench run-tree --run-name golden_tree_v2 --scenarios data/golden_scenarios_completa.json
+uv run ragbench eval --run-id golden_full_hybrid
+uv run ragbench eval --run-id golden_direct_completa
+uv run ragbench eval --run-id golden_tree_v2
+```
+
 Cada run grava em `runs/<id>/`: `checkpoint.sqlite3` (respostas + latências),
 `benchmark_analise_detalhada.csv`, `resumo_benchmark.md`, `clarify_manifest.json`
 ou `direct_manifest.json` (auditoria: slots, turnos, rota, margem por pergunta)
@@ -152,6 +180,22 @@ combinação (relevancy alta + faithfulness baixa) é a assinatura mensurada da
 alucinação confiante. O ganho se replica nos dois modelos de chat, logo vem
 do método, não do modelo.
 
+Série golden-8 (base de 8 POPs, 16 perguntas, 26/09 — tabela completa em
+`relatorio-tcc/evidencias/tabela_bracos.csv`):
+
+| Braço | n | Faithfulness | Relevancy |
+|---|---|---|---|
+| Árvore v2 (regras, 8 POPs) | 16 | **0.78** | 0.74 |
+| Hybrid (grafo) | 16 | 0.27 | 0.38 |
+| Direto completa (LLM puro) | 16 | 0.13 | **0.81** |
+
+Tradução: no dataset mais duro, o hybrid acerta ~27% e se abstém honestamente
+na metade ("não há dados que confirmem..."); o LLM puro mantém a assinatura de
+alucinação (fluente 0.81, fiel 0.13); a árvore v2, com o domínio inteiro
+codificado à mão, lidera (0.78) — o que mede o teto da codificação manual, não
+uma vitória arquitetural (a v1, só com 2 POPs, errava ou abstinha em 11/16
+desta mesma base).
+
 ## 7. Como replicar do zero (receita)
 
 ```bash
@@ -166,6 +210,11 @@ uv run ragbench eval --run-id REP
 uv run pytest tests/ --no-cov -q             # 158 passed
 ```
 
+Para a série golden-8 (na `main`, sem trocar de branch): mesmos passos com
+`uv run ragbench index` (incremental; `--reconcile` em bases legadas),
+os 3 comandos de run da seção 5 e `eval` por run-id; testes esperados:
+223 passed.
+
 Notas de custo: cada eval de 24 amostras ≈ 96 tarefas do juiz (≈ 7–15 min);
 cota free-tier 500 req/dia/modelo — um braço completo (run+eval) consome parte
 relevante; espaçar braços ou usar chave com cota maior. O `eval` do 4º braço
@@ -174,17 +223,23 @@ registrado como limite, não como dado perdido (a run estava íntegra).
 
 ## 8. Limites conhecidos (para a banca não perguntar primeiro)
 
-1. n=24: indício forte, não prova estatística formal.
+1. n=24 (hipótese) e n=16 (golden-8): indício forte, não prova estatística formal.
 2. `context_precision/recall ≈ 1.0` é artefato: o `eval` usa o arquivo-fonte
    como contexto do RAGAS (`src/ragbench/evaluation/ragas_evaluator.py`,
    `prepare_dataset`), não os chunks recuperados — o retrieval real foi medido
    pela probe (camada 2), não por essas colunas.
-3. Cache do LightRAG acelerou runs (latências otimistas).
-4. Extração de entidades do índice é genérica (tipos `organization`/`artifact`),
+3. Série golden-8: 1 doc (`POP_Cartoes_SAC`) falhou 2× em silêncio no merge do
+   LightRAG (status `failed` sem exceção) e passou na 3ª tentativa — causa
+   provável: contenção de quota no pico do lote; motivou a verificação
+   pós-insert do `index` (só registra `processed` no manifesto).
+4. Cache do LightRAG acelerou runs (latências otimistas).
+5. Extração de entidades do índice é genérica (tipos `organization`/`artifact`),
    não a ontologia bancária injetada no prompt — o roteador contorna o viés de
    ranking, não o cura (reindexação como trabalho futuro).
 5. Juiz `3.7-flash` existe no endpoint mas tem cota de 20 req/dia (inviável);
    mantido `3.5-flash-lite`.
+6. Série golden-8: cota free-tier condicionou a operação — `index`/`run`/`eval`
+   param com exit 3 e retomam no dia seguinte (ver nota operacional na seção 4).
 
 ## 9. Mapa de arquivos (índice de auditoria)
 
@@ -192,14 +247,17 @@ registrado como limite, não como dado perdido (a run estava íntegra).
   `conversational/router.py`, simulação `conversational/batch.py`
 - Braços: `cli_commands/run_cmd.py`, `run_clarify_cmd.py`, `run_direct_cmd.py`,
   `probe_cmd.py`, `clarify_cmd.py`, `chat_cmd.py`
-- Motores: `engines/lightrag_engine.py`, `engines/direct_llm_engine.py`
+- Motores: `engines/lightrag_engine.py`, `engines/direct_llm_engine.py`,
+  `engines/decision_tree_engine.py` (v2.0: ~75 ramos dos 8 POPs)
 - Contratos: `core/models.py` (`SearchMode` com `DIRECT`, `QueryInteractionSource`
   com `BASELINE_ENGINE`), `core/interfaces.py`, `config.py` (`ClarifySettings`,
-  `RoutingSettings`)
-- Avaliação: `evaluation/ragas_evaluator.py`, `reporting/reporters.py`,
-  `infrastructure/storage.py` (checkpoint SQLite), `runner.py`
-- Dados: `data/pops/*.md`, `data/golden_dataset.json`,
+  `RoutingSettings`), `core/exceptions.py` (`QuotaExhaustedError`, exit 3)
+- Avaliação: `evaluation/ragas_evaluator.py` (sonda pré-voo, gate 100% NaN),
+  `reporting/reporters.py`, `infrastructure/storage.py` (checkpoint SQLite),
+  `runner.py`, `cli_commands/quota_support.py`
+- Dados: `data/pops/*.md` (8 POPs), `data/golden_dataset.json` (16),
+  `data/golden_scenarios_completa.json`,
   `data/hypothesis_inicial_scenarios.json`
-- Evidências: `relatorio-tcc/evidencias/` (9 CSVs RAGAS, manifests, probes,
+- Evidências: `relatorio-tcc/evidencias/` (12 CSVs RAGAS, manifests, probes,
   cenários, piores casos, ambiente) · relatório técnico:
   `relatorio-tcc/relatorio-hipotese.md`
