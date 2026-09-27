@@ -70,6 +70,152 @@ from ragbench.engines.decision_tree_engine import (
         ("antecipação IRPF e FGTS, quando debita?", "CDC_IRPF_FGTS", "pop_cdc_pf.md"),
         ("repactuação com Op pendente, cancela?", "CDC_REPACTUACAO", "pop_cdc_pf.md"),
         ("débito sem autorização após 01/03/2021", "CDC_AUTORIZACAO_2021", "pop_cdc_pf.md"),
+        # Cartões/SAC
+        (
+            "fraude no crédito com Cartão Alfa-e, Token falhou, e agora?",
+            "CARTOES_CONTESTACAO_FRAUDE",
+            "POP_Cartoes_SAC_anonimizado.md",
+        ),
+        (
+            "SAC pode contratar PPF e como antecipar parcelas?",
+            "CARTOES_PPF",
+            "POP_Cartoes_SAC_anonimizado.md",
+        ),
+        (
+            "ativar pagamento por aproximação NFC no cartão",
+            "CARTOES_NFC",
+            "POP_Cartoes_SAC_anonimizado.md",
+        ),
+        (
+            "desacordo comercial e encargos na fatura do cartão",
+            "CARTOES_DESACORDO",
+            "POP_Cartoes_SAC_anonimizado.md",
+        ),
+        (
+            "fraude no débito do cartão via SAC, transferir ao antifraude ROI",
+            "CARTOES_DEBITO_FRAUDE",
+            "POP_Cartoes_SAC_anonimizado.md",
+        ),
+        (
+            "pedir segunda via do cartão, quais canais?",
+            "CARTOES_SEGUNDA_VIA",
+            "POP_Cartoes_SAC_anonimizado.md",
+        ),
+        (
+            "negociar anuidade do cartão PF",
+            "CARTOES_ANUIDADE",
+            "POP_Cartoes_SAC_anonimizado.md",
+        ),
+        (
+            "seguro de viagem Visa do cartão",
+            "CARTOES_SEGUROS",
+            "POP_Cartoes_SAC_anonimizado.md",
+        ),
+        (
+            "bloquear cartão por perda, como fazer?",
+            "CARTOES_BLOQUEIO",
+            "POP_Cartoes_SAC_anonimizado.md",
+        ),
+        (
+            "contratar cartão novo pelo SAC, pode?",
+            "CARTOES_CONTRATACAO",
+            "POP_Cartoes_SAC_anonimizado.md",
+        ),
+        (
+            "aumentar limite do cartão físico e virtual",
+            "CARTOES_LIMITES",
+            "POP_Cartoes_SAC_anonimizado.md",
+        ),
+        # Fatura por e-mail
+        (
+            "código de barras da fatura sem Token, e agora?",
+            "FATURA_CODIGO_BARRAS",
+            "POP_Fatura_Envio_Email_anonimizado.md",
+        ),
+        (
+            "não recebi a fatura impressa, endereço correto, por quê?",
+            "FATURA_NAO_RECEBIDA",
+            "POP_Fatura_Envio_Email_anonimizado.md",
+        ),
+        (
+            "reenviar fatura para e-mail alternativo, Opção B",
+            "FATURA_OPCAO_B",
+            "POP_Fatura_Envio_Email_anonimizado.md",
+        ),
+        (
+            "mudar forma de envio da fatura para e-mail definitivo, duplo sim?",
+            "FATURA_MUDANCA_DEFINITIVA",
+            "POP_Fatura_Envio_Email_anonimizado.md",
+        ),
+        (
+            "sem Token validado, envia a fatura por e-mail?",
+            "FATURA_TOKEN_OBRIGATORIO",
+            "POP_Fatura_Envio_Email_anonimizado.md",
+        ),
+        # INSS/benefícios
+        (
+            "valor encaminhado pelo INSS e Ini.pgto futuro, informar?",
+            "INSS_VALORES",
+            "POP_INSS_Beneficios_Sociais_anonimizado.md",
+        ),
+        (
+            "benefício consta NÃO DISPONÍVEL, o que orientar?",
+            "INSS_INDISPONIVEL",
+            "POP_INSS_Beneficios_Sociais_anonimizado.md",
+        ),
+        (
+            "localizar número do benefício no SISPAG, como?",
+            "INSS_LOCALIZAR",
+            "POP_INSS_Beneficios_Sociais_anonimizado.md",
+        ),
+        # Limites do cartão
+        (
+            "Token falhou, posso consultar limite só com a URA?",
+            "LIMITES_TOKEN",
+            "POP_Limites_Cartao_Credito_PF_anonimizado.md",
+        ),
+        (
+            "onde o cliente consulta o limite, quais canais informar?",
+            "LIMITES_CANAIS",
+            "POP_Limites_Cartao_Credito_PF_anonimizado.md",
+        ),
+        (
+            "aumentar limite do cartão com Token ok",
+            "LIMITES_ALTERAR",
+            "POP_Limites_Cartao_Credito_PF_anonimizado.md",
+        ),
+        # Bloqueio judicial
+        (
+            "consulta SISJUD com intervalo de 400 dias, pode?",
+            "JUDICIAL_PRAZO",
+            "POP_Bloqueio_Judicial_anonimizado.md",
+        ),
+        (
+            "bloqueio identificado com protocolo, extrair processo e juízo",
+            "JUDICIAL_IDENTIFICADO",
+            "POP_Bloqueio_Judicial_anonimizado.md",
+        ),
+        (
+            "conta de proventos bloqueada, banco desbloqueia?",
+            "JUDICIAL_PROVENTOS",
+            "POP_Bloqueio_Judicial_anonimizado.md",
+        ),
+        # Alfa Rende Fácil
+        (
+            "contratação do Alfa Rende Fácil sem Duplo Sim, confirmação posterior sana?",
+            "ALFA_DUPLO_SIM_OBRIGATORIO",
+            "POP_Alfa_Rende_Facil_Adesao_anonimizado.md",
+        ),
+        (
+            "confirmar Duplo Sim no 31º dia, permite?",
+            "ALFA_PRAZO_30",
+            "POP_Alfa_Rende_Facil_Adesao_anonimizado.md",
+        ),
+        (
+            "como contratar Alfa Rende Fácil PF?",
+            "ALFA_COMO_CONTRATAR",
+            "POP_Alfa_Rende_Facil_Adesao_anonimizado.md",
+        ),
     ],
 )
 def test_ramos(query, branch, doc):
@@ -98,6 +244,57 @@ def test_detect_doc_por_slots():
     assert detect_doc({"codigo_bloqueio": "U"}, "texto qualquer") == "pop_acesso_pf.md"
     assert detect_doc({}, "quero cancelar meu cdc e o boleto") == "pop_cdc_pf.md"
     assert detect_doc({}, "oi, tudo bem?") == ""
+
+
+def test_detect_doc_novos_docs():
+    # detect_doc recebe texto já normalizado (minúsculo, sem acento).
+    assert (
+        detect_doc({}, "contestacao de compra no cartao com token falhou")
+        == "POP_Cartoes_SAC_anonimizado.md"
+    )
+    assert (
+        detect_doc({}, "reenvio da fatura por email com token")
+        == "POP_Fatura_Envio_Email_anonimizado.md"
+    )
+    assert (
+        detect_doc({}, "beneficio inss no sispag, informar valor?")
+        == "POP_INSS_Beneficios_Sociais_anonimizado.md"
+    )
+    assert (
+        detect_doc({}, "consultar limite com token 50148")
+        == "POP_Limites_Cartao_Credito_PF_anonimizado.md"
+    )
+    assert (
+        detect_doc({}, "bloqueio judicial no sisjud, como consultar?")
+        == "POP_Bloqueio_Judicial_anonimizado.md"
+    )
+    assert (
+        detect_doc({}, "adesao alfa rende facil com duplo sim")
+        == "POP_Alfa_Rende_Facil_Adesao_anonimizado.md"
+    )
+
+
+def test_detect_doc_slot_espurio_nao_vence_evidencia_forte():
+    # '7' extraído de '700002' não pode sequestrar um CDC com 6 evidências.
+    d = decide("CDC Consignado Convênio Especial 02 (700002) por linha de crédito, como vai?")
+    assert d.doc == "pop_cdc_pf.md"
+    # Empate com legado mantém o legado (compatibilidade).
+    assert detect_doc({}, "limite especial") in ("pop_cdc_pf.md", "")
+
+
+def test_golden_16_roteamento_por_documento():
+    import json
+    from pathlib import Path
+
+    golden_path = Path("data/golden_dataset.json")
+    if not golden_path.exists():
+        pytest.skip("golden_dataset.json ausente (gerado via generate-dataset)")
+    golden = json.loads(golden_path.read_text(encoding="utf-8"))
+    assert len(golden) == 16
+    for item in golden:
+        d = decide(item["question"])
+        assert d.doc == item["source_document"], f"{item['question'][:60]!r} -> {d.branch}"
+        assert d.confident is True
 
 
 def test_engine_protocolo():

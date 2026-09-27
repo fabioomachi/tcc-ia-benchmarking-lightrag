@@ -1,7 +1,7 @@
 """Chatbot tradicional por árvore de decisão: POPs codificadas à mão.
 
 Braço simbólico do TCC: zero LLM, zero grafo, zero retrieval. As regras dos
-dois POPs viram ramos `if/elif` com templates de resposta redigidos a partir
+oito POPs viram ramos `if/elif` com templates de resposta redigidos a partir
 dos trechos normativos (cada ramo cita a seção do POP em comentário).
 Slot faltante → pergunta de esclarecimento; nada casou → fallback honesto
 "não coberto", nunca chute. Tudo puro e determinístico (testável sem rede).
@@ -23,14 +23,15 @@ from ragbench.infrastructure.logging import get_logger
 
 logger = get_logger("ragbench.engine.tree")
 
-TREE_VERSION = "pop-v1.0"
+TREE_VERSION = "pop-v2.0"
 TREE_MODEL_NAME = "decision-tree-pop-v1"
 
 FALLBACK_ANSWER = (
-    "Não tenho regra codificada para este caso nos POPs de Senhas ou CDC. "
-    "Informe se o assunto é senha/acesso (código de bloqueio, Alfa Code, "
-    "biometria) ou empréstimo/CDC (parcela, boleto, cancelamento), "
-    "ou procure uma agência."
+    "Não tenho regra codificada para este caso nos 8 POPs (senhas, CDC, "
+    "cartões/SAC, fatura por e-mail, INSS/benefícios, limites do cartão, "
+    "bloqueio judicial, Alfa Rende Fácil). Diga o assunto (ex: contestação "
+    "de compra, código de barras, benefício INSS, limite, bloqueio judicial, "
+    "adesão) ou procure uma agência."
 )
 
 ACESSO_KEYWORDS = (
@@ -87,13 +88,116 @@ CDC_KEYWORDS = (
 )
 
 
+CARTOES_KEYWORDS = (
+    "cartao",
+    "sac",
+    "contestacao",
+    "desacordo",
+    "falsidade",
+    "ppf",
+    "parcelado",
+    "contratacao",
+    "nfc",
+    "contactless",
+    "carteiras digitais",
+    "segunda via",
+    "anuidade",
+    "alfa-e",
+    "virtual",
+    "seguros",
+    "fisico",
+    "portabilidade",
+    "fraude",
+)
+
+FATURA_KEYWORDS = (
+    "fatura",
+    "email",
+    "reenvio",
+    "codigo de barras",
+    "boleto",
+    "whatsapp",
+    "impressa",
+    "inibir",
+    "token",
+    "ura",
+    "siscad",
+    "sisneg",
+    "cadastro",
+    "emit",
+    "spam",
+    "endereco",
+)
+
+INSS_KEYWORDS = (
+    "inss",
+    "sispag",
+    "beneficio",
+    "pasep",
+    "recadastramento",
+    "auxilio",
+    "extrato",
+    "ini.pgto",
+    "disponib",
+    "conta-beneficio",
+    "nao disponivel",
+    "convenio",
+    "encaminhado",
+)
+
+LIMITES_KEYWORDS = (
+    "limite",
+    "anc vigente",
+    "50190",
+    "17.01.01",
+    "aumento de limite",
+    "reducao de limite",
+    "token",
+    "ura",
+    "50148",
+)
+
+JUDICIAL_KEYWORDS = (
+    "judicial",
+    "sisjud",
+    "juizo",
+    "vara",
+    "tribunal",
+    "protocolo",
+    "proventos",
+    "previdenciario",
+    "ordem",
+    "fcr",
+    "recebe proventos",
+)
+
+ALFA_KEYWORDS = (
+    "rende facil",
+    "duplo sim",
+    "cdb",
+    "aplicacao automatica",
+    "adesao",
+    "30 dias",
+    "pendentes de confirmacao",
+)
+
+NEW_DOC_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "POP_Cartoes_SAC_anonimizado.md": CARTOES_KEYWORDS,
+    "POP_Fatura_Envio_Email_anonimizado.md": FATURA_KEYWORDS,
+    "POP_INSS_Beneficios_Sociais_anonimizado.md": INSS_KEYWORDS,
+    "POP_Limites_Cartao_Credito_PF_anonimizado.md": LIMITES_KEYWORDS,
+    "POP_Bloqueio_Judicial_anonimizado.md": JUDICIAL_KEYWORDS,
+    "POP_Alfa_Rende_Facil_Adesao_anonimizado.md": ALFA_KEYWORDS,
+}
+
+
 @dataclass(frozen=True)
 class Decision:
     """Resultado puro da árvore para uma pergunta."""
 
     answer: str
     branch: str
-    doc: str  # pop_acesso_pf.md | pop_cdc_pf.md | ""
+    doc: str  # um dos 8 POPs indexados, ou ""
     confident: bool
     missing: tuple[str, ...] = ()
 
@@ -104,17 +208,51 @@ def _norm(text: str) -> str:
     return normalize(text)
 
 
+def _count_keywords(norm: str, keywords: tuple[str, ...]) -> int:
+    return sum(1 for k in keywords if k in norm)
+
+
 def detect_doc(filled: dict[str, str], norm: str) -> str:
-    """Qual POP a pergunta pertence (slots acesso-específicos decidem primeiro)."""
+    """Qual POP a pergunta pertence (slots acesso-específicos decidem primeiro).
+
+    Regra de desempate que preserva o legado: um POP novo só vence se superar
+    ESTRITAMENTE e com folga única a pontuação de acesso/CDC; empates com os
+    legados mantêm acesso/CDC, empates entre novos devolvem "" (honesto).
+    """
+    # "bloqueio"/"desbloqueio" pertencem ao POP de Senhas, salvo quando há
+    # marcadores judiciais explícitos (senão todo bloqueio judicial vira acesso).
+    acesso_kws = ACESSO_KEYWORDS
+    if any(
+        k in norm
+        for k in ("judicial", "sisjud", "juizo", "proventos", "previdenciario", "vara", "tribunal")
+    ):
+        acesso_kws = tuple(k for k in ACESSO_KEYWORDS if k not in ("bloqueio", "desbloqueio"))
+    n_acesso = _count_keywords(norm, acesso_kws)
+    n_cdc = _count_keywords(norm, CDC_KEYWORDS)
+    # "anc" como substring casa em "banco"/"cancelar" (mesma armadilha que o
+    # ramo CDC_ANC_SEM_LIMITE já trata com \b): só conta com fronteira de palavra.
+    if "anc" in norm and not re.search(r"\banc\b", norm):
+        n_cdc -= 1
+    new_scores = {doc: _count_keywords(norm, kws) for doc, kws in NEW_DOC_KEYWORDS.items()}
+    max_other = max([n_cdc, *new_scores.values()])
+    # Atalho por slots acesso-específicos — ignorado se for falso positivo do
+    # extrator (ex: '7' de '700002', 'D' de 'débito'): evidência forte (≥2 hits
+    # e maior que a de acesso) de outro POP prevalece.
     if any(filled.get(s) for s in ("codigo_bloqueio", "alfa_code", "biometria_dias")):
-        return "pop_acesso_pf.md"
-    n_acesso = sum(1 for k in ACESSO_KEYWORDS if k in norm)
-    n_cdc = sum(1 for k in CDC_KEYWORDS if k in norm)
+        if not (max_other >= 2 and max_other > n_acesso):
+            return "pop_acesso_pf.md"
+    legacy = ""
+    legacy_score = 0
     if n_acesso > n_cdc:
-        return "pop_acesso_pf.md"
-    if n_cdc > n_acesso:
-        return "pop_cdc_pf.md"
-    return ""
+        legacy, legacy_score = "pop_acesso_pf.md", n_acesso
+    elif n_cdc > n_acesso:
+        legacy, legacy_score = "pop_cdc_pf.md", n_cdc
+    best_doc = max(new_scores, key=lambda d: new_scores[d])
+    best_score = new_scores[best_doc]
+    unique = sum(1 for s in new_scores.values() if s == best_score) == 1
+    if best_score > legacy_score and unique:
+        return best_doc
+    return legacy
 
 
 def _bio_dias(filled: dict[str, str]) -> int | None:
@@ -469,6 +607,422 @@ def decide_cdc(filled: dict[str, str], norm: str) -> Decision:  # noqa: C901, PL
     )
 
 
+def decide_cartoes(filled: dict[str, str], norm: str) -> Decision:  # noqa: C901, PLR0912
+    """Ramos do POP SAC Cartões (POP_Cartoes_SAC_anonimizado.md)."""
+    # §12 débito: fraude transfere ao Antifraude/ROI (antes do ramo genérico).
+    if "debito" in norm and ("antifraude" in norm or "roi" in norm):
+        return Decision(
+            "Débito não reconhecido (fraude): transfira ao SAC Antifraude/ROI. "
+            "Compra reconhecida no débito: item 2 da 50176 (§12).",
+            "CARTOES_DEBITO_FRAUDE",
+            "POP_Cartoes_SAC_anonimizado.md",
+            True,
+        )
+    # §12: fraude no crédito não reconhecida (Token mesmo autenticado).
+    if "fraude" in norm or "contestacao" in norm or "376" in norm:
+        return Decision(
+            "Compra no crédito não reconhecida (suspeita de fraude): valide por "
+            "Token (50148) mesmo com cliente autenticado. Se falhar, bloqueio "
+            "provisório no cartão — e definitivo código 376 se for Cartão "
+            "Alfa-e falsificado. Conteste pela 50174, registre no SRO (FCR) e "
+            "informe ao cliente o protocolo do SRO e o gerado pelo SISALFA "
+            "para acompanhar (§12). Dúvida sobre Push: recurso 'Alfa, Sou Eu'.",
+            "CARTOES_CONTESTACAO_FRAUDE",
+            "POP_Cartoes_SAC_anonimizado.md",
+            True,
+        )
+    # Notas (e) + item 24: SAC não contrata PPF.
+    if "ppf" in norm or "parcelado" in norm:
+        return Decision(
+            "O SAC não contrata PPF: informe os canais da tabela do item 1 da "
+            "50156. Consultas, cancelamento e antecipação de PPF seguem a "
+            "própria 50156 (Notas e, item 24).",
+            "CARTOES_PPF",
+            "POP_Cartoes_SAC_anonimizado.md",
+            True,
+        )
+    # Item 24: NFC/Contactless.
+    if "nfc" in norm or "contactless" in norm or "aproximacao" in norm:
+        return Decision(
+            "Pagamento por aproximação (NFC/Contactless): rotina 50197; para "
+            "ativar/desativar a insistência do cliente, siga a rotina (item 24).",
+            "CARTOES_NFC",
+            "POP_Cartoes_SAC_anonimizado.md",
+            True,
+        )
+    # §12: desacordo comercial (reconhece a compra).
+    if "desacordo" in norm or "encargos" in norm:
+        return Decision(
+            "Desacordo comercial, encargos ou andamento de contestação já feita "
+            "(compra reconhecida, sem fraude): rotina 50175 (§12).",
+            "CARTOES_DESACORDO",
+            "POP_Cartoes_SAC_anonimizado.md",
+            True,
+        )
+    # Item 41: segunda via (canais + tarifa).
+    if "segunda via" in norm:
+        return Decision(
+            "Segunda via do cartão: App Alfa, App Cartão Alfa, site (área "
+            "logada), Plataforma de Relacionamento (setor cartões) ou agências "
+            "(item 41, 50217). Tarifa de 2ª via segue a mesma rotina.",
+            "CARTOES_SEGUNDA_VIA",
+            "POP_Cartoes_SAC_anonimizado.md",
+            True,
+        )
+    # Item 4: anuidade PF.
+    if "anuidade" in norm:
+        return Decision(
+            "Anuidade PF: oriente pela 50161; se pedir negociação/estorno ou "
+            "cancelamento do cartão, siga a mesma rotina (item 4).",
+            "CARTOES_ANUIDADE",
+            "POP_Cartoes_SAC_anonimizado.md",
+            True,
+        )
+    # §39: seguros por bandeira.
+    if "seguro" in norm and ("viagem" in norm or "visa" in norm or "master" in norm):
+        return Decision(
+            "Seguros de viagem: identifique bandeira e modalidade (§39). Visa: "
+            "acidentes e médico 50209, locação 50211; Master: acidentes 50210, "
+            "locação 50212; Visa Infinite proteção de compras 50213; demais "
+            "assistências 50214 (Visa/Master/Elo) e 50215 (Master).",
+            "CARTOES_SEGUROS",
+            "POP_Cartoes_SAC_anonimizado.md",
+            True,
+        )
+    # Item 7: bloqueio/inibição/cancelamento/reativação de cartões.
+    if "bloque" in norm and "cartao" in norm:
+        return Decision(
+            "Bloqueio de cartão (perda, roubo, TAA): rotina 50164 — avise que "
+            "também dá pelo App Alfa/App Cartão Alfa. Inibir crédito: 50165; "
+            "cancelar: 50166; desistência/reativação: itens 4 e 5 da 50167 "
+            "(item 7).",
+            "CARTOES_BLOQUEIO",
+            "POP_Cartoes_SAC_anonimizado.md",
+            True,
+        )
+    # Item 26 + Notas (e): contratação e adicional só por canais.
+    if "contratacao" in norm or "contratar" in norm:
+        return Decision(
+            "SAC não contrata cartão: correntistas (Visa/Elo) e não correntistas "
+            "via App Alfa, agências ou TAA, conforme modalidade (item 26, "
+            "50153). Adicional: só canais do item 5 da 50155 (Notas e).",
+            "CARTOES_CONTRATACAO",
+            "POP_Cartoes_SAC_anonimizado.md",
+            True,
+        )
+    # §23: limites físico e virtual.
+    if "limite" in norm:
+        return Decision(
+            "Limites do físico e do Alfa-e virtual: máximos diários/compras/"
+            "saques 50189; consultar disponível 50150 item 2; aumentar/reduzir "
+            "50190 item 1; virtual 50191 item 1.1.1; transferência com Limite "
+            "Especial 50192 (§23).",
+            "CARTOES_LIMITES",
+            "POP_Cartoes_SAC_anonimizado.md",
+            True,
+        )
+    return Decision(
+        "Pelo SAC Cartões: contestação com fraude usa Token + 50174 (§12); "
+        "PPF o SAC não contrata (50156); fatura e pagamentos seguem 50182–"
+        "50185/50195; segunda via e anuidade têm canais próprios (50217/50161). "
+        "Diga o assunto (nº do índice 1–42) para a rotina exata.",
+        "CARTOES_GENERICO",
+        "POP_Cartoes_SAC_anonimizado.md",
+        True,
+    )
+
+
+def decide_fatura(filled: dict[str, str], norm: str) -> Decision:  # noqa: C901, PLR0912
+    """Ramos do POP de Fatura por e-mail (POP_Fatura_Envio_Email_anonimizado.md)."""
+    # Item 6: código de barras exige Token.
+    if "codigo de barras" in norm or "boleto" in norm:
+        return Decision(
+            "Código de barras exige Token validado (50148): sem sucesso, indique "
+            "os canais da 50182. Informe +11 zeros no fim (14 dígitos no último "
+            "campo), valor e vencimento. Canais: site, App Alfa, WhatsApp Alfa "
+            "('Código de Barras') e rodapé do extrato na TAA (Item 6).",
+            "FATURA_CODIGO_BARRAS",
+            "POP_Fatura_Envio_Email_anonimizado.md",
+            True,
+        )
+    # Item 4: não recebeu a impressa (SIM/EML/NÃO + motivos).
+    if ("nao receb" in norm or "motivo" in norm) and (
+        "impressa" in norm or "emit" in norm or "fatura" in norm
+    ):
+        return Decision(
+            "Verifique em SISALFA 17.01.01.01 (coluna 'Emit', 'M' = motivo): SIM "
+            "impressa, EML e-mail, NÃO não emitida. Motivos comuns: endereço "
+            "inválido; débito automático < R$ 800,01 (inibe a impressa, por "
+            "e-mail recebe qualquer valor); saldo zero/credor; negociação no "
+            "SISNEG; cobrança terceirizada (Item 4). Anteriores: WhatsApp Alfa.",
+            "FATURA_NAO_RECEBIDA",
+            "POP_Fatura_Envio_Email_anonimizado.md",
+            True,
+        )
+    # §1.1 Opção B: e-mail alternativo exige Token + oferece cadastro.
+    if "opcao b" in norm or "alternativo" in norm or "outro" in norm:
+        return Decision(
+            "Opção B (e-mail diferente do cadastrado): Token obrigatório mesmo "
+            "autenticado; validado, ofereça cadastrar/atualizar o e-mail (1.3). "
+            "Sem Token: só canais da 50182. PDF chega em ~2 min ('Segunda Via "
+            "Fatura', senha = 5 primeiros dígitos do CPF); confira spam (§1.1).",
+            "FATURA_OPCAO_B",
+            "POP_Fatura_Envio_Email_anonimizado.md",
+            True,
+        )
+    # §1.1 Opção A: e-mail cadastrado (autenticado OU Token).
+    if "opcao a" in norm or "cadastrado" in norm:
+        return Decision(
+            "Opção A (e-mail já cadastrado): cliente autenticado OU validado por "
+            "Token. Envie todas as faturas de modalidades diferentes num só "
+            "contato; informe conta cartão, modalidade e bandeira (§1.1).",
+            "FATURA_OPCAO_A",
+            "POP_Fatura_Envio_Email_anonimizado.md",
+            True,
+        )
+    # §1.2: mudança definitiva (duplo sim, 7 dias, SISCAD).
+    if "mudanca" in norm or "definitiva" in norm or "duplo sim" in norm or "siscad" in norm:
+        return Decision(
+            "Mudança definitiva (17.01.01.04.41.19 → 'COM emissão via e-mail'): "
+            "gera duplo sim a confirmar em 7 dias (App/AAPF/TAA); 'não "
+            "habilitado' → SISCAD 06.11 (3 campos N→S, avisa sobre promoções). "
+            "Vale da próxima fatura a fechar (§1.2).",
+            "FATURA_MUDANCA_DEFINITIVA",
+            "POP_Fatura_Envio_Email_anonimizado.md",
+            True,
+        )
+    # Segurança: sem URA/Token não envia nem altera.
+    if "token" in norm or "ura" in norm or "autentic" in norm:
+        return Decision(
+            "Sem URA, envie Token (50148); sem Token validado, NÃO envie a "
+            "fatura nem altere a forma de envio — só autoatendimento (50182). "
+            "Dúvidas de lançamentos/valores: 50149 (processo inicial).",
+            "FATURA_TOKEN_OBRIGATORIO",
+            "POP_Fatura_Envio_Email_anonimizado.md",
+            True,
+        )
+    # §1.3: atualização de e-mail.
+    if "atualiz" in norm and "email" in norm:
+        return Decision(
+            "Atualizar e-mail PF: Token (50148); com sucesso, SAC Próprio/QC "
+            "Especializado/Generalista/Bancada atualizam em "
+            "17.01.01.04.41.18 (sem duplo sim). Site/App/Plataforma/agências "
+            "também atualizam (50220 item 3); PJ: Alfa Digital PJ (§1.3).",
+            "FATURA_ATUALIZAR_EMAIL",
+            "POP_Fatura_Envio_Email_anonimizado.md",
+            True,
+        )
+    # Item 2: inibir impressa; Item 3: reativar.
+    if "inibir" in norm or "sustentab" in norm:
+        return Decision(
+            "Inibir a impressa: agilidade, sustentabilidade e segurança com "
+            "senha (Item 2). Reativar: confira endereço; se correto, "
+            "17.01.01.04.41.19 'Com emissão' (próximo ciclo, correio) e ofereça "
+            "o reenvio por e-mail (Item 3).",
+            "FATURA_INIBIR_REATIVAR",
+            "POP_Fatura_Envio_Email_anonimizado.md",
+            True,
+        )
+    return Decision(
+        "Fatura por e-mail: reenvio atual (Opção A/B, §1.1), mudança definitiva "
+        "com duplo sim (§1.2), código de barras e não recebimento (Itens 6 e "
+        "4) — tudo com Token validado (50148). Diga a demanda exata.",
+        "FATURA_GENERICO",
+        "POP_Fatura_Envio_Email_anonimizado.md",
+        True,
+    )
+
+
+def decide_inss(filled: dict[str, str], norm: str) -> Decision:
+    """Ramos do POP INSS/Benefícios (POP_INSS_Beneficios_Sociais_anonimizado.md)."""
+    # §2.1: benefício não disponível (antes do ramo de valores: "valores"
+    # aparece em perguntas de indisponibilidade sem ser o tema).
+    if "nao disponivel" in norm or "indispon" in norm:
+        return Decision(
+            "Benefício NÃO DISPONÍVEL: informe que não está liberado para saque "
+            "e oriente a procurar o órgão responsável pelo motivo. Extrato em "
+            "18>47 F4 (movimentações atualizam no dia seguinte) (§2.1).",
+            "INSS_INDISPONIVEL",
+            "POP_INSS_Beneficios_Sociais_anonimizado.md",
+            True,
+        )
+    # §2.1: INSS informa disponibilidade SEM valores; Outros informam valor.
+    if "inss" in norm or "encaminhado" in norm or "ini.pgto" in norm:
+        return Decision(
+            "Convênio INSS: informe a disponibilidade, SEM valor disponível nem "
+            "encaminhado — valores no App Alfa, TAA, site ou Meu INSS. Outros "
+            "benefícios: o valor PODE ser informado. Ini.pgto = início da "
+            "disponibilidade; pagamento em branco = disponível não movimentado; "
+            "preenchida = dia da 1ª movimentação (§2.1, SISPAG 18>41 F4).",
+            "INSS_VALORES",
+            "POP_INSS_Beneficios_Sociais_anonimizado.md",
+            True,
+        )
+    # §2.1: localizar número/extrato.
+    if "sispag" in norm or "extrato" in norm or "numero do beneficio" in norm:
+        return Decision(
+            "Número do benefício: SISPAG 18>41 ou 47 (F4, agência/conta/CPF/"
+            "MCI). Extrato: 18>47 F4 (§2.1).",
+            "INSS_LOCALIZAR",
+            "POP_INSS_Beneficios_Sociais_anonimizado.md",
+            True,
+        )
+    return Decision(
+        "INSS/benefícios (SISPAG 18>41/47): disponibilidade sem valores no "
+        "convênio INSS (Meu INSS/App/TAA p/ valores); indisponível → órgão "
+        "responsável; extrato atualiza no dia seguinte (§2.1).",
+        "INSS_GENERICO",
+        "POP_INSS_Beneficios_Sociais_anonimizado.md",
+        True,
+    )
+
+
+def decide_limites(filled: dict[str, str], norm: str) -> Decision:
+    """Ramos do POP de Limites (POP_Limites_Cartao_Credito_PF_anonimizado.md)."""
+    # Token 50148 FALHOU (ou sem senha): só canais, não prossegue. Primeiro,
+    # pois "consulta" aparece também nessas perguntas sem ser o tema.
+    if ("token" in norm or "ura" in norm or "50148" in norm) and (
+        "falh" in norm or "sem sucesso" in norm or "negad" in norm or "sem senha" in norm
+    ):
+        return Decision(
+            "Token (50148) é obrigatório: sem sucesso — ou sem autenticação por "
+            "senha — NÃO prossiga; indique só os canais do item 3 da 50190.",
+            "LIMITES_TOKEN",
+            "POP_Limites_Cartao_Credito_PF_anonimizado.md",
+            True,
+        )
+    # Consulta: SISALFA + dever de informar canais.
+    if "canais" in norm or "consultar" in norm or "consulta" in norm:
+        return Decision(
+            "Consulte em SISALFA 17.01.01.9.22 F10 ('Limite Créd. Dispon.') e "
+            "INFORME os canais: WhatsApp Alfa ('limite Cartão Alfa'), App Alfa/"
+            "App Cartão Alfa, internet, URA e caixa eletrônico. Encerrar sem "
+            "informar é conduta incompleta.",
+            "LIMITES_CANAIS",
+            "POP_Limites_Cartao_Credito_PF_anonimizado.md",
+            True,
+        )
+    # Aumento/redução com Token ok (antes do Token genérico).
+    if "aumentar" in norm or "reduzir" in norm or "aumento" in norm or "reducao" in norm:
+        return Decision(
+            "Aumento/redução: com Token validado, altere o limite único (ANC "
+            "vigente + disponível); sem Token, só canais do item 3 da 50190.",
+            "LIMITES_ALTERAR",
+            "POP_Limites_Cartao_Credito_PF_anonimizado.md",
+            True,
+        )
+    # Token genérico (sem falha explícita).
+    if "token" in norm or "ura" in norm or "50148" in norm:
+        return Decision(
+            "Token (50148) é obrigatório: com sucesso, consulte/altere o limite "
+            "único (correntista e não correntista com ANC vigente).",
+            "LIMITES_TOKEN",
+            "POP_Limites_Cartao_Credito_PF_anonimizado.md",
+            True,
+        )
+    return Decision(
+        "Limites do cartão PF: Token 50148 obrigatório; consulta em SISALFA "
+        "17.01.01.9.22 F10 com dever de informar canais; sem Token, só canais "
+        "da 50190 item 3.",
+        "LIMITES_GENERICO",
+        "POP_Limites_Cartao_Credito_PF_anonimizado.md",
+        True,
+    )
+
+
+def decide_judicial(filled: dict[str, str], norm: str) -> Decision:
+    """Ramos do POP de Bloqueio Judicial (POP_Bloqueio_Judicial_anonimizado.md)."""
+    # §3.1: consulta limitada a 365 dias.
+    if "365" in norm or "400" in norm or "prazo" in norm or "ano" in norm:
+        return Decision(
+            "SISJUD-10/14 aceitam no máximo 365 dias (1 ano): fracione intervalos "
+            "maiores (ex: 2023 = 01/01 a 31/12). 'D' detalha juízo/partes/valor. "
+            "Nada encontrado: informe, registre FCR (SAC: ocorrência se preferir) "
+            "(§3.1).",
+            "JUDICIAL_PRAZO",
+            "POP_Bloqueio_Judicial_anonimizado.md",
+            True,
+        )
+    # §3.1: bloqueio identificado (extração F2) e proibição de exceder o consta.
+    if "identificado" in norm or "protocolo" in norm or "processo" in norm:
+        return Decision(
+            "Identificado: em SISJUD-17 selecione o protocolo com 'X' duas vezes, "
+            "anote o processo e, em F2, vara/juízo e tribunal. O banco acata a "
+            "ordem: repasse SÓ o que consta (§3.1, Obs.) e oriente a procurar o "
+            "órgão. Proventos + discordância: comunique/requeira ao juízo.",
+            "JUDICIAL_IDENTIFICADO",
+            "POP_Bloqueio_Judicial_anonimizado.md",
+            True,
+        )
+    # §3.1: proventos previdenciários.
+    if "proventos" in norm or "previdenciario" in norm:
+        return Decision(
+            "Conta de proventos bloqueada: o banco não desbloqueia — oriente a "
+            "comunicar o fato ou pedir alteração/extinção da ordem ao juízo "
+            "competente (§3.1).",
+            "JUDICIAL_PROVENTOS",
+            "POP_Bloqueio_Judicial_anonimizado.md",
+            True,
+        )
+    # §3.1: desbloqueio identificado = disponível.
+    if "desbloqueio" in norm and ("disponivel" in norm or "liberado" in norm):
+        return Decision(
+            "Desbloqueio identificado no SISJUD: conta/valor disponível para movimentação (§3.1).",
+            "JUDICIAL_DESBLOQUEIO",
+            "POP_Bloqueio_Judicial_anonimizado.md",
+            True,
+        )
+    return Decision(
+        "Bloqueio judicial: telas SISJUD 10/14/15/16/17 (máx. 365 dias); não "
+        "achou → FCR; achou → processo + F2 (vara/juízo/tribunal), banco acata, "
+        "repasse só o que consta; proventos → juízo competente (§1, §3.1).",
+        "JUDICIAL_GENERICO",
+        "POP_Bloqueio_Judicial_anonimizado.md",
+        True,
+    )
+
+
+def decide_alfa(filled: dict[str, str], norm: str) -> Decision:
+    """Ramos do POP Alfa Rende Fácil (POP_Alfa_Rende_Facil_Adesao_anonimizado.md)."""
+    # §3.1: Duplo Sim obrigatório na contratação.
+    if "duplo sim" in norm and ("sem" in norm or "omit" in norm or "falt" in norm):
+        return Decision(
+            "A contratação EXIGE Duplo Sim na Plataforma (Operações Contratadas "
+            "ou Investimentos>CDB>Aplicação automática). Omitido no registro, "
+            "a confirmação posterior não sana: a adesão é inconforme (§3.1).",
+            "ALFA_DUPLO_SIM_OBRIGATORIO",
+            "POP_Alfa_Rende_Facil_Adesao_anonimizado.md",
+            True,
+        )
+    # §3.1: confirmação em até 30 dias.
+    if "30 dias" in norm or "31" in norm or "prazo" in norm or "confirm" in norm:
+        return Decision(
+            "Após o registro, o cliente confirma em 'Pendentes de confirmação' "
+            "em até 30 dias. No 31º dia o sistema não permite mais: a adesão "
+            "não se efetiva (§3.1).",
+            "ALFA_PRAZO_30",
+            "POP_Alfa_Rende_Facil_Adesao_anonimizado.md",
+            True,
+        )
+    # §3.1: como contratar.
+    if "contratar" in norm or "contratacao" in norm or "adesao" in norm:
+        return Decision(
+            "PF: Plataforma de Relacionamento (Operações Contratadas) ou Menu > "
+            "Investimentos > CDB > Aplicação automática > Alfa Rende Fácil, "
+            "sempre com Duplo Sim + confirmação em 30 dias (§3.1).",
+            "ALFA_COMO_CONTRATAR",
+            "POP_Alfa_Rende_Facil_Adesao_anonimizado.md",
+            True,
+        )
+    return Decision(
+        "Alfa Rende Fácil PF: contratação na Plataforma com Duplo Sim "
+        "obrigatório e confirmação em até 30 dias (§3.1).",
+        "ALFA_GENERICO",
+        "POP_Alfa_Rende_Facil_Adesao_anonimizado.md",
+        True,
+    )
+
+
 def decide(query: str) -> Decision:
     """Ponto único: extrai slots, detecta o POP e percorre os ramos.
 
@@ -481,6 +1035,18 @@ def decide(query: str) -> Decision:
         return decide_acesso(filled, norm)
     if doc == "pop_cdc_pf.md":
         return decide_cdc(filled, norm)
+    if doc == "POP_Cartoes_SAC_anonimizado.md":
+        return decide_cartoes(filled, norm)
+    if doc == "POP_Fatura_Envio_Email_anonimizado.md":
+        return decide_fatura(filled, norm)
+    if doc == "POP_INSS_Beneficios_Sociais_anonimizado.md":
+        return decide_inss(filled, norm)
+    if doc == "POP_Limites_Cartao_Credito_PF_anonimizado.md":
+        return decide_limites(filled, norm)
+    if doc == "POP_Bloqueio_Judicial_anonimizado.md":
+        return decide_judicial(filled, norm)
+    if doc == "POP_Alfa_Rende_Facil_Adesao_anonimizado.md":
+        return decide_alfa(filled, norm)
     missing = find_missing_slots(filled)
     target = next_discriminative_slot(missing)
     if target:
