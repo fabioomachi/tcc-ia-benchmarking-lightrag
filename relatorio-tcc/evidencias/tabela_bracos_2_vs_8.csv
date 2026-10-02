@@ -5,7 +5,7 @@ pops,braco,run,n,faithfulness,answer_relevancy,context_recall,context_precision,
 2,so LLM completa,exp_direct_completa,24,0.1834,0.8195,0.9861,1.0000,10.9
 2,arvore de regras,exp_tree_24,24,0.8631,0.7103,1.0000,1.0000,0.0
 8,grafo hybrid/k5 completa,golden_full_hybrid,16,0.2715,0.3835,1.0000,1.0000,65.6
-8,clarify fixo + grafo hybrid/k5,golden_clarify_fixo,16,0.3522,0.4342,1.0000,1.0000,4.8
-8,clarify guiado + rota por doc,golden_routed,16,0.4783,0.5862,1.0000,1.0000,0.9
+8,clarify fixo + grafo hybrid/k5,golden_clarify_fixo,96,0.4731,0.5844,0.9649,1.0000,24.2
+8,clarify guiado + rota por doc,golden_routed,96,0.5439,0.6579,0.9740,0.9896,5.1
 8,so LLM completa,golden_direct_completa,16,0.1310,0.8110,1.0000,1.0000,10.0
-8,arvore de regras v2,golden_tree_v2,16,0.7761,0.7386,1.0000,1.0000,0.0
+8,arvore de regras v2,golden_tree_v2,96,0.7362,0.6797,0.9722,0.9792,0.0

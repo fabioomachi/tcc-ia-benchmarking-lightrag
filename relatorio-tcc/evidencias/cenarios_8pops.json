@@ -1,146 +1,1105 @@
 [
   {
-    "id": "golden-00",
-    "pergunta_completa": "Um cliente não correntista com ANC vigente e limite disponível entra em contato via canal SAC e o atendente identifica que ele realizou apenas a autenticação por senha na URA, falhando no envio do Token exigido pela rotina 50148. O atendente pode prosseguir com a consulta e alteração do limite único utilizando apenas a validação da URA para agilizar o atendimento?",
-    "pergunta_incompleta": "Um cliente não correntista com ANC vigente e limite disponível entra em contato via canal SAC e o atendente identifica que ele realizou apenas a autenticação por senha na URA, falhando no envio do Token exigido pela rotina 50148. O atendente pode prosseguir com a consulta e alteração do limite único utilizando apenas a validação da URA para agilizar o atendimento?",
-    "slots_simulados": {},
-    "ground_truth": "Não. De acordo com o POP, a autenticação por Token é um procedimento obrigatório para todos os clientes. Para clientes com autenticação por senha (URA) onde não houver sucesso no envio do Token, o atendente não deve realizar a consulta/alteração e deve indicar os canais disponíveis conforme o item 3 da rotina 50190. Da mesma forma, para clientes sem autenticação por senha (URA), o procedimento determina expressamente que não se deve prosseguir, devendo também indicar os canais disponíveis da rotina 50190.",
-    "tipo": "CONDITIONAL_WORKFLOW",
-    "source_document": "POP_Limites_Cartao_Credito_PF_anonimizado.md"
-  },
-  {
-    "id": "golden-01",
-    "pergunta_completa": "Durante um atendimento na Plataforma de Relacionamento (QP) para um correntista, o atendente executa a autenticação por Token (rotina 50148) obtendo sucesso, realiza a consulta do limite disponível no SISALFA (`17.01.01.9.22 F10`), informa o valor ao cliente e encerra o atendimento imediatamente após a confirmação. Essa conduta está totalmente em conformidade com as diretrizes do POP?",
-    "pergunta_incompleta": "Durante um atendimento na Plataforma de Relacionamento (QP) para um correntista, o atendente executa a autenticação por Token (rotina 50148) obtendo sucesso, realiza a consulta do limite disponível no SISALFA (`17.01.01.9.22 F10`), informa o valor ao cliente e encerra o atendimento imediatamente após a confirmação. Essa conduta está totalmente em conformidade com as diretrizes do POP?",
-    "slots_simulados": {},
-    "ground_truth": "Não está totalmente em conformidade. Embora a autenticação, a consulta no SISALFA e a informação do limite ao cliente tenham sido corretas, o POP determina obrigatoriamente que, após informar o limite, o atendente também deve informar os canais onde o cliente pode consultar essa informação futuramente (WhatsApp Alfa, App Alfa e App Cartão Alfa, Autoatendimento pela internet, Plataforma de Relacionamento (URA) e Caixa Eletrônico). O encerramento sem a indicação desses canais viola o fluxo obrigatório pós-consulta.",
+    "id": "golden96-00",
+    "pergunta_completa": "Um cliente relata no SAC que o seu extrato apresenta um bloqueio total, mas ao realizar a consulta no SISJUD - 10 utilizando o CPF dele, o sistema não retorna nenhum registro no período informado. Qual deve ser o procedimento imediato do atendente perante o cliente e no sistema?",
+    "pergunta_incompleta": "Meu extrato apresenta um bloqueio total, mas não consta nada no SISJUD. O que devo fazer?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "canal_tentado": "SAC"
+    },
+    "ground_truth": "O atendente deve informar ao consumidor que não foi identificado o bloqueio judicial e registrar FCR. No SAC, caso o cliente prefira uma melhor apuração, o atendente deve registrar uma ocorrência.",
     "tipo": "EDGE_CASE",
-    "source_document": "POP_Limites_Cartao_Credito_PF_anonimizado.md"
+    "source_document": "POP_Bloqueio_Judicial_anonimizado.md"
   },
   {
-    "id": "golden-02",
-    "pergunta_completa": "Um correntista com dispositivo móvel autorizado há 25 dias, que possui Alfa Code habilitado, geolocalização ativa e senha de 8 dígitos ativa (código 0), esqueceu a senha de 6 dígitos e deseja alterá-la pelo App Alfa sem possuir a senha anterior. O sistema permitirá a alteração imediata por esse canal, considerando o histórico do dispositivo e as opções disponíveis?",
-    "pergunta_incompleta": "Um correntista com dispositivo móvel autorizado há 25 dias, que possui Alfa Code habilitado, geolocalização ativa e senha de 8 dígitos ativa (código 0), esqueceu a senha de 6 dígitos e deseja alterá-la pelo App Alfa sem possuir a senha anterior. O sistema permitirá a alteração imediata por esse canal, considerando o histórico do dispositivo e as opções disponíveis?",
-    "slots_simulados": {},
-    "ground_truth": "Não, o sistema não permitirá a alteração imediata por este canal. Embora o cliente possua Alfa Code, geolocalização ativa e senha de 8 dígitos ativa, um dos pré-requisitos fundamentais para alteração de senha de 6 dígitos pelo App Alfa é que o celular esteja autorizado há MAIS de 30 dias (o cenário estipula 25 dias). Portanto, o fluxo via App Alfa falhará por carência no tempo de autorização do dispositivo.",
-    "tipo": "CONDITIONAL_WORKFLOW",
-    "source_document": "pop_acesso_pf.md"
+    "id": "golden96-01",
+    "pergunta_completa": "Para realizar uma varredura retroativa de ordens de bloqueio via SISJUD - 10 cobrindo exatamente os anos de 2021 e 2022, o operador insere o intervalo de datas de 01/01/2021 a 31/12/2022 de uma só vez. Esta consulta é válida segundo o POP e por quê?",
+    "pergunta_incompleta": "Posso realizar uma varredura retroativa de ordens de bloqueio via SISJUD - 10 inserindo um intervalo de dois anos de uma só vez?",
+    "slots_simulados": {
+      "codigo_bloqueio": "SISJUD - 10"
+    },
+    "ground_truth": "Não é válida. O POP estabelece explicitamente que a consulta no SISJUD - 10 é permitida para períodos de no máximo um ano (exemplo dado: 01/01/2023 a 31/12/2023), tornando a busca de dois anos em uma única tentativa uma violação do limite temporal permitido pelo sistema.",
+    "tipo": "REGULATORY_TIMELINE",
+    "source_document": "POP_Bloqueio_Judicial_anonimizado.md"
   },
   {
-    "id": "golden-03",
-    "pergunta_completa": "Um cliente correntista teve a senha de 8 dígitos bloqueada exclusivamente por motivo de segurança (código 'U'). Ele entra em contato com a Central de Atendimento (SAC Quadro Próprio) solicitando o envio de uma senha provisória por SMS ou a redefinição direta pela Plataforma de Relacionamento. O atendente pode prosseguir com o envio por SMS ou realizar a alteração por esses canais remotos padrão?",
-    "pergunta_incompleta": "Um cliente correntista teve a senha de 8 dígitos bloqueada exclusivamente por motivo de segurança (código 'U'). Ele entra em contato com a Central de Atendimento (SAC Quadro Próprio) solicitando o envio de uma senha provisória por SMS ou a redefinição direta pela Plataforma de Relacionamento. O atendente pode prosseguir com o envio por SMS ou realizar a alteração por esses canais remotos padrão?",
-    "slots_simulados": {},
-    "ground_truth": "Não. Conforme as regras do POP, o bloqueio 'U' (motivo de segurança/suspeita de fraude) proíbe expressamente o uso de canais remotos comuns para desfecho simples. Para o bloqueio 'U', a geração de senha por SMS não é permitida ('Não disponível para senhas... bloqueio U'). O atendimento via SAC deve ser direcionado obrigatoriamente para a Célula de Segurança (SAC Receptivo QP via rotina 50130 ou SAC Soluções QP via rotina 50131), e a alteração/desbloqueio não está disponível na Plataforma de Relacionamento para esse tipo específico de bloqueio.",
+    "id": "golden96-02",
+    "pergunta_completa": "Durante o atendimento a um cliente cuja conta sofreu bloqueio judicial, o consumidor exige que o atendente do SAC explique detalhadamente a motivação jurídica do juiz para a emissão da ordem. O atendente está autorizado a fornecer esta justificativa fundamentada?",
+    "pergunta_incompleta": "Minha conta sofreu um bloqueio judicial e quero saber qual foi a motivação jurídica do juiz para essa ordem. O atendente pode me explicar o motivo?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "canal_tentado": "SAC"
+    },
+    "ground_truth": "Não. O POP restringe rigorosamente a atuação do atendente: diz que o banco é obrigado a acatar e que, para mais esclarecimentos sobre o motivo do bloqueio ou para regularizar a situação, o cliente precisa buscar o órgão (vara/juízo) citado.",
     "tipo": "ROLE_RESTRICTION",
-    "source_document": "pop_acesso_pf.md"
+    "source_document": "POP_Bloqueio_Judicial_anonimizado.md"
   },
   {
-    "id": "golden-04",
-    "pergunta_completa": "Um cliente entra em contato com o SAC relatando suspeita de fraude em uma compra efetuada na função crédito utilizando um Cartão Alfa-e (virtual). Durante o atendimento, a validação por Token (rotina 50148) falha. Qual é o procedimento exato e obrigatório que o atendente deve realizar em relação ao cartão, e quais são os protocolos que devem ser gerados e informados ao cliente ao término da contestação (rotina 50174)?",
-    "pergunta_incompleta": "Um cliente entra em contato com o SAC relatando suspeita de fraude em uma compra efetuada na função crédito utilizando um Cartão Alfa-e (virtual). Durante o atendimento, a validação por Token (rotina 50148) falha. Qual é o procedimento exato e obrigatório que o atendente deve realizar em relação ao cartão, e quais são os protocolos que devem ser gerados e informados ao cliente ao término da contestação (rotina 50174)?",
-    "slots_simulados": {},
-    "ground_truth": "Como a validação por Token falhou, o atendente deve efetuar o bloqueio definitivo do Cartão Alfa-e utilizando o código 376 (CARTÃO ALFA-E FALSIFICADO). Após efetuar a contestação (rotina 50174), o atendente deve registrar a ocorrência no SRO (FCR), informando o número do protocolo do SRO na justificativa da contestação no SISALFA. Ao final do processo, o SISALFA gerará outro número de protocolo, que deve ser obrigatoriamente informado ao cliente para que ele possa realizar o acompanhamento via Plataforma de Relacionamento ou WhatsApp Alfa.",
+    "id": "golden96-03",
+    "pergunta_completa": "Ao navegar pelo SISJUD para identificar os dados de um bloqueio, o operador acessa o SISJUD - 17 informando a agência e conta. Quais são os comandos exatos de seleção e navegação necessários para conseguir extrair o número do Processo Judicial?",
+    "pergunta_incompleta": "Como faço para extrair o número do Processo Judicial ao consultar um bloqueio no SISJUD - 17?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "O operador deve selecionar o protocolo com 'X' no SISJUD - 17, na tela seguinte selecionar novamente com 'X' para anotar o Processo Judicial (formato XXXXXXX–XX.XXXX.X.XX.XXXX), e caso precise da Vara/Juízo, teclar F2.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "POP_Bloqueio_Judicial_anonimizado.md"
+  },
+  {
+    "id": "golden96-04",
+    "pergunta_completa": "Um correntista comparece ao canal de atendimento informando que sua conta, que é exclusivamente recebedora de benefícios previdenciários, teve valores bloqueados judicialmente e exige que o atendente realize o desbloqueio imediato na mesa de atendimento. Qual é a conduta mandatória exigida pelo POP para este cenário?",
+    "pergunta_incompleta": "Minha conta que recebe benefícios previdenciários teve valores bloqueados judicialmente. Como faço para realizar o desbloqueio imediato?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "O atendente deve esclarecer que o valor está bloqueado por ordem judicial e, caso o cliente discorde por se tratar de conta recebedora de proventos/benefícios previdenciários, o atendente deve orientá-lo a comunicar o fato ou requisitar a alteração/extinção da ordem judicial diretamente ao juízo competente.",
+    "tipo": "EDGE_CASE",
+    "source_document": "POP_Bloqueio_Judicial_anonimizado.md"
+  },
+  {
+    "id": "golden96-05",
+    "pergunta_completa": "Considerando as telas de consulta do SISJUD descritas no documento, qual é a única opção de tela onde é garantida a visualização de Bloqueios Totais e quais são os parâmetros obrigatórios de entrada exigidos nessa tela?",
+    "pergunta_incompleta": "Quais são os parâmetros obrigatórios de entrada na tela SISJUD para visualizar Bloqueios Totais?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "A única opção é o SISJUD – 10. Os parâmetros obrigatórios de entrada são: CPF/CNPJ, Data (até 365 dias) e o tipo de ordem (deve-se pressionar F4 para selecionar bloqueio, desbloqueio ou transferência).",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "POP_Bloqueio_Judicial_anonimizado.md"
+  },
+  {
+    "id": "golden96-06",
+    "pergunta_completa": "Um auditor de qualidade do banco identifica que um atendente repassou ao cliente detalhes confidenciais sobre a investigação interna do processo judicial que não constavam nas telas padrão do SISJUD. Essa conduta infringe as diretrizes do POP?",
+    "pergunta_incompleta": "O atendente pode me passar detalhes sobre a investigação interna do meu processo judicial que não estão nas telas do SISJUD?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "Sim. O POP possui uma observação restritiva direta que determina: 'repasse ao cliente somente as informações que constam nos procedimentos abaixo'.",
+    "tipo": "ROLE_RESTRICTION",
+    "source_document": "POP_Bloqueio_Judicial_anonimizado.md"
+  },
+  {
+    "id": "golden96-07",
+    "pergunta_completa": "Ao utilizar a tela SISJUD - 10 para investigar uma ordem de bloqueio, o operador obtém uma lista de protocolos e deseja visualizar detalhadamente o juízo, as partes e o valor associado. Qual comando o operador deve digitar para detalhar essas informações?",
+    "pergunta_incompleta": "Estou na tela SISJUD e preciso visualizar os detalhes de uma ordem de bloqueio. Qual comando devo digitar?",
+    "slots_simulados": {
+      "codigo_bloqueio": "D"
+    },
+    "ground_truth": "O operador deve inserir a letra 'D' para visualizar o juízo, as partes, o valor e demais informações da ordem.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "POP_Bloqueio_Judicial_anonimizado.md"
+  },
+  {
+    "id": "golden96-08",
+    "pergunta_completa": "Um cliente questiona os dados da Vara e do Tribunal responsáveis por uma ordem de bloqueio judicial em sua conta. Após identificar o protocolo com 'X' no SISJUD - 17, qual tecla de função o operador deve acionar para extrair o Nome/UF da Vara e o Tribunal?",
+    "pergunta_incompleta": "Como faço para consultar o Nome da Vara e o Tribunal de um bloqueio judicial que apareceu na minha conta no SISJUD?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "codigo_bloqueio": "X"
+    },
+    "ground_truth": "O operador deve teclar 'F2 Vara/Juízo' para anotar o Nome/UF (XXª VARA DE XXXXXXXXXX) e o Tribunal (XXXXXXXXXXXXXXXXXXX).",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "POP_Bloqueio_Judicial_anonimizado.md"
+  },
+  {
+    "id": "golden96-09",
+    "pergunta_completa": "Caso um cliente identifique que o seu bloqueio judicial foi revertido e que consta um 'Desbloqueio identificado' no sistema, qual deve ser a única informação repassada a ele pelo canal SAC/ATA?",
+    "pergunta_incompleta": "Meu bloqueio judicial foi revertido e aparece como 'Desbloqueio identificado' no sistema. O que devo fazer para movimentar minha conta?",
+    "slots_simulados": {
+      "canal_tentado": "SAC"
+    },
+    "ground_truth": "O atendente deve informar ao cliente estritamente que a conta ou o valor está disponível para movimentação.",
+    "tipo": "ROLE_RESTRICTION",
+    "source_document": "POP_Bloqueio_Judicial_anonimizado.md"
+  },
+  {
+    "id": "golden96-10",
+    "pergunta_completa": "Um analista precisa consultar o histórico de ordens de bloqueio de um cliente utilizando a tela SISJUD - 14 (baseada em Agência e Conta). Qual é a recomendação temporal expressa no POP para o preenchimento do campo de data nesta consulta específica?",
+    "pergunta_incompleta": "Como devo preencher o campo de data na tela SISJUD - 14 para consultar o histórico de ordens de bloqueio?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "A sugestão expressa no POP para a tela SISJUD - 14 é preencher o maior prazo possível, indo até no máximo 365 dias.",
+    "tipo": "REGULATORY_TIMELINE",
+    "source_document": "POP_Bloqueio_Judicial_anonimizado.md"
+  },
+  {
+    "id": "golden96-11",
+    "pergunta_completa": "Durante a auditoria de um atendimento de SAC sobre bloqueio judicial, verifica-se que o operador utilizou o SISJUD - 16. Qual é a finalidade específica desta tela e qual parâmetro de entrada deve ser obrigatoriamente utilizado nela?",
+    "pergunta_incompleta": "Qual é a finalidade da tela SISJUD - 16 e qual parâmetro de entrada devo usar nela?",
+    "slots_simulados": {
+      "canal_tentado": "SAC"
+    },
+    "ground_truth": "A tela SISJUD - 16 é utilizada para realizar consultas utilizando especificamente o número do protocolo de bloqueio.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "POP_Bloqueio_Judicial_anonimizado.md"
+  },
+  {
+    "id": "golden96-12",
+    "pergunta_completa": "Um cliente autenticado liga para o SAC afirmando não reconhecer uma compra na função crédito, mas durante o atendimento a validação por Token (rotina 50148) falha. Qual é o procedimento mandatório imediato que o atendente deve adotar em relação ao cartão e quais protocolos devem ser gerados/informados?",
+    "pergunta_incompleta": "Não reconheço uma compra no meu cartão de crédito, mas a validação por Token falhou. O que devo fazer?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "canal_tentado": "SAC",
+      "alfa_code": "sim"
+    },
+    "ground_truth": "Mesmo com o cliente autenticado, se a validação por Token falhar, o atendente deve informar que será feito um bloqueio provisório no cartão. Se for o Cartão Alfa-e (virtual), deve efetuar o bloqueio definitivo usando o código 376 (CARTÃO ALFA-E FALSIFICADO). Após efetuar a contestação (rotina 50174), deve registrar a demanda no SRO (FCR), informando o protocolo do SRO na justificativa da contestação no SISALFA. Por fim, deve informar ao cliente o novo número de protocolo gerado pelo SISALFA ao final da contestação para acompanhamento via Plataforma de Relacionamento ou WhatsApp Alfa, classificando a demanda conforme a Ferramenta de Classificação.",
     "tipo": "CONDITIONAL_WORKFLOW",
     "source_document": "POP_Cartoes_SAC_anonimizado.md"
   },
   {
-    "id": "golden-05",
-    "pergunta_completa": "Um correntista liga para o SAC solicitando a contratação do Pagamento Parcelado de Fatura (PPF) e, simultaneamente, questiona o procedimento para antecipação do mesmo serviço. Considerando as restrições de canal e as regras do POP, o atendente do SAC pode realizar a contratação diretamente? Em caso negativo, quais orientações devem ser repassadas, e qual é a regra aplicável para a consulta e antecipação do PPF?",
-    "pergunta_incompleta": "Um correntista liga para o SAC solicitando a contratação do Pagamento Parcelado de Fatura (PPF) e, simultaneamente, questiona o procedimento para antecipação do mesmo serviço. Considerando as restrições de canal e as regras do POP, o atendente do SAC pode realizar a contratação diretamente? Em caso negativo, quais orientações devem ser repassadas, e qual é a regra aplicável para a consulta e antecipação do PPF?",
-    "slots_simulados": {},
-    "ground_truth": "Não, o atendimento SAC não realiza a contratação do Pagamento Parcelado de Fatura (PPF). Para a contratação, o atendente deve informar os canais corretos conforme a tabela do item 1 da rotina 50156 (uma vez que a contratação direta é uma situação não atendida pelo SAC). Por outro lado, as consultas, o cancelamento e a antecipação de PPF não seguem essa restrição de canal de contratação, devendo ser tratados seguindo os procedimentos próprios da mesma rotina 50156.",
+    "id": "golden96-13",
+    "pergunta_completa": "Um cliente entra em contato com o atendimento SAC Generalista desejando contratar a opção de Pagamento Parcelado de Fatura (PPF). O atendente pode realizar essa contratação diretamente? Em caso negativo, como deve proceder?",
+    "pergunta_incompleta": "Como faço para contratar o Pagamento Parcelado de Fatura (PPF) pelo atendimento?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "Não, o atendimento SAC não realiza a contratação do PPF (situação que não é atendida pelo SAC). O atendente deve informar os canais de contratação conforme a tabela do item 1 da rotina 50156. Vale ressaltar que consultas, cancelamento e antecipação de PPF seguem os procedimentos da própria rotina 50156.",
     "tipo": "ROLE_RESTRICTION",
     "source_document": "POP_Cartoes_SAC_anonimizado.md"
   },
   {
-    "id": "golden-06",
-    "pergunta_completa": "Um cliente Pessoa Física está autenticado pela URA e entra em contato solicitando o reenvio da fatura atual para um e-mail alternativo que difere daquele cadastrado no sistema (Opção B). Durante o atendimento, ele também manifesta o desejo de alterar permanentemente a forma de envio para emissão definitiva por e-mail e questiona lançamentos em sua fatura. Quais são as travas de segurança obrigatórias de Token e os passos de validação cadastral que o operador deve executar antes de concluir o envio e a alteração definitiva, e qual canal o cliente deverá obrigatoriamente utilizar para confirmar essa mudança?",
-    "pergunta_incompleta": "Um cliente Pessoa Física está autenticado pela URA e entra em contato solicitando o reenvio da fatura atual para um e-mail alternativo que difere daquele cadastrado no sistema (Opção B). Durante o atendimento, ele também manifesta o desejo de alterar permanentemente a forma de envio para emissão definitiva por e-mail e questiona lançamentos em sua fatura. Quais são as travas de segurança obrigatórias de Token e os passos de validação cadastral que o operador deve executar antes de concluir o envio e a alteração definitiva, e qual canal o cliente deverá obrigatoriamente utilizar para confirmar essa mudança?",
-    "slots_simulados": {},
-    "ground_truth": "Mesmo o cliente estando autenticado pela URA, para a Opção B (envio para e-mail diferente do cadastrado) é OBRIGATÓRIA a validação por Token (rotina 50148). Se o Token for validado, o operador deve oferecer o cadastro/atualização do e-mail (seguindo o item 1.3, que exige autenticação por Token via rotina 50148 para tal). Como o cliente questionou informações sobre a fatura (lançamentos), o operador deve seguir obrigatoriamente a rotina 50149. Para a mudança definitiva da forma de envio para e-mail, o operador deve acessar o aplicativo cartão 17.01.01 + dados do cliente, escolher a conta cartão individualmente, acessar os itens 04.41.19 (Emissão de Extrato), observar a situação atual e mudar para 'COM emissão de extrato via e-mail'. Esse comando gera um duplo sim, e o cliente obrigatoriamente tem até 7 dias para confirmar a alteração pelos canais: App Alfa, AAPF (área logada) via Internet ou TAA (se correntista), ou AAPF (área logada) via Internet e TAA (se não correntista). Se o sistema retornar 'Cliente não está habilitado para receber e-mail', o operador deve habilitá-lo no SISCAD 06.11 alterando os três campos da linha 0006 E-mail de 'N' para 'S', alertando o cliente sobre o envio de outras comunicações (ex.: promoções).",
+    "id": "golden96-14",
+    "pergunta_completa": "Durante o atendimento generalista, o atendente percebe que existem pendências de notas '784-FALHA DE CHECK LIST' e '1489-REINCIDÊNCIA FALHA CHECK LIST' associadas ao cliente. O atendente deve bloquear o atendimento por conta dessas notas?",
+    "pergunta_incompleta": "O atendimento SAC deve ser bloqueado caso existam notas de falha de check list pendentes no cadastro?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "Não. O atendimento SAC não consulta a existência de notas '784-FALHA DE CHECK LIST' e '1489-REINCIDÊNCIA FALHA CHECK LIST' pendentes, exceto para as demandas específicas das rotinas 50151 e 50152.",
+    "tipo": "EDGE_CASE",
+    "source_document": "POP_Cartoes_SAC_anonimizado.md"
+  },
+  {
+    "id": "golden96-15",
+    "pergunta_completa": "Um correntista pessoa física deseja solicitar a contratação de um novo cartão de crédito nas modalidades Visa Internacional e Elo Mais/Grafite. Quais são os canais disponíveis que o atendente do SAC deve informar?",
+    "pergunta_incompleta": "Gostaria de saber quais canais posso usar para solicitar um novo cartão de crédito Visa Internacional ou Elo Mais/Grafite.",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "Para correntistas solicitando os cartões Visa Internacional e Elo Mais/Grafite, os canais disponíveis são: App Alfa, agências e TAA.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "POP_Cartoes_SAC_anonimizado.md"
+  },
+  {
+    "id": "golden96-16",
+    "pergunta_completa": "Um cliente relata que realizou a antecipação do pagamento de sua fatura e agora está solicitando o estorno de encargos e juros que foram cobrados sobre o pagamento de contas feito via cartão. Qual advertência o atendente deve obrigatoriamente fazer ao cliente conforme a rotina 50195?",
+    "pergunta_incompleta": "Fiz a antecipação do pagamento da minha fatura e gostaria de solicitar o estorno dos encargos e juros cobrados. Como devo proceder?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "O atendente deve informar que, caso seja feito o estorno, o cliente ficará sujeito à perda dos pontos de relacionamento gerados por aquele pagamento (conforme o item 10 da rotina 50195).",
+    "tipo": "EDGE_CASE",
+    "source_document": "POP_Cartoes_SAC_anonimizado.md"
+  },
+  {
+    "id": "golden96-17",
+    "pergunta_completa": "Um cliente relata fraude em um pagamento de boleto efetuado com débito na fatura do Cartão Alfa. Existe restrição temporal para que o atendente consiga auxiliá-lo com o cancelamento?",
+    "pergunta_incompleta": "Preciso cancelar um pagamento de boleto feito com débito na fatura do Cartão Alfa por suspeita de fraude. Existe algum prazo para solicitar esse cancelamento?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "Sim. Conforme o item 12 da rotina 50195, é possível cancelar o pagamento do boleto apenas se a alegação de fraude for feita no próprio dia da liquidação.",
+    "tipo": "REGULATORY_TIMELINE",
+    "source_document": "POP_Cartoes_SAC_anonimizado.md"
+  },
+  {
+    "id": "golden96-18",
+    "pergunta_completa": "Um cliente entra em contato com o SAC alegando que teve um saque na função crédito não efetuado, mas o valor foi debitado e a cédula ficou retida. Como o atendente deve proceder?",
+    "pergunta_incompleta": "Tive um saque na função crédito que não foi efetuado, mas o valor foi debitado e a cédula ficou retida. Como devo proceder?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "O atendente deve realizar o atendimento e seguir estritamente os procedimentos definidos na rotina 50204.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "POP_Cartoes_SAC_anonimizado.md"
+  },
+  {
+    "id": "golden96-19",
+    "pergunta_completa": "Um cliente não correntista deseja contratar um cartão de crédito novo pelo Banco Alfa. Quais canais o atendente do SAC deve indicar para a contratação?",
+    "pergunta_incompleta": "Gostaria de saber quais canais posso usar para contratar um cartão de crédito novo.",
+    "slots_simulados": {
+      "tipo_cliente": "não correntista"
+    },
+    "ground_truth": "Para não correntistas, os canais de contratação de um cartão novo são o App Alfa e as agências.",
+    "tipo": "ROLE_RESTRICTION",
+    "source_document": "POP_Cartoes_SAC_anonimizado.md"
+  },
+  {
+    "id": "golden96-20",
+    "pergunta_completa": "Um cliente que possui um cartão de programa de fidelidade parceiro deseja realizar a troca de seus pontos. O atendimento SAC pode efetuar essa troca diretamente?",
+    "pergunta_incompleta": "Como faço para realizar a troca de pontos do meu cartão de programa de fidelidade parceiro?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "Não. O SAC não realiza a troca de pontos de cartão de parceiro de combustível. O atendente deve apenas prestar informações e orientar o cliente para o canal correto, conforme o item 23.6 da rotina 50158.",
+    "tipo": "ROLE_RESTRICTION",
+    "source_document": "POP_Cartoes_SAC_anonimizado.md"
+  },
+  {
+    "id": "golden96-21",
+    "pergunta_completa": "Um cliente entra em contato solicitando a antecipação de parcelas de uma compra parcelada utilizando o site institucional do Banco Alfa. O atendente deve confirmar que o procedimento é viável por esse canal?",
+    "pergunta_incompleta": "Como faço para antecipar parcelas de uma compra?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "canal_tentado": "site"
+    },
+    "ground_truth": "Não. O atendente deve informar que o site institucional não possui a opção de antecipação de compras parceladas. As opções viáveis são pelo App Cartão Alfa (timeline > transação > Parcelas > 'Antecipar parcelas') ou pelo App Alfa (Extratos > Fatura do Cartão > cartão > compra > 'Antecipar parcelas', ao final da tela). Se não for possível ou o cliente insistir, deve-se adotar o procedimento do item 3 da rotina 50198.",
+    "tipo": "EDGE_CASE",
+    "source_document": "POP_Cartoes_SAC_anonimizado.md"
+  },
+  {
+    "id": "golden96-22",
+    "pergunta_completa": "Quais são as condições estritas e cumulativas exigidas para que um cliente possa solicitar um cartão através de Abordagens Ativas na Plataforma de Relacionamento (rotina 50159)?",
+    "pergunta_incompleta": "Quais são as condições exigidas para solicitar um cartão através de Abordagens Ativas na Plataforma de Relacionamento?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "As condições obrigatórias são: ser maior de 18 anos ou emancipado; não possuir restrições cadastrais impeditivas (verificação realizada pelo atendente do módulo cartões); e possuir saldo disponível para crédito rotativo maior ou igual a R$ 200,00.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "POP_Cartoes_SAC_anonimizado.md"
+  },
+  {
+    "id": "golden96-23",
+    "pergunta_completa": "Um cliente relata que não reconhece uma compra realizada na função débito e entra em contato com o canal SAC. O atendente do SAC Generalista tem alçada para processar essa contestação de fraude diretamente?",
+    "pergunta_incompleta": "Não reconheço uma compra feita na função débito e gostaria de saber se o SAC pode processar essa contestação de fraude.",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "canal_tentado": "SAC"
+    },
+    "ground_truth": "Não. Tratando-se da função débito e de um cliente que não reconhece a compra por suspeita de fraude, o atendente não deve processar no SAC Generalista, mas sim transferir imediatamente a ligação para o SAC Antifraude/ROI.",
+    "tipo": "ROLE_RESTRICTION",
+    "source_document": "POP_Cartoes_SAC_anonimizado.md"
+  },
+  {
+    "id": "golden96-24",
+    "pergunta_completa": "Um cliente Pessoa Jurídica (PJ) entra em contato solicitando o reenvio imediato da fatura atual do cartão corporativo por e-mail, argumentando que o representante autorizado está sem acesso ao Alfa Digital PJ. O atendente pode realizar o reenvio direto por e-mail utilizando a Opção B do quadro contratado após validar o Token?",
+    "pergunta_incompleta": "Sou cliente PJ e preciso que enviem a fatura do cartão corporativo por e-mail, pois estou sem acesso ao Alfa Digital PJ.",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "alfa_code": "não"
+    },
+    "ground_truth": "Não. O reenvio de fatura por e-mail é exclusivo para clientes PF. Clientes PJ devem emitir a fatura por meio do Alfa Digital PJ (Cartão > Consolidado Empresa > Acesso de usuário ao Centro de Custo) ou no App Alfa PJ, através do representante autorizado ou usuário com acesso concedido pelo Administrador de Segurança.",
+    "tipo": "ROLE_RESTRICTION",
+    "source_document": "POP_Fatura_Envio_Email_anonimizado.md"
+  },
+  {
+    "id": "golden96-25",
+    "pergunta_completa": "Durante o atendimento para reenvio de fatura via Opção B (e-mail não cadastrado), o cliente PF está devidamente autenticado pela URA, mas o sistema falha ao tentar realizar a validação por Token (rotina 50148). O operador pode prosseguir com o envio da fatura para o novo endereço de e-mail informado verbalmente pelo cliente?",
+    "pergunta_incompleta": "O sistema falhou na validação por Token durante o reenvio de fatura. Posso enviar a fatura para um novo e-mail informado pelo cliente?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "Não. Para a Opção B, mesmo com o cliente autenticado, a validação por Token é obrigatória. Se não for possível validar por Token, o operador NÃOB deve enviar a fatura nem alterar a forma de envio, devendo orientar o cliente a obter a fatura pelos canais da rotina 50182.",
     "tipo": "CONDITIONAL_WORKFLOW",
     "source_document": "POP_Fatura_Envio_Email_anonimizado.md"
   },
   {
-    "id": "golden-07",
-    "pergunta_completa": "Um cliente correntista Pessoa Física que possui débito automático em conta corrente ativo relata ao suporte que sua fatura fechada possui saldo de R$ 750,00 e que ele não recebeu a fatura impressa em sua residência, embora sua opção cadastrada seja estritamente para o recebimento impresso e seu endereço esteja correto. Ao consultar o SISALFA na última coluna 'Emit' do caminho cartão 17.01.01.01 — Faturas, qual é a justificativa técnica/sistêmica exata para a não emissão ou não recebimento dessa fatura impressa específica? Adicionalmente, caso o cliente exija o código de barras da fatura por telefone sem ter conseguido passar pela validação de Token, qual procedimento alternativo ou restrição de atendimento o operador deve seguir?",
-    "pergunta_incompleta": "Um cliente correntista Pessoa Física que possui débito automático em conta corrente ativo relata ao suporte que sua fatura fechada possui saldo de R$ 750,00 e que ele não recebeu a fatura impressa em sua residência, embora sua opção cadastrada seja estritamente para o recebimento impresso e seu endereço esteja correto. Ao consultar o SISALFA na última coluna 'Emit' do caminho cartão 17.01.01.01 — Faturas, qual é a justificativa técnica/sistêmica exata para a não emissão ou não recebimento dessa fatura impressa específica? Adicionalmente, caso o cliente exija o código de barras da fatura por telefone sem ter conseguido passar pela validação de Token, qual procedimento alternativo ou restrição de atendimento o operador deve seguir?",
-    "slots_simulados": {},
-    "ground_truth": "A justificativa sistêmica para o não recebimento/emissão da fatura impressa, conforme as regras do POP, é que o débito automático em conta corrente possui uma regra de corte em que valores de fatura inferiores ou iguais a R$ 800,00 (neste caso, R$ 750,00) provocam a inibição automática da emissão impressa pelo sistema (ao passo que por e-mail o cliente receberia qualquer valor). Quanto à solicitação do código de barras sem sucesso na validação de Token, o POP estabelece como procedimento obrigatório a autenticação por Token (rotina 50148); se não houver sucesso na validação, o operador está proibido de ditar o código de barras diretamente e deve obrigatoriamente orientar o cliente a obter a fatura pelos canais descritos na rotina (canais digitais como site institucional, App Alfa, WhatsApp Alfa ou TAA).",
+    "id": "golden96-26",
+    "pergunta_completa": "Um cliente correntista solicita a mudança da forma de envio da fatura para 'COM emissão de extrato via e-mail' através do aplicativo cartão 17.01.01. O atendente executa o comando gerando o duplo sim. Qual é o prazo limite e quais canais o cliente deve obrigatoriamente utilizar para confirmar essa alteração, e a partir de qual fatura a mudança passa a vigorar?",
+    "pergunta_incompleta": "Como faço para alterar o envio da minha fatura para e-mail pelo aplicativo? Qual o prazo e onde devo confirmar essa mudança?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "canal_tentado": "aplicativo cartão"
+    },
+    "ground_truth": "O cliente deve confirmar a alteração em até 7 dias através do App Alfa ou AAPF (área logada) — Internet e TAA (para correntistas). A mudança passa a valer a partir da próxima fatura a fechar (status 'A faturar').",
+    "tipo": "REGULATORY_TIMELINE",
+    "source_document": "POP_Fatura_Envio_Email_anonimizado.md"
+  },
+  {
+    "id": "golden96-27",
+    "pergunta_completa": "Ao tentar alterar a forma de envio de fatura impressa para e-mail para um cliente, o sistema exibe a mensagem 'Cliente não está habilitado para receber e-mail'. O atendente pode realizar o ajuste no SISALFA acessando o aplicativo SISCAD 06.11, alterando os três campos de 'N' para 'S' na linha 0006 E-mail. Que alerta obrigatório deve ser repassado ao cliente sobre essa modificação?",
+    "pergunta_incompleta": "O sistema exibe a mensagem 'Cliente não está habilitado para receber e-mail' ao tentar alterar o envio da fatura. Qual alerta devo passar ao cliente sobre essa modificação?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "O operador deve alertar o cliente de que esse ajuste de habilitação autoriza o banco a enviar outras comunicações por e-mail, como por exemplo, promoções.",
     "tipo": "EDGE_CASE",
     "source_document": "POP_Fatura_Envio_Email_anonimizado.md"
   },
   {
-    "id": "golden-08",
-    "pergunta_completa": "Um cliente comparece ao atendimento solicitando o valor exato que foi encaminhado pelo INSS para o seu benefício social, além de questionar sobre a data inicial de disponibilidade. O atendente utiliza o sistema SISALFA > SISPAG 18 > 41 e visualiza que o convênio é do INSS e que o campo 'Ini.pgto' está preenchido com uma data futura em relação ao dia atual. Como o atendente deve proceder em relação à informação do valor e qual a interpretação correta para o preenchimento do campo 'Ini.pgto'?",
-    "pergunta_incompleta": "Um cliente comparece ao atendimento solicitando o valor exato que foi encaminhado pelo INSS para o seu benefício social, além de questionar sobre a data inicial de disponibilidade. O atendente utiliza o sistema SISALFA > SISPAG 18 > 41 e visualiza que o convênio é do INSS e que o campo 'Ini.pgto' está preenchido com uma data futura em relação ao dia atual. Como o atendente deve proceder em relação à informação do valor e qual a interpretação correta para o preenchimento do campo 'Ini.pgto'?",
-    "slots_simulados": {},
-    "ground_truth": "O atendente deve informar sobre a disponibilidade do benefício, mas é expressamente proibido de informar o valor disponível ou o valor encaminhado pelo INSS. Caso o cliente insista em saber o valor, o atendente deve orientá-lo a consultar o App Alfa, TAA, site institucional ou o 'Meu INSS' (Extrato de Pagamento). Sobre o campo 'Ini.pgto', este indica a data inicial em que o benefício estará disponível para pagamento.",
+    "id": "golden96-28",
+    "pergunta_completa": "Um cliente com débito automático em conta corrente reclama que não está recebendo a fatura impressa em sua residência, embora tenha optado por essa modalidade. Ao consultar o SISALFA na última coluna 'Emit', o operador constata que a fatura não foi emitida e o saldo apurado da fatura é de R$ 750,00. Qual é a justificativa técnica para a ausência da emissão impressa e o cliente ainda consegue obter a fatura por e-mail?",
+    "pergunta_incompleta": "Tenho débito automático e não estou recebendo a fatura impressa em casa. Ainda consigo receber a fatura por e-mail?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "O motivo é que o sistema inibe a emissão impressa quando há débito automático em conta corrente com valor de fatura inferior a R$ 800,01. Sim, o cliente ainda consegue receber por e-mail, pois a restrição de valor mínimo aplica-se apenas à fatura impressa (por e-mail, o cliente recebe qualquer valor).",
+    "tipo": "EDGE_CASE",
+    "source_document": "POP_Fatura_Envio_Email_anonimizado.md"
+  },
+  {
+    "id": "golden96-29",
+    "pergunta_completa": "Um cliente solicita o código de barras da sua fatura por telefone. O operador não consegue concluir a autenticação por Token (rotina 50148). Quais são as restrições impostas pelo procedimento e qual é a conduta obrigatória a ser adotada pelo operador em relação ao fornecimento dos dados?",
+    "pergunta_incompleta": "Não estou conseguindo autenticar pelo Token, pode me passar o código de barras da minha fatura por telefone?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "canal_tentado": "SAC"
+    },
+    "ground_truth": "Se não houver sucesso na autenticação por Token, o código de barras NÃO pode ser ditado/informado ao cliente. O operador deve orientá-lo a obter a fatura pelos canais descritos na rotina (referência aos canais digitais como site institucional, App Alfa, WhatsApp Alfa ou TAA).",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "POP_Fatura_Envio_Email_anonimizado.md"
+  },
+  {
+    "id": "golden96-30",
+    "pergunta_completa": "Caso um cliente PF não possua nenhuma fatura anterior e recuse-se a utilizar os canais digitais, o operador precisa consultar manualmente o código de barras pelo SISALFA no caminho CARTAO > 17 > 01 > 01 > F9 > 22 > F8. Além de informar o código obtido, qual regra de formatação rigorosa deve ser aplicada no último campo e quais outras informações devem ser obrigatoriamente passadas ao cliente?",
+    "pergunta_incompleta": "Não tenho fatura anterior e não quero usar os canais digitais. Como consigo o código de barras e o que preciso informar ao cliente?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "alfa_code": "sim",
+      "canal_tentado": "agência"
+    },
+    "ground_truth": "O operador deve informar mais 11 zeros no final do código, totalizando obrigatoriamente 14 dígitos no último campo. Além disso, deve informar também o valor e a data de vencimento da fatura.",
+    "tipo": "EDGE_CASE",
+    "source_document": "POP_Fatura_Envio_Email_anonimizado.md"
+  },
+  {
+    "id": "golden96-31",
+    "pergunta_completa": "Um cliente insiste veementemente em continuar recebendo a fatura impressa em sua residência. O operador confirma no sistema que o endereço cadastrado está correto. Qual é a rotina exata no aplicativo cartão que deve ser acessada, qual marcação deve ser feita, e qual ação complementar o operador deve tentar realizar obrigatoriamente durante o atendimento?",
+    "pergunta_incompleta": "O cliente quer continuar recebendo a fatura impressa em casa. Qual rotina no aplicativo cartão devo acessar e qual marcação realizar?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "O operador deve acessar o aplicativo cartão 17.01.01.04.41.19, marcar 'Com emissão de Extrato' e confirmar (a fatura do próximo ciclo será impressa e entregue pelos correios). Em todo caso, o operador deve tentar resolver o problema oferecendo o reenvio da fatura por e-mail (item 1).",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "POP_Fatura_Envio_Email_anonimizado.md"
+  },
+  {
+    "id": "golden96-32",
+    "pergunta_completa": "Um cliente PF alega que precisa atualizar seu endereço de e-mail e que não conseguiu validar o Token. Quais são os canais alternativos oficiais baseados na rotina 50220 (Atualização Cadastral) item 3 que o operador deve informar para que o cliente realize a atualização por conta própria?",
+    "pergunta_incompleta": "Preciso atualizar meu e-mail, mas não consegui validar o Token. Quais canais posso usar para fazer essa atualização?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "O operador deve orientar sobre os canais: site institucional e App Alfa; App Alfa isolado; Plataforma de Relacionamento; e agências físicas.",
+    "tipo": "REGULATORY_TIMELINE",
+    "source_document": "POP_Fatura_Envio_Email_anonimizado.md"
+  },
+  {
+    "id": "golden96-33",
+    "pergunta_completa": "Quais perfis/cargos de atendimento possuem permissão para atualizar diretamente o e-mail de um cliente PF no SISALFA através do aplicativo 17.01.01.04.41.18 (sem gerar duplo sim), conforme o POP?",
+    "pergunta_incompleta": "Quais perfis de atendimento possuem permissão para atualizar o e-mail de um cliente PF no SISALFA?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "Os perfis autorizados são: SAC Quadro Próprio, QC Especializado Cartão, QC SAC Generalista e Bancada Portador.",
+    "tipo": "ROLE_RESTRICTION",
+    "source_document": "POP_Fatura_Envio_Email_anonimizado.md"
+  },
+  {
+    "id": "golden96-34",
+    "pergunta_completa": "Durante a investigação de um cliente que relata não receber sua fatura impressa, o operador acessa o SISALFA no caminho cartão 17.01.01.01 — Faturas, visualiza a coluna 'Emit' e pressiona a tecla 'M' no mês correspondente. Quais são os motivos previstos no POP que podem justificar a não impressão da fatura, excluindo problemas cadastrais gerais?",
+    "pergunta_incompleta": "Não estou recebendo minha fatura impressa em casa. Quais motivos podem impedir o envio dela?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "Os motivos previstos são: endereço inválido; débito automático em conta corrente com valor inferior a R$ 800,01; saldo da fatura igual a zero ou credor; modalidade sem fatura impressa; opção do cliente por não impressão; fatura em negociação no SISNEG; cartão em cobrança terceirizada; e inconsistência do sistema (fatura não impressa).",
+    "tipo": "EDGE_CASE",
+    "source_document": "POP_Fatura_Envio_Email_anonimizado.md"
+  },
+  {
+    "id": "golden96-35",
+    "pergunta_completa": "Um cliente que acabou de ter sua fatura enviada por e-mail reclama que o PDF está bloqueado e exige uma senha que ele desconhece, ameaçando abrir uma reclamação regulatória. Qual instrução exata o operador deve fornecer para a abertura do arquivo e qual recomendação preventiva deve ser dada em relação à caixa de entrada?",
+    "pergunta_incompleta": "Recebi minha fatura por e-mail, mas o arquivo PDF está bloqueado e pede uma senha. O que devo fazer para abrir e como evitar que isso aconteça novamente?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "O operador deve informar que a senha para abrir o PDF são os 5 primeiros dígitos do CPF do cliente. Além disso, deve orientar o cliente a observar a caixa de spam e marcar o remetente como confiável/seguro.",
+    "tipo": "REGULATORY_TIMELINE",
+    "source_document": "POP_Fatura_Envio_Email_anonimizado.md"
+  },
+  {
+    "id": "golden96-36",
+    "pergunta_completa": "Um cliente entra em contato com o SAC questionando detalhadamente qual é o valor exato que o INSS encaminhou para o seu benefício previdenciário e qual o saldo disponível em sua conta naquele momento. Considerando que o acesso foi feito via SISALFA > SISPAG 18 > 41, qual é a conduta obrigatória do atendente em relação à abertura dessas informações e quais alternativas ele deve fornecer ao cliente?",
+    "pergunta_incompleta": "Gostaria de saber qual o valor exato que o INSS enviou para o meu benefício e qual o saldo disponível na minha conta agora.",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "canal_tentado": "SAC",
+      "alfa_code": "sim"
+    },
+    "ground_truth": "O atendente deve informar apenas sobre a disponibilidade do benefício, sendo estritamente proibido informar o valor disponível ou o valor encaminhado pelo INSS. Caso o cliente insista ou solicite os valores, o atendente deve orientá-lo a acessar sua conta por meio do App Alfa, TAA (Terminal de Autoatendimento), site institucional do banco ou diretamente pelo portal 'Meu INSS' (utilizando a opção de Extrato de Pagamento para consultar o crédito enviado).",
+    "tipo": "ROLE_RESTRICTION",
+    "source_document": "POP_INSS_Beneficios_Sociais_anonimizado.md"
+  },
+  {
+    "id": "golden96-37",
+    "pergunta_completa": "Durante o atendimento de um benefício que não é do INSS (Outros Benefícios), o cliente solicita simultaneamente a confirmação de disponibilidade do saldo e o valor exato creditado, além de perguntar onde mais ele pode consultar esses dados de forma autônoma após o atendimento. De acordo com o POP, o atendente tem permissão para fornecer o valor solicitado? E qual orientação deve ser dada ao final?",
+    "pergunta_incompleta": "Sou cliente de Outros Benefícios e gostaria de saber se você pode confirmar o valor do meu saldo e onde posso consultar isso sozinho depois?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "Sim, para Outros Benefícios, além de informar a disponibilidade, o atendente pode (se for do desejo do cliente) informar o valor disponível. Após prestar todas as informações, o atendente deve obrigatoriamente esclarecer sobre a possibilidade de o cliente consultar saldos e extratos diretamente na TAA (Terminal de Autoatendimento).",
     "tipo": "CONDITIONAL_WORKFLOW",
     "source_document": "POP_INSS_Beneficios_Sociais_anonimizado.md"
   },
   {
-    "id": "golden-09",
-    "pergunta_completa": "Durante a consulta de um benefício no SISALFA (SISPAG 18 > 41) para um cliente que alega não ter recebido os valores, o atendente constata que o benefício consta como 'NÃO DISPONÍVEL' e que o extrato da conta-benefício apresenta uma movimentação realizada no dia anterior. Considerando o procedimento operacional, qual deve ser a orientação exata fornecida ao consumidor sobre a indisponibilidade, e existe alguma restrição quanto à consulta retroativa de extratos?",
-    "pergunta_incompleta": "Durante a consulta de um benefício no SISALFA (SISPAG 18 > 41) para um cliente que alega não ter recebido os valores, o atendente constata que o benefício consta como 'NÃO DISPONÍVEL' e que o extrato da conta-benefício apresenta uma movimentação realizada no dia anterior. Considerando o procedimento operacional, qual deve ser a orientação exata fornecida ao consumidor sobre a indisponibilidade, e existe alguma restrição quanto à consulta retroativa de extratos?",
-    "slots_simulados": {},
-    "ground_truth": "Para o benefício não disponível, o atendente deve informar ao consumidor que o benefício não está disponível para saque e orientá-lo a entrar em contato com o órgão responsável pela disponibilização para saber o motivo. Quanto ao extrato, o procedimento indica que as transações na conta-benefício são atualizadas no extrato no dia seguinte, e que para consultar o extrato utiliza-se o caminho SISALFA > SISPAG > 18 > 47 > F4 no campo Benefício > CPF.",
+    "id": "golden96-38",
+    "pergunta_completa": "Ao analisar o sistema SISALFA > SISPAG 18 > 41 de um cliente, o operador identifica que o campo 'Data de pagamento' está totalmente em branco, enquanto o campo 'Ini.pgto' exibe uma data passada. O cliente alega que nunca sacou esse dinheiro. O que significa o fato da data de pagamento estar em branco neste cenário operacional?",
+    "pergunta_incompleta": "No sistema SISALFA, o campo 'Data de pagamento' está em branco, mas o 'Ini.pgto' mostra uma data passada. O que isso significa se eu nunca saquei esse dinheiro?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "Significa que o benefício foi devidamente disponibilizado pelo sistema/órgão, mas o cliente ainda não movimentou o valor em questão nenhuma vez até o momento da consulta.",
     "tipo": "EDGE_CASE",
     "source_document": "POP_INSS_Beneficios_Sociais_anonimizado.md"
   },
   {
-    "id": "golden-10",
+    "id": "golden96-39",
+    "pergunta_completa": "Um operador observa no sistema SISALFA que o campo 'Data de pagamento' de um benefício social está preenchido com uma data específica. O cliente liga questionando o porquê dessa data constar no sistema. O que exatamente representa esse campo quando ele se encontra preenchido?",
+    "pergunta_incompleta": "O que significa a data que aparece no campo 'Data de pagamento' do meu benefício social no sistema?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "Corresponde exatamente ao dia em que o cliente movimentou o valor do benefício pela primeira vez.",
+    "tipo": "EDGE_CASE",
+    "source_document": "POP_INSS_Beneficios_Sociais_anonimizado.md"
+  },
+  {
+    "id": "golden96-40",
+    "pergunta_completa": "Um beneficiário de programa social entra em contato alegando que precisa consultar o extrato de sua conta-benefício para verificar uma movimentação realizada nas primeiras horas da manhã do mesmo dia. O atendente realiza a transação em SISALFA > SISPAG > 18 > 47 > F4. O cliente conseguirá visualizar essa transação recente no extrato gerado no mesmo dia? Justifique com base na regra temporal do POP.",
+    "pergunta_incompleta": "Preciso consultar o extrato da minha conta-benefício para ver uma movimentação que fiz hoje cedo, mas não estou encontrando. Onde vejo essa transação recente?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "alfa_code": "sim"
+    },
+    "ground_truth": "Não, o cliente não visualizará a transação no mesmo dia. Conforme a regra temporal do POP, as transações na conta-benefício são atualizadas no extrato apenas no dia seguinte.",
+    "tipo": "REGULATORY_TIMELINE",
+    "source_document": "POP_INSS_Beneficios_Sociais_anonimizado.md"
+  },
+  {
+    "id": "golden96-41",
+    "pergunta_completa": "Um cliente entra em contato com o banco relatando que o seu benefício social consta como 'NÃO DISPONÍVEL' para saque no sistema, embora ele afirme que a data prevista já tenha chegado. Qual deve ser a instrução exata fornecida pelo atendente quanto à resolução do problema e à identificação da causa?",
+    "pergunta_incompleta": "Meu benefício social consta como não disponível para saque, mesmo já tendo passado a data prevista. O que devo fazer?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "O atendente deve informar de maneira clara que o benefício não está disponível para saque e orientar o consumidor que, para saber o motivo exato da indisponibilidade, ele precisa entrar em contato diretamente com o órgão responsável pela disponibilização do benefício.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "POP_INSS_Beneficios_Sociais_anonimizado.md"
+  },
+  {
+    "id": "golden96-42",
+    "pergunta_completa": "Um auditor de qualidade está avaliando o atendimento de um operador do SAC que atendeu um segurado do INSS. O operador consultou o SISALFA > SISPAG 18 > 41, confirmou que o convênio era INSS, informou a disponibilidade e, para ser pre والأtico, repassou ao cliente o valor exato enviado pelo INSS que constava na tela. Com base estritamente no POP, qual infração procedural o operador cometeu?",
+    "pergunta_incompleta": "O operador informou o valor exato enviado pelo INSS durante o atendimento. Qual infração procedural ele cometeu?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "canal_tentado": "SAC"
+    },
+    "ground_truth": "O operador violou a diretriz de sigilo/restrição para benefícios do INSS, pois o POP determina explicitamente que, se o convênio for INSS, o atendente deve informar sobre a disponibilidade sem informar o valor disponível ou o valor encaminhado pelo INSS.",
+    "tipo": "ROLE_RESTRICTION",
+    "source_document": "POP_INSS_Beneficios_Sociais_anonimizado.md"
+  },
+  {
+    "id": "golden96-43",
+    "pergunta_completa": "Para um cliente que deseja consultar o extrato de benefício utilizando o caminho padrão no SISALFA (`SISPAG > 18 > 47`), qual comando de teclado específico deve ser executado no campo Benefício após inserir o CPF para que a consulta seja processada corretamente segundo o procedimento?",
+    "pergunta_incompleta": "Qual comando de teclado devo usar no campo Benefício do SISALFA após inserir o CPF para consultar o extrato?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "O operador deve teclar F4 no campo Benefício após inserir o CPF.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "POP_INSS_Beneficios_Sociais_anonimizado.md"
+  },
+  {
+    "id": "golden96-44",
+    "pergunta_completa": "Um operador precisa localizar urgentemente o número do benefício de um cliente cujo CPF e agência/conta são desconhecidos ou inconclusivos, mas ele possui o MCI. Analisando as rotinas descritas no POP para localização do número do benefício, quais caminhos no sistema SISALFA o operador pode utilizar e qual tecla de função acionar?",
+    "pergunta_incompleta": "Como faço para localizar o número do benefício no sistema SISALFA usando apenas o MCI do cliente?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "O operador deve acessar o caminho `SISALFA > SISPAG > 18 > 41 ou 47`, ir até o campo 'Benefício', teclar F4, e inserir os dados disponíveis, que neste caso podem incluir o MCI, além de agência, conta ou CPF.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "POP_INSS_Beneficios_Sociais_anonimizado.md"
+  },
+  {
+    "id": "golden96-45",
+    "pergunta_completa": "Um cliente liga reclamando que o seu extrato do INSS obtido através do banco não reflete o valor total do crédito enviado pelo órgão e exige que o atendente do banco recalcule ou justifique a diferença. Considerando as limitações de alçada e escopo descritas no POP para convênios INSS, qual canal alternativo o atendente deve obrigatoriamente indicar para que o cliente consulte o detalhamento do crédito enviado?",
+    "pergunta_incompleta": "O valor do meu extrato do INSS está diferente do que recebi. Onde posso consultar o detalhamento desse crédito?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "O atendente deve orientar o cliente a acessar o portal ou aplicativo 'Meu INSS', especificamente na seção de Extrato de Pagamento, que é a ferramenta destinada à consulta do valor do crédito enviado pelo próprio INSS.",
+    "tipo": "ROLE_RESTRICTION",
+    "source_document": "POP_INSS_Beneficios_Sociais_anonimizado.md"
+  },
+  {
+    "id": "golden96-46",
+    "pergunta_completa": "Durante a auditoria de um procedimento de consulta de benefício, verifica-se que o campo 'Ini.pgto' foi consultado. Qual é a utilidade específica desse campo dentro da esteira de atendimento descrita no POP de benefícios sociais?",
+    "pergunta_incompleta": "Para que serve a informação do campo 'Ini.pgto' na consulta de benefícios sociais?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "O campo 'Ini.pgto' serve para mostrar a data inicial exata em que o benefício estará disponível para pagamento ao cliente.",
+    "tipo": "EDGE_CASE",
+    "source_document": "POP_INSS_Beneficios_Sociais_anonimizado.md"
+  },
+  {
+    "id": "golden96-47",
+    "pergunta_completa": "Um cliente que possui um benefício classificado como 'Outro benefício' (não-INSS) liga para o banco. O atendente informa a disponibilidade, fornece o valor disponível conforme solicitado, mas omite completamente qualquer orientação sobre canais de autoatendimento. Esta conduta atende integralmente ao POP? Justifique.",
+    "pergunta_incompleta": "Gostaria de saber o valor disponível do meu Outro benefício, mas o atendente não me explicou como consultar isso no autoatendimento. Essa conduta está correta?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "Não atende integralmente. O POP estabelece que, para 'Outros Benefícios', além de informar a disponibilidade e o valor (se desejado pelo cliente), o atendente deve obrigatoriamente esclarecer sobre a possibilidade de consultar saldos e extratos na TAA ao término da prestação das informações.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "POP_INSS_Beneficios_Sociais_anonimizado.md"
+  },
+  {
+    "id": "golden96-48",
+    "pergunta_completa": "Um cliente não correntista com ANC vigente e limite disponível entra em contato via Plataforma de Relacionamento, mas o envio do Token pela rotina 50148 falha. O atendente pode prosseguir com a consulta do limite único utilizando apenas a confirmação de dados cadastrais verbais?",
+    "pergunta_incompleta": "O envio do Token falhou na Plataforma de Relacionamento. Posso consultar meu limite apenas com a confirmação de dados cadastrais?",
+    "slots_simulados": {
+      "tipo_cliente": "não correntista",
+      "canal_tentado": "Plataforma de Relacionamento"
+    },
+    "ground_truth": "Não. De acordo com o POP, se não houver sucesso no envio do Token, o atendente não deve prosseguir com a consulta e deve indicar os canais disponíveis para alteração e consulta do limite, conforme o item 3 da rotina 50190.",
+    "tipo": "EDGE_CASE",
+    "source_document": "POP_Limites_Cartao_Credito_PF_anonimizado.md"
+  },
+  {
+    "id": "golden96-49",
+    "pergunta_completa": "Durante um atendimento via SAC, o cliente relata que não passou pela URA e, portanto, não possui autenticação por senha. Ele exige que o atendente realize a consulta do limite de crédito no SISALFA. Qual deve ser a conduta obrigatória do atendente?",
+    "pergunta_incompleta": "Estou no SAC e não passei pela URA, então não tenho senha. Pode consultar meu limite de crédito no SISALFA?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "canal_tentado": "SAC"
+    },
+    "ground_truth": "O atendente não deve prosseguir com o atendimento. Como o cliente está sem autenticação por senha (URA), a regra determina que não se deve prosseguir, devendo o atendente indicar os canais disponíveis para alteração e consulta do limite, conforme o item 3 da rotina 50190.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "POP_Limites_Cartao_Credito_PF_anonimizado.md"
+  },
+  {
+    "id": "golden96-50",
+    "pergunta_completa": "Quais são os pré-requisitos obrigatórios que devem ser atendidos simultaneamente para que um correntista com falha na URA (sem senha) possa ter seu limite consultado por um atendente na Plataforma de Relacionamento?",
+    "pergunta_incompleta": "Não consegui autenticar com a senha na URA. O atendente pode consultar meu limite de cartão de crédito mesmo assim?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "O procedimento estabelece que, caso o cliente não esteja autenticado por senha (URA), o atendente não deve prosseguir sob nenhuma hipótese, independentemente de outros fatores. A autenticação por senha (ou via URA) é um pré-requisito excludente obrigatório.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "POP_Limites_Cartao_Credito_PF_anonimizado.md"
+  },
+  {
+    "id": "golden96-51",
+    "pergunta_completa": "Em um atendimento no canal QC, o operador precisa verificar o limite de crédito de um cliente. Onde exatamente no sistema o operador deve navegar para localizar essa informação, considerando a rota específica descrita no POP?",
+    "pergunta_incompleta": "Como faço para localizar o limite de crédito do cliente no canal QC?",
+    "slots_simulados": {
+      "canal_tentado": "QC"
+    },
+    "ground_truth": "No canal QC, o operador deve acessar: Plataforma de Relacionamento (Operações Contratadas) > Cartões > Cartão de Crédito > Limite.",
+    "tipo": "EDGE_CASE",
+    "source_document": "POP_Limites_Cartao_Credito_PF_anonimizado.md"
+  },
+  {
+    "id": "golden96-52",
+    "pergunta_completa": "Um atendente da Plataforma de Relacionamento utiliza o SISALFA para consultar o limite de um cliente através do aplicativo cartão. Qual é a transação/caminho exato e o nome do campo onde o limite disponível é exibido?",
+    "pergunta_incompleta": "Como consulto o limite disponível de um cliente no SISALFA através do aplicativo cartão?",
+    "slots_simulados": {
+      "canal_tentado": "aplicativo cartão"
+    },
+    "ground_truth": "O atendente deve acessar o aplicativo cartão `17.01.01.9.22 F10` no SISALFA, e o limite disponível estará localizado especificamente no campo denominado 'Limite Créd. Dispon.'.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "POP_Limites_Cartao_Credito_PF_anonimizado.md"
+  },
+  {
+    "id": "golden96-53",
+    "pergunta_completa": "Após informar o limite de crédito ao cliente no canal de SAC, quais são obrigatoriamente os canais alternativos que o atendente deve citar para que o cliente possa realizar consultas futuras de forma autônoma?",
+    "pergunta_incompleta": "Quais são os canais alternativos para consultar o limite de crédito do meu cartão de forma autônoma?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "O atendente deve informar os seguintes canais: WhatsApp Alfa (direto com o bot digitando 'limite Cartão Alfa'), App Alfa e App Cartão Alfa, Autoatendimento pela internet, Plataforma de Relacionamento (URA) e Caixa Eletrônico.",
+    "tipo": "REGULATORY_TIMELINE",
+    "source_document": "POP_Limites_Cartao_Credito_PF_anonimizado.md"
+  },
+  {
+    "id": "golden96-54",
+    "pergunta_completa": "Se a rotina de Token 50148 apresentar sucesso para um cliente classificado como não correntista, quais condições adicionais referentes ao perfil e status desse cliente na instituição precisam ser obrigatoriamente atendidas para permitir a consulta e/ou alteração do limite único?",
+    "pergunta_incompleta": "O Token foi validado com sucesso. Quais condições preciso atender para consultar ou alterar meu limite único?",
+    "slots_simulados": {
+      "tipo_cliente": "não correntista"
+    },
+    "ground_truth": "Para o não correntista, além do sucesso no envio do Token, é obrigatório que ele possua ANC vigente e limite disponível para que seja possível consultar e/ou alterar o limite único.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "POP_Limites_Cartao_Credito_PF_anonimizado.md"
+  },
+  {
+    "id": "golden96-55",
+    "pergunta_completa": "Um cliente entra em contato pelo canal ATA afirmando que já possui senha da URA, mas a autenticação por Token falha no momento do atendimento. O atendente tem permissão para usar uma tratativa de exceção informando o limite verbalmente na mesma chamada?",
+    "pergunta_incompleta": "Já tenho senha da URA, mas a autenticação por Token falha. O atendente pode me informar o limite do cartão de crédito verbalmente?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "canal_tentado": "ATA"
+    },
+    "ground_truth": "Não. O POP determina categoricamente que, se não houver sucesso no envio do Token, o atendente não pode fornecer o dado diretamente, devendo apenas indicar os canais disponíveis para alteração e consulta do limite, conforme o item 3 da rotina 50190.",
+    "tipo": "ROLE_RESTRICTION",
+    "source_document": "POP_Limites_Cartao_Credito_PF_anonimizado.md"
+  },
+  {
+    "id": "golden96-56",
+    "pergunta_completa": "Qual é a distinção de procedimento de acesso ao SISALFA descrita no documento entre os atendimentos realizados via Plataforma de Relacionamento/SAC em comparação ao canal QC?",
+    "pergunta_incompleta": "Qual é a diferença no procedimento de acesso ao SISALFA entre o atendimento via Plataforma de Relacionamento/SAC e o canal QC?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "canal_tentado": "Plataforma de Relacionamento/SAC"
+    },
+    "ground_truth": "Para Plataforma de Relacionamento/SAC, o acesso no SISALFA é feito pelo aplicativo cartão `17.01.01.9.22 F10` (campo 'Limite Créd. Dispon.'). Já para o QC, a rota é via Plataforma de Relacionamento (Operações Contratadas) > Cartões > Cartão de Crédito > Limite.",
+    "tipo": "EDGE_CASE",
+    "source_document": "POP_Limites_Cartao_Credito_PF_anonimizado.md"
+  },
+  {
+    "id": "golden96-57",
+    "pergunta_completa": "Durante uma auditoria de conformidade em um atendimento de SAC, constatou-se que o atendente consultou e informou o limite de um correntista que estava sem autenticação por senha (URA). Qual foi a violação direta da regra procedimental estabelecida no POP?",
+    "pergunta_incompleta": "O atendente pode consultar o limite do cartão de crédito sem que o cliente tenha passado pela autenticação por senha na URA?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "canal_tentado": "SAC"
+    },
+    "ground_truth": "A violação foi ter dado seguimento ao atendimento e consultado o limite para um cliente que não estava autenticado por senha (URA), conduta explicitamente proibida pelo POP, que determina que o atendente não deve prosseguir e deve apenas indicar os canais alternativos da rotina 50190.",
+    "tipo": "ROLE_RESTRICTION",
+    "source_document": "POP_Limites_Cartao_Credito_PF_anonimizado.md"
+  },
+  {
+    "id": "golden96-58",
+    "pergunta_completa": "O procedimento operacional faz distinção quanto à obrigatoriedade da autenticação por Token dependendo do tipo de atendimento (QP, QC, Plataforma de Relacionamento, ATA e SAC)?",
+    "pergunta_incompleta": "A autenticação por Token é obrigatória para todos os tipos de atendimento?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "Não há distinção de isenção: a autenticação por Token é explicitamente descrita como 'procedimento obrigatório para todos os clientes', abrangendo os atendimentos QP e QC, Plataforma de Relacionamento, ATA e SAC (utilizando Senha + Token).",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "POP_Limites_Cartao_Credito_PF_anonimizado.md"
+  },
+  {
+    "id": "golden96-59",
+    "pergunta_completa": "Um cliente interage com o WhatsApp Alfa para tentar consultar o limite do seu cartão de crédito, mas o bot falha em retornar o dado. O canal WhatsApp Alfa é considerado no POP um canal válido onde o cliente *deveria* conseguir consultar essa informação de forma autônoma?",
+    "pergunta_incompleta": "Estou tentando consultar o limite do meu cartão de crédito pelo WhatsApp Alfa, mas não estou conseguindo. Esse canal permite essa consulta?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "canal_tentado": "WhatsApp Alfa"
+    },
+    "ground_truth": "Sim. O WhatsApp Alfa (direto com o bot digitando 'limite Cartão Alfa') é listado explicitamente no documento como um dos canais em que o cliente pode consultar a informação de limite de forma autônoma após ser orientado pelo atendente.",
+    "tipo": "EDGE_CASE",
+    "source_document": "POP_Limites_Cartao_Credito_PF_anonimizado.md"
+  },
+  {
+    "id": "golden96-60",
+    "pergunta_completa": "Um correntista possui celular autorizado há 45 dias, Alfa Code habilitado, geolocalização ativa, cartão ativo, mas a senha de 8 dígitos está bloqueada com o código 'U'. Ele tenta fazer a alteração da senha de 6 dígitos pelo App Alfa utilizando a opção sem a senha anterior. O aplicativo permitirá essa operação considerando que ele atende ao prazo de autorização do dispositivo?",
+    "pergunta_incompleta": "Minha senha de 6 dígitos foi bloqueada e preciso alterá-la. Quais são as minhas opções?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "codigo_bloqueio": "U",
+      "alfa_code": "sim",
+      "canal_tentado": "app",
+      "biometria_dias": "45"
+    },
+    "ground_truth": "Não, o aplicativo não permitirá. Embora o dispositivo esteja autorizado há mais de 30 dias com Alfa Code e geolocalização, a alteração da senha de 6 dígitos pelo App Alfa (ou site) não está disponível para quem possui bloqueio 'U' ou '8' na senha de 6 dígitos, exigindo procedimentos específicos via SAC ou agência dependendo do canal.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "pop_acesso_pf.md"
+  },
+  {
+    "id": "golden96-61",
+    "pergunta_completa": "Em uma conta com titulares solidários, o Titular A cometeu um erro de digitação na senha de 6 dígitos pela terceira vez consecutiva utilizando o APF Celular. Qual é o impacto imediato e automático dessa ocorrência sobre a capacidade transacional do Titular B na mesma conta?",
+    "pergunta_incompleta": "Errei a senha de 6 dígitos três vezes e minha conta é de titulares solidários. O outro titular também terá a capacidade transacional bloqueada?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "codigo_bloqueio": "3",
+      "canal_tentado": "app"
+    },
+    "ground_truth": "O erro de digitação por 3 vezes na senha de 6 dígitos via APF (ou Mobile/WhatsApp) aplica o bloqueio '3' não apenas à senha de 6 dígitos, mas também bloqueia automaticamente a senha de 8 dígitos. Além disso, por se tratar de titulares solidários, o bloqueio efetuado por um titular impede imediatamente que os demais realizem transações.",
+    "tipo": "EDGE_CASE",
+    "source_document": "pop_acesso_pf.md"
+  },
+  {
+    "id": "golden96-62",
+    "pergunta_completa": "Um cliente correntista que está residindo no exterior teve a senha bloqueada devido a uma suspeita de fraude (bloqueio 'U'). Ele solicita a um representante legal com procuração com firma reconhecida que vá à agência no Brasil, ou tenta resolver enviando uma declaração assinada por e-mail após solicitação. Essa modalidade de declaração por e-mail é válida para resolver o bloqueio 'U'?",
+    "pergunta_incompleta": "Minha senha foi bloqueada por suspeita de fraude. Posso resolver enviando uma declaração assinada por e-mail?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "codigo_bloqueio": "U",
+      "canal_tentado": "e-mail"
+    },
+    "ground_truth": "Não. A declaração enviada por e-mail e assinada pelo cliente no exterior é válida apenas para senhas bloqueadas por erro de digitação ou uso, sendo expressamente proibida e inválida para o bloqueio 'U' (suspeita de fraude). Para bloqueio 'U', o procedimento exige canais de segurança específicos ou atendimento presencial.",
+    "tipo": "ROLE_RESTRICTION",
+    "source_document": "pop_acesso_pf.md"
+  },
+  {
+    "id": "golden96-63",
+    "pergunta_completa": "Um cliente não correntista possui tanto a 'Conta de Acesso' para o App Alfa quanto a 'Senha-8' para o App Cartão Alfa. Ele tenta se autenticar no App Alfa utilizando a sua Senha-8. O acesso será concedido com sucesso?",
+    "pergunta_incompleta": "Estou tentando acessar o App Alfa usando minha Senha-8, mas não consigo. O acesso deveria ser concedido?",
+    "slots_simulados": {
+      "tipo_cliente": "não correntista",
+      "canal_tentado": "App Alfa"
+    },
+    "ground_truth": "Não. Quem possui apenas a Senha-8 não consegue acessar o App Alfa, pois a Senha-8 é restrita ao App Cartão Alfa, enquanto o App Alfa exige a Conta de Acesso (sendo senhas e aplicativos distintos para não correntistas).",
+    "tipo": "EDGE_CASE",
+    "source_document": "pop_acesso_pf.md"
+  },
+  {
+    "id": "golden96-64",
+    "pergunta_completa": "Um cliente realiza a alteração da senha de 6 de dígitos do seu cartão com chip utilizando os canais remotos. Ele imediatamente tenta realizar uma transação presencial utilizando o chip em um terminal físico. Existe algum procedimento pendente obrigatório para que a nova senha seja reconhecida pelo chip, e qual o risco caso ele ignore?",
+    "pergunta_incompleta": "Alterei a senha de 6 dígitos do meu cartão pelos canais remotos. Preciso fazer mais algum procedimento no TAA para o chip reconhecer a nova senha?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "canal_tentado": "app"
+    },
+    "ground_truth": "Sim. Após a alteração da senha de 6 dígitos de cartões com chip, é obrigatório orientar o cliente a atualizar o chip de todos os plásticos em qualquer TAA. Caso não o faça, corre-se o risco de a nova senha não funcionar nas transações presenciais com chip.",
+    "tipo": "REGULATORY_TIMELINE",
+    "source_document": "pop_acesso_pf.md"
+  },
+  {
+    "id": "golden96-65",
+    "pergunta_completa": "Um cliente deseja cadastrar uma senha de 6 dígitos pela primeira vez através do canal telefônico (SAC) ou Plataforma de Relacionamento, fornecendo seu número de celular atual para recebimento via SMS. O atendente pode prosseguir com a geração e envio de senha de primeira vez por este canal?",
+    "pergunta_incompleta": "Quero cadastrar minha senha de 6 dígitos pela primeira vez pelo SAC, é possível receber por SMS?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "canal_tentado": "SAC"
+    },
+    "ground_truth": "Não. O envio de senha (6 e 8 dígitos) por SMS para Pessoa Física é permitido exclusivamente para operações de ALTERAÇÃO, sendo vedado para o cadastro de primeira senha (que deve seguir os canais normativos próprios, como agências ou fluxo de abertura).",
+    "tipo": "ROLE_RESTRICTION",
+    "source_document": "pop_acesso_pf.md"
+  },
+  {
+    "id": "golden96-66",
+    "pergunta_completa": "Para que um correntista possa utilizar o site institucional na alteração de sua senha de 6 dígitos sem possuir adesão ao Alfa Code, quais são os pré-requisitos obrigatórios que o sistema e o perfil do cliente devem satisfazer simultaneamente?",
+    "pergunta_incompleta": "Como posso alterar a senha de 6 dígitos sem ter o Alfa Code habilitado?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "alfa_code": "não",
+      "canal_tentado": "site",
+      "biometria_dias": "mais de 7 dias"
+    },
+    "ground_truth": "O cliente precisa ter a senha de 8 dígitos ativa (códigos 0, 1 e/ou 2), utilizar um computador autorizado, possuir biometria cadastrada há mais de 7 dias e a alteração obrigatoriamente deverá ser confirmada em uma TAA com biometria.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "pop_acesso_pf.md"
+  },
+  {
+    "id": "golden96-67",
+    "pergunta_completa": "Um cliente não correntista solicita a geração de senha por SMS na Plataforma de Relacionamento. Durante a consulta prévia em SISRET X69 > 02, o status retornado é 'Não cadastrada / A cadastrar' (decorrente de entrada via onboarding digital). O atendente pode gerar e enviar a senha de 6 ou 8 dígitos por SMS para este cliente?",
+    "pergunta_incompleta": "Gostaria de gerar minha senha de 6 ou 8 dígitos por SMS, é possível?",
+    "slots_simulados": {
+      "tipo_cliente": "não correntista",
+      "alfa_code": "não"
+    },
+    "ground_truth": "Não. Quando o resultado da consulta é 'Não cadastrada / A cadastrar', o sistema não permite o envio de senha por SMS. O atendente deve orientar o cliente a cadastrar os 8 dígitos pelo App Alfa (se o dispositivo for autorizado com Alfa Code/Push) ou a comparecer a uma agência para a senha de 6 dígitos.",
+    "tipo": "EDGE_CASE",
+    "source_document": "pop_acesso_pf.md"
+  },
+  {
+    "id": "golden96-68",
+    "pergunta_completa": "Um cliente que utiliza o App Alfa teve seu dispositivo autorizado há exatamente 20 dias, possui geolocalização ativa e cartão ativo, mas precisa desbloquear sua senha de 6 dígitos que foi bloqueada. Ele conseguirá efetuar o desbloqueio diretamente pelo App Alfa?",
+    "pergunta_incompleta": "Minha senha de 6 dígitos foi bloqueada. Existe alguma forma de desbloquear sem a senha anterior?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "canal_tentado": "app",
+      "biometria_dias": 20
+    },
+    "ground_truth": "Não conseguirá. Um dos pré-requisitos obrigatórios para o desbloqueio ou alteração de senhas no App Alfa é que o celular esteja autorizado há mais de 30 dias. Com apenas 20 dias de autorização, o canal digital é inelegível para esta operação.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "pop_acesso_pf.md"
+  },
+  {
+    "id": "golden96-69",
+    "pergunta_completa": "Se um correntista optar por encerrar sua conta corrente e permanecer apenas com o cartão de crédito, qual procedimento normativo estrito deve ser adotado em relação ao cadastro de senha para evitar pendências na emissão dos plásticos?",
+    "pergunta_incompleta": "Vou encerrar minha conta corrente e ficar apenas com o cartão de crédito. Como devo proceder com o cadastro de senha para evitar problemas na emissão dos plásticos?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "Deve-se cadastrar uma nova senha estritamente como não correntista. Este procedimento é obrigatório para evitar deixar pendente a emissão correta dos cartões vinculados à nova condição do cliente.",
+    "tipo": "ROLE_RESTRICTION",
+    "source_document": "pop_acesso_pf.md"
+  },
+  {
+    "id": "golden96-70",
+    "pergunta_completa": "Um cliente portador de deficiência visual total deseja realizar transações em uma TAA, mas alega que nunca recebeu ou anotou o seu código de acesso alfanumérico. Sabendo que ele possui deficiência visual total registrada no cadastro pela agência, qual é a dispensa normativa aplicável ao seu caso?",
+    "pergunta_incompleta": "Sou deficiente visual total e não tenho o código de acesso alfanumérico para usar o TAA. Como faço para realizar transações?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "O cliente com deficiência visual total pode ser totalmente dispensado da exigência de uso do código de acesso na TAA, desde que essa característica esteja devidamente registrada no cadastro pela agência.",
+    "tipo": "EDGE_CASE",
+    "source_document": "pop_acesso_pf.md"
+  },
+  {
+    "id": "golden96-71",
+    "pergunta_completa": "Durante um atendimento de suporte para alteração de senha de 8 dígitos de um não correntista via Plataforma de Negócios (Gerenciamento de Senhas 3.0), o sistema exige os dados do cartão do cliente. Sabendo que é proibido solicitar a data de validade e o CVV, como o operador deve proceder para preencher os campos obrigatórios de validade e CVV no sistema?",
+    "pergunta_incompleta": "Estou tentando alterar minha senha de 8 dígitos na Plataforma de Negócios e o sistema pede a validade e o CVV do cartão, como devo proceder?",
+    "slots_simulados": {
+      "tipo_cliente": "não correntista",
+      "canal_tentado": "Plataforma de Negócios"
+    },
+    "ground_truth": "O operador deve preencher o número do cartão, utilizar o mês e o ano correntes do contato como a validade, e preencher rigorosamente '000' no campo do CVV2, sem solicitar essas informações confidenciais ao cliente.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "pop_acesso_pf.md"
+  },
+  {
+    "id": "golden96-72",
+    "pergunta_completa": "Um cliente possui uma operação de CDC Renovação Consignação vinculada ao Convênio Especial 17 (700017) e deseja realizar o cancelamento da linha. Qual é o departamento responsável e a respectiva rotina que o atendente deve acionar para este caso específico?",
+    "pergunta_incompleta": "Como faço para solicitar o cancelamento da minha operação de CDC Renovação Consignação vinculada ao Convênio Especial?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "O cancelamento da linha 2881 (Crédito Renovação Consignação) para o Convênio Especial 17 (700017) está restrito exclusivamente à Superintendência Regional III (código 800030), conforme orientações da rotina 50108.",
+    "tipo": "ROLE_RESTRICTION",
+    "source_document": "pop_cdc_pf.md"
+  },
+  {
+    "id": "golden96-73",
+    "pergunta_completa": "Durante o atendimento de um CDC Automático contratado após 01/03/2021, o cliente reclama de uma duplicidade de pagamento envolvendo um boleto bancário e um débito em conta. O sistema apenas permite estornar o boleto bancário mais recente, sendo que o estorno direto do pagamento em conta deixaria a operação em atraso. Qual procedimento operacional deve ser adotado para sanar a duplicidade sem penalizar a operação?",
+    "pergunta_incompleta": "Tive uma duplicidade de pagamento no meu CDC Automático entre o boleto e o débito em conta. Como posso resolver isso sem deixar a operação em atraso?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "Nesse cenário, deve-se estornar primeiro o 'Boleto Bancário' e em seguida o 'Recebimento Automático', sob a condição de não haver débitos pendentes. Após, deve-se pedir ao supervisor para receber o valor correto em `CDC 13.23` e confirmar a data de recebimento retroativo em `CDC 13.61`.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "pop_cdc_pf.md"
+  },
+  {
+    "id": "golden96-74",
+    "pergunta_completa": "Um cliente realizou a contratação de um CDC presencialmente e, após 4 dias corridos, retorna à agência solicitando o cancelamento da operação por arrependimento, relatando que não deseja mais o crédito. O atendente pode processar este cancelamento diretamente no caixa ou na plataforma da agência?",
+    "pergunta_incompleta": "Contratei um CDC e gostaria de solicitar o cancelamento por arrependimento. É possível solicitar e por qual canal?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "canal_tentado": "agência",
+      "biometria_dias": "4"
+    },
+    "ground_truth": "Não. Atendimentos presenciais só permitem o cancelamento no mesmo dia da contratação. A partir do dia seguinte, o cancelamento presencial não é permitido, restando apenas a opção de realizar a liquidação antecipada.",
+    "tipo": "EDGE_CASE",
+    "source_document": "pop_cdc_pf.md"
+  },
+  {
+    "id": "golden96-75",
+    "pergunta_completa": "Um correntista solicita a amortização linear de um contrato de CDC Consignado que atualmente encontra-se com o status 'Em cobrança'. Quais restrições o POP impõe sobre essa solicitação?",
+    "pergunta_incompleta": "Gostaria de fazer uma amortização linear no meu contrato de CDC Consignado que está em cobrança, é possível?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "A solicitação deve ser negada com base em duas restrições do POP: primeiro, a amortização do tipo 'Linear' NÃO é permitida para a modalidade de CDC Consignado; segundo, operações que se encontram com o status 'Em cobrança' não aceitam nenhum tipo de amortização.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "pop_cdc_pf.md"
+  },
+  {
+    "id": "golden96-76",
+    "pergunta_completa": "Um cliente teve uma operação enquadrada na modalidade 'Crédito do Trabalhador' (convênio 'E-Consig PJ' em `CDC > 15 > 13`) e contesta um débito ocorrido no mês 09. Quais documentos específicos fornecidos pela empresa empregadora devem ser exigidos obrigatoriamente para a análise da ocorrência?",
+    "pergunta_incompleta": "Estou contestando um débito no meu CDC consignado referente ao mês 09. Quais documentos da empresa preciso apresentar para a análise?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "Devem ser exigidos o contracheque da competência anterior ao débito (neste caso, do mês 08), o documento 'Detalhe da guia emitida' contendo a instituição que recebeu o valor, e o comprovante de pagamento da referida guia.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "pop_cdc_pf.md"
+  },
+  {
+    "id": "golden96-77",
+    "pergunta_completa": "Um cliente solicita o cancelamento de uma operação de CDC Renovación Consignação vinculada a um dos convênios especiais de códigos 700001 a 700016. Além do direcionamento obrigatório para o departamento DOC – Diretoria de Operações de Crédito (código 800020), qual pré-requisito crítico de margem deve obrigatoriamente ser verificado antes de efetivar o cancelamento?",
+    "pergunta_incompleta": "Como faço para cancelar uma operação de CDC Consignado vinculada a um convênio especial e qual a regra de margem necessária?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "É necessário verificar se há margem suficiente para a reaverbação das operações vinculadas à renovação que está sendo cancelada.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "pop_cdc_pf.md"
+  },
+  {
+    "id": "golden96-78",
+    "pergunta_completa": "Um cliente correntista possui Limite Especial da Conta e deseja realizar o cancelamento do produto, mas no momento da solicitação ele está utilizando integralmente o limite concedido. O atendente pode registrar o comando de cancelamento imediatamente se o cliente prometer cobrir o saldo nos dias seguintes?",
+    "pergunta_incompleta": "Quero cancelar meu Limite Especial da Conta, mas estou usando o valor total. Posso solicitar o cancelamento agora e cobrir o saldo depois?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "Não. O POP estabelece explicitamente que o cliente não pode estar usando o limite no momento do cancelamento. Caso esteja usando, o atendente deve orientar o cliente a cobrir o saldo devedor (assegurando saldo suficiente para limite, juros e IOF) antes de prosseguir com o pedido.",
+    "tipo": "EDGE_CASE",
+    "source_document": "pop_cdc_pf.md"
+  },
+  {
+    "id": "golden96-79",
+    "pergunta_completa": "Um cliente com uma operação liquidada ou renovada sofreu um desconto indevido em folha referente a um convênio do tipo INSS (código 900001). Qual é o prazo regulamentar previsto no POP para que ocorra o estorno automático desse valor em sua conta corrente?",
+    "pergunta_incompleta": "Sofri um desconto indevido em folha referente ao convênio INSS. Qual é o prazo para o estorno automático desse valor?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "Para o convênio de código 900001 (INSS), a devolução/estorno automático em conta ocorre a partir do 5º dia útil.",
+    "tipo": "REGULATORY_TIMELINE",
+    "source_document": "pop_cdc_pf.md"
+  },
+  {
+    "id": "golden96-80",
+    "pergunta_completa": "Um cliente com uma linha de CDC 13º Salário com convênio possui a data de cobrança informada pelo empregador cadastrada para 30/06/2026, com vencimento original do contrato para 30/07/2026. Posteriormente, o empregador solicita a alteração da data de cobrança para 30/08/2026. Qual será a data efetiva em que ocorrerá o débito da parcela, considerando a regra de precedência da modalidade?",
+    "pergunta_incompleta": "Tenho um CDC 13º Salário e o empregador alterou a data de cobrança para uma data posterior ao vencimento original do contrato. Qual será a data efetiva do débito da parcela?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "O débito ocorrerá em 30/07/2026. Como a regra determina que o débito se dá na data de cobrança ou no vencimento, o que ocorrer primeiro, a alteração da cobrança para uma data posterior ao vencimento original mantém a exigibilidade na data que vencer primeiro (30/07/2026).",
+    "tipo": "REGULATORY_TIMELINE",
+    "source_document": "pop_cdc_pf.md"
+  },
+  {
+    "id": "golden96-81",
+    "pergunta_completa": "Um cliente solicita uma consulta sobre uma operação de CDC que se encontra atualmente na situação de 'Prejuízo' (Em Perdas), identificada em `SISALFA > CDC > 15.13`. Qual instrução comportamental e operacional rigorosa o atendente deve seguir obrigatoriamente em relação ao status da operação?",
+    "pergunta_incompleta": "Como faço para realizar a liquidação ou amortização da minha operação de CDC?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "O atendente tem a proibição expressa de informar ao cliente que a operação está em prejuízo. Ele deve conduzir o procedimento de liquidação ou amortização interna sem revelar essa classificação (comandos em `CDC 13-34` ou `CDC 13-35` com as respectivas validações de alçada).",
+    "tipo": "ROLE_RESTRICTION",
+    "source_document": "pop_cdc_pf.md"
+  },
+  {
+    "id": "golden96-82",
+    "pergunta_completa": "Um cliente deseja alterar a data de débito dos juros do seu Limite Especial da Conta para o dia 30 do mês. A solicitação é feita dentro dos canais e critérios válidos de autenticação. O sistema aceitará essa data específica?",
+    "pergunta_incompleta": "Gostaria de alterar a data de débito dos juros do meu Limite Especial da Conta para o dia 30. É possível realizar essa alteração?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "Não. O POP restringe a escolha da data de débito dos juros do Limite Especial da Conta estritamente para um dia entre 1 e 28, tornando o dia 30 inválido para essa parametrização.",
+    "tipo": "EDGE_CASE",
+    "source_document": "pop_cdc_pf.md"
+  },
+  {
+    "id": "golden96-83",
+    "pergunta_completa": "Um cliente contesta uma operação contratada via Correspondente e o atendente precisa registrar a reclamação no Módulo de SAC e Ouvidoria utilizando o assunto 50113. No entanto, ao tentar preencher o registro, o atendente percebe que a operação não aparece listada. Qual é a causa raiz dessa falha operacional segundo o POP?",
+    "pergunta_incompleta": "Estou tentando registrar uma reclamação no Módulo de SAC e Ouvidoria com o assunto 50113, mas a operação não aparece listada. Por que não consigo vincular essa operação?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "A causa raiz é que os assuntos de contestação de Correspondente (50113, 50114 e 50115) só exibem e aceitam operações que foram efetivamente contratadas via Correspondente. Se a operação não possui essa origem, o sistema impede o vínculo obrigatório do produto/modalidade, tornando o registro inviável por esse canal.",
+    "tipo": "EDGE_CASE",
+    "source_document": "pop_cdc_pf.md"
+  },
+  {
+    "id": "golden96-84",
+    "pergunta_completa": "Um cliente Pessoa Física iniciou a contratação do Alfa Rende Fácil pela Plataforma de Relacionamento no dia 1 de janeiro, mas esqueceu completamente de realizar a confirmação. No dia 31 de janeiro, às 23h59, o sistema ainda não recebeu a confirmação do cliente. Qual é o status operacional e a validade jurídica dessa contratação perante o procedimento?",
+    "pergunta_incompleta": "Iniciei a contratação do Alfa Rende Fácil, mas não realizei a confirmação dentro do prazo. Qual é o status da minha contratação?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "canal_tentado": "Plataforma de Relacionamento"
+    },
+    "ground_truth": "A contratação perde a validade ou expira, pois o cliente tem obrigatoriamente até 30 dias após o registro da contratação para confirmar o acordo via Duplo Sim pelos canais de atendimento, na opção 'Pendentes de confirmação'.",
+    "tipo": "REGULATORY_TIMELINE",
+    "source_document": "POP_Alfa_Rende_Facil_Adesao_anonimizado.md"
+  },
+  {
+    "id": "golden96-85",
+    "pergunta_completa": "Durante o atendimento a um correntista Pessoa Física na Plataforma de Relacionamento, o operador decide registrar a adesão ao Alfa Rende Fácil pulando a etapa de configuração obrigatória do Duplo Sim para agilizar o processo. Essa prática é permitida pelo POP?",
+    "pergunta_incompleta": "Posso pular a etapa de configuração do Duplo Sim ao registrar a adesão ao Alfa Rende Fácil para um cliente?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "Não, é proibido. O POP determina explicitamente que a Plataforma de Relacionamento deverá contratar obrigatoriamente na opção Duplo Sim.",
+    "tipo": "ROLE_RESTRICTION",
+    "source_document": "POP_Alfa_Rende_Facil_Adesao_anonimizado.md"
+  },
+  {
+    "id": "golden96-86",
+    "pergunta_completa": "Um cliente Pessoa Física realizou a contratação do Alfa Rende Fácil na modalidade de Aplicação Automática e quer saber em qual menu exato do sistema a instituição registra essa operação e onde ele próprio deve buscar para confirmar a adesão. Quais são os caminhos normativos para ambos?",
+    "pergunta_incompleta": "Como faço para confirmar a adesão ao Alfa Rende Fácil e onde o banco registra essa operação?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "Para a contratação pelo banco, o caminho é a Plataforma de Relacionamento (Operações Contratadas) ou Plataforma de Relacionamento > Menu > Investimentos > CDB > Aplicação automática > Alfa Rende Fácil > Selecionar. Para a confirmação pelo cliente, o caminho nos canais de atendimento é a opção 'Pendentes de confirmação'.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "POP_Alfa_Rende_Facil_Adesao_anonimizado.md"
+  },
+  {
+    "id": "golden96-87",
+    "pergunta_completa": "Se um atendente utiliza a Assessoria em Investimento (QP) para auxiliar um cliente na adesão ao Alfa Rende Fácil, quais canais e opções específicas o POP autoriza para a efetivação do registro inicial da contratação?",
+    "pergunta_incompleta": "Como faço para registrar a contratação do Alfa Rende Fácil através da Assessoria em Investimento?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "O registro pode ser feito por meio da Plataforma de Relacionamento QC e QP (ATA, Atendimento Texto, Assessoria em Investimento), especificamente navegando para Plataforma de Relacionamento > Menu > Investimentos > CDB > Aplicação automática > Alfa Rende Fácil > Selecionar, ou via Operações Contratadas.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "POP_Alfa_Rende_Facil_Adesao_anonimizado.md"
+  },
+  {
+    "id": "golden96-88",
+    "pergunta_completa": "Um cliente Pessoa Física que realizou a contratação do Alfa Rende Fácil tentou efetivar a confirmação do acordo no 31º dia após o registro, utilizando os canais de atendimento na opção 'Pendentes de confirmação'. A transação foi bem-sucedida com base estritamente no POP?",
+    "pergunta_incompleta": "Tentei confirmar meu acordo do Alfa Rende Fácil na opção 'Pendentes de confirmação', mas já se passaram alguns dias desde o registro. A transação será bem-sucedida?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "canal_tentado": "app"
+    },
+    "ground_truth": "Não há garantia de sucesso ou o procedimento fica irregular, pois o prazo máximo estipulado pelo POP para que o cliente confirme o acordo via Duplo Sim é de 'em até 30 dias'.",
+    "tipo": "EDGE_CASE",
+    "source_document": "POP_Alfa_Rende_Facil_Adesao_anonimizado.md"
+  },
+  {
+    "id": "golden96-89",
+    "pergunta_completa": "Considerando o escopo do documento POP Alfa Rende Fácil, há alguma diretriz ou procedimento descrito para clientes que sejam Pessoa Jurídica (PJ) realizarem essa mesma adesão?",
+    "pergunta_incompleta": "Como cliente Pessoa Jurídica, posso realizar a adesão ao Alfa Rende Fácil?",
+    "slots_simulados": {
+      "tipo_cliente": "não correntista"
+    },
+    "ground_truth": "Não. O documento restringe os procedimentos de contratação exclusivamente à Pessoa Física (PF), não mencionando regras ou fluxos para Pessoa Jurídica.",
+    "tipo": "ROLE_RESTRICTION",
+    "source_document": "POP_Alfa_Rende_Facil_Adesao_anonimizado.md"
+  },
+  {
+    "id": "golden96-90",
+    "pergunta_completa": "Caso o operador da Plataforma de Relacionamento registre a contratação do Alfa Rende Fácil, mas omita a orientação ao cliente sobre a necessidade de confirmação, quais serão as consequências para o prazo de 30 dias regulamentado?",
+    "pergunta_incompleta": "Se o operador registrar a contratação do Alfa Rende Fácil mas esquecer de orientar sobre a confirmação, o prazo de 30 dias é alterado?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "O prazo de 30 dias continua contando a partir da data de registro da contratação, sendo que o cliente deve confirmar via Duplo Sim pelos canais de atendimento na opção 'Pendentes de confirmação' dentro desse período, independentemente de falha na orientação, embora gere uma falha de conformidade operacional.",
+    "tipo": "REGULATORY_TIMELINE",
+    "source_document": "POP_Alfa_Rende_Facil_Adesao_anonimizado.md"
+  },
+  {
+    "id": "golden96-91",
+    "pergunta_completa": "Quais são as ferramentas e interfaces de atendimento listadas no POP que possuem permissão formal para conduzir o procedimento de contratação do Alfa Rende Fácil para clientes Pessoa Física?",
+    "pergunta_incompleta": "Quais são as ferramentas e interfaces permitidas para realizar a contratação do Alfa Rende Fácil para clientes Pessoa Física?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "As ferramentas e interfaces permitidas são a Plataforma de Relacionamento QC e QP (especificamente ATA, Atendimento Texto e Assessoria em Investimento) ou o caminho de menu Plataforma de Relacionamento (Operações Contratadas / Menu > Investimentos > CDB > Aplicação automática > Alfa Rende Fácil).",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "POP_Alfa_Rende_Facil_Adesao_anonimizado.md"
+  },
+  {
+    "id": "golden96-92",
+    "pergunta_completa": "Se um cliente realizar a confirmação da contratação do Alfa Rende Fácil por um canal alternativo que não seja a opção 'Pendentes de confirmação' especificada no POP (por exemplo, conversando por chat sem usar o fluxo indicado), o requisito de conformidade do POP é atendido?",
+    "pergunta_incompleta": "Posso confirmar a contratação do Alfa Rende Fácil pelo chat ou preciso usar a opção Pendentes de confirmação?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "canal_tentado": "chat"
+    },
+    "ground_truth": "Não. O POP estabelece explicitamente que a confirmação do acordo via Duplo Sim pelos canais de atendimento deve ocorrer na opção específica 'Pendentes de confirmação'.",
+    "tipo": "EDGE_CASE",
+    "source_document": "POP_Alfa_Rende_Facil_Adesao_anonimizado.md"
+  },
+  {
+    "id": "golden96-93",
+    "pergunta_completa": "Qual é a dependência técnica e de segurança obrigatória que o operador deve garantir no momento em que efetua a contratação do Alfa Rende Fácil para um cliente Pessoa Física na Plataforma de Relacionamento?",
+    "pergunta_incompleta": "Como devo proceder com a contratação do Alfa Rende Fácil para um cliente Pessoa Física na Plataforma de Relacionamento?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista"
+    },
+    "ground_truth": "A dependência obrigatória é que a contratação seja feita obrigatoriamente na opção 'Duplo Sim', além de posteriormente orientar o cliente a confirmar o acordo por essa mesma via em até 30 dias.",
+    "tipo": "CONDITIONAL_WORKFLOW",
+    "source_document": "POP_Alfa_Rende_Facil_Adesao_anonimizado.md"
+  },
+  {
+    "id": "golden96-94",
     "pergunta_completa": "Um cliente Pessoa Física realizou a contratação do produto Alfa Rende Fácil através da Plataforma de Relacionamento no dia 01/10/2023, porém o operador omitiu a configuração da opção obrigatória de 'Duplo Sim' no momento do registro. Sabendo que o cliente realizou a confirmação pelos canais de atendimento no dia 15/10/2023, essa contratação atende a todos os critérios de conformidade estabelecidos no POP?",
-    "pergunta_incompleta": "Um cliente Pessoa Física realizou a contratação do produto Alfa Rende Fácil através da Plataforma de Relacionamento no dia 01/10/2023, porém o operador omitiu a configuração da opção obrigatória de 'Duplo Sim' no momento do registro. Sabendo que o cliente realizou a confirmação pelos canais de atendimento no dia 15/10/2023, essa contratação atende a todos os critérios de conformidade estabelecidos no POP?",
-    "slots_simulados": {},
+    "pergunta_incompleta": "Contratei o Alfa Rende Fácil pela Plataforma de Relacionamento, mas o operador não configurou a opção de 'Duplo Sim'. A contratação está em conformidade?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "canal_tentado": "Plataforma de Relacionamento"
+    },
     "ground_truth": "Não, a contratação não atende aos critérios de conformidade. Embora o cliente tenha cumprido o prazo de confirmação de 30 dias (realizada em 15 dias), o procedimento operacional exige obrigatoriamente que a contratação seja feita na opção 'Duplo Sim'. Como o operador omitiu essa configuração obrigatória no registro, o fluxo apresenta uma falha de conformidade na etapa de contratação.",
     "tipo": "CONDITIONAL_WORKFLOW",
     "source_document": "POP_Alfa_Rende_Facil_Adesao_anonimizado.md"
   },
   {
-    "id": "golden-11",
+    "id": "golden96-95",
     "pergunta_completa": "Um correntista Pessoa Física efetuou o registro da contratação do Alfa Rende Fácil na Plataforma de Relacionamento dentro do fluxo regular, mas por motivos de viagem, esqueceu-se de realizar a confirmação do acordo via Duplo Sim nos canais de atendimento. Ele tenta realizar a confirmação pendente no 31º dia após o registro. O sistema deve permitir a efetivação da adesão com base estritamente nas regras do POP?",
-    "pergunta_incompleta": "Um correntista Pessoa Física efetuou o registro da contratação do Alfa Rende Fácil na Plataforma de Relacionamento dentro do fluxo regular, mas por motivos de viagem, esqueceu-se de realizar a confirmação do acordo via Duplo Sim nos canais de atendimento. Ele tenta realizar a confirmação pendente no 31º dia após o registro. O sistema deve permitir a efetivação da adesão com base estritamente nas regras do POP?",
-    "slots_simulados": {},
+    "pergunta_incompleta": "Tentei confirmar a adesão do Alfa Rende Fácil via Duplo Sim, mas já se passaram alguns dias desde o registro. Ainda consigo efetivar a contratação?",
+    "slots_simulados": {
+      "tipo_cliente": "correntista",
+      "biometria_dias": "31"
+    },
     "ground_truth": "Não há garantia ou respaldo no POP para a efetivação da adesão após o 31º dia. O procedimento estabelece rigidamente que o cliente deve confirmar a contratação do acordo via Duplo Sim, pelos canais de atendimento, em até 30 dias na opção 'Pendentes de confirmação'. Uma tentativa no 31º dia estoura o limite temporal estipulado, invalidando o prazo regulamentar previsto no procedimento.",
     "tipo": "REGULATORY_TIMELINE",
     "source_document": "POP_Alfa_Rende_Facil_Adesao_anonimizado.md"
-  },
-  {
-    "id": "golden-12",
-    "pergunta_completa": "Um cliente comparece a uma agência bancária para solicitar o cancelamento de um CDC (Crédito Direto ao Consumidor) genérico contratado via aplicativo há exatamente 3 dias úteis (sendo o dia atual o quarto dia corrido após a liberação do crédito) e que gerou uso do Limite Especial da Conta. O saldo em conta no momento da solicitação está zerado. O atendente da agência pode efetuar o cancelamento presencialmente neste momento e, caso afirmativo, qual o procedimento e o impacto financeiro envolvido?",
-    "pergunta_incompleta": "Um cliente comparece a uma agência bancária para solicitar o cancelamento de um CDC (Crédito Direto ao Consumidor) genérico contratado via aplicativo há exatamente 3 dias úteis (sendo o dia atual o quarto dia corrido após a liberação do crédito) e que gerou uso do Limite Especial da Conta. O saldo em conta no momento da solicitação está zerado. O atendente da agência pode efetuar o cancelamento presencialmente neste momento e, caso afirmativo, qual o procedimento e o impacto financeiro envolvido?",
-    "slots_simulados": {},
-    "ground_truth": "Não, o atendimento presencial na agência possui restrição temporal e não pode efetuar cancelamentos após o primeiro dia (a agência só cancela no mesmo dia da contratação). A partir do dia seguinte, o cancelamento via canais de autoatendimento (App/internet/telefone) é permitido em até 7 dias corridos, mas a agência só realiza liquidação após o primeiro dia. Caso o cliente tentasse pelos canais elegíveis em até 7 dias, o procedimento exigiria verificar se há saldo suficiente para o débito (ou troco em renovações), considerando o Limite Especial ou resgates automáticos. Como o uso do Limite Especial da Conta gera a incidência de juros e IOF, o cliente deveria manter saldo em conta para o débito noturno.",
-    "tipo": "EDGE_CASE",
-    "source_document": "pop_cdc_pf.md"
-  },
-  {
-    "id": "golden-13",
-    "pergunta_completa": "Um cliente contratou um CDC Consignado vinculado ao 'Convênio Especial 02' (código 700002) por meio da linha de Crédito Renovação Consignação (linha 2881). Ele percebeu uma irregularidade e solicita o cancelamento da linha diretamente na central de atendimento telefônico no 5º dia corrido após a liberação. Qual é o fluxo correto de encaminhamento para esse pedido de cancelamento, quais restrições sistêmicas/organizacionais se aplicam a esse convênio específico, e qual condição prévia o sistema exige para que a operação vinculada seja revertida?",
-    "pergunta_incompleta": "Um cliente contratou um CDC Consignado vinculado ao 'Convênio Especial 02' (código 700002) por meio da linha de Crédito Renovação Consignação (linha 2881). Ele percebeu uma irregularidade e solicita o cancelamento da linha diretamente na central de atendimento telefônico no 5º dia corrido após a liberação. Qual é o fluxo correto de encaminhamento para esse pedido de cancelamento, quais restrições sistêmicas/organizacionais se aplicam a esse convênio específico, e qual condição prévia o sistema exige para que a operação vinculada seja revertida?",
-    "slots_simulados": {},
-    "ground_truth": "O atendente da central telefônica não pode realizar o cancelamento diretamente, pois o cancelamento da linha 2881 – Crédito Renovação Consignação para os Convênios Especiais de 01 a 16 (incluindo o Convênio Especial 02, código 700002) está restrito exclusivamente ao departamento DOC – Diretoria de Operações de Crédito (código 800020). Além disso, como condição prévia e obrigatória para efetivar esse cancelamento, o sistema exige que haja margem consignável suficiente para a reaverbação das operações que estavam vinculadas à renovação que está sendo cancelada.",
-    "tipo": "ROLE_RESTRICTION",
-    "source_document": "pop_cdc_pf.md"
-  },
-  {
-    "id": "golden-14",
-    "pergunta_completa": "Um cliente comparece ao SAC afirmando que sofreu um bloqueio judicial em sua conta há exatamente 400 dias, e o atendente tenta realizar a consulta no SISJUD-10 utilizando o intervalo total para tentar localizar a ordem. Considerando as restrições operacionais do sistema descritas no POP, qual é a falha procedimental cometida pelo atendente na tentativa de consulta e qual deve ser a tratativa imediata caso nenhuma ordem seja encontrada?",
-    "pergunta_incompleta": "Um cliente comparece ao SAC afirmando que sofreu um bloqueio judicial em sua conta há exatamente 400 dias, e o atendente tenta realizar a consulta no SISJUD-10 utilizando o intervalo total para tentar localizar a ordem. Considerando as restrições operacionais do sistema descritas no POP, qual é a falha procedimental cometida pelo atendente na tentativa de consulta e qual deve ser a tratativa imediata caso nenhuma ordem seja encontrada?",
-    "slots_simulados": {},
-    "ground_truth": "A falha procedimental do atendente reside no fato de que o sistema SISJUD-10 permite consultas para períodos de no máximo um ano (até 365 dias), tornando inválido o intervalo de 400 dias estipulado. Como consequência do fluxo para bloqueio não identificado, o atendente deve informar ao consumidor que não foi identificado o bloqueio judicial e registrar o FCR (First Contact Resolution). Adicionalmente, caso o cliente prefira uma melhor apuração, o atendente deve registrar uma ocorrência no SAC.",
-    "tipo": "REGULATORY_TIMELINE",
-    "source_document": "POP_Bloqueio_Judicial_anonimizado.md"
-  },
-  {
-    "id": "golden-15",
-    "pergunta_completa": "Um cliente relata um bloqueio em sua conta que recebe proventos previdenciários e exige veementemente que o atendente do banco efetue o desbloqueio imediato, alegando ilegalidade da retenção. Seguindo estritamente as diretrizes do POP, qual é a proibição quanto às informações repassadas, qual o procedimento obrigatório de extração de dados caso o bloqueio seja confirmado no SISJUD-17, e qual é a orientação exata que deve ser dada ao cliente quanto ao benefício previdenciário?",
-    "pergunta_incompleta": "Um cliente relata um bloqueio em sua conta que recebe proventos previdenciários e exige veementemente que o atendente do banco efetue o desbloqueio imediato, alegando ilegalidade da retenção. Seguindo estritamente as diretrizes do POP, qual é a proibição quanto às informações repassadas, qual o procedimento obrigatório de extração de dados caso o bloqueio seja confirmado no SISJUD-17, e qual é a orientação exata que deve ser dada ao cliente quanto ao benefício previdenciário?",
-    "slots_simulados": {},
-    "ground_truth": "O atendente deve repassar ao cliente estritamente apenas as informações que constam nos procedimentos do POP. Caso o bloqueio seja identificado, deve-se acessar o SISJUD > 17, selecionar o protocolo com 'X', selecionar novamente na tela seguinte com 'X' para anotar o Processo Judicial, teclar F2 Vara/Juízo e anotar o Nome/UF e o Tribunal, esclarecendo que o banco é obrigado a acatar a ordem e fornecendo estes dados. Em relação à contestação sobre os proventos ou benefícios previdenciários, o atendente é proibido de efetuar o desbloqueio por conta própria e deve orientar o cliente a comunicar o fato ou requisitar a alteração/extinção da ordem judicial diretamente ao juízo competente.",
-    "tipo": "EDGE_CASE",
-    "source_document": "POP_Bloqueio_Judicial_anonimizado.md"
   }
 ]
