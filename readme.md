@@ -10,19 +10,25 @@ Desenvolvido como projeto de TCC sobre avaliação de arquiteturas de IA para do
 coletar os dados que faltam produz respostas mais acuradas do que o
 single-turn direto — e o próprio grafo indica o que ainda falta perguntar?
 
-**Desenho:** 24 cenários sobre 2 POPs bancários (senhas e CDC), avaliados em
-até 5 braços (LightRAG, clarify fixo, clarify roteado, LLM puro, árvore de
-decisão) com juiz RAGAS, nos mesmos modelos — [matriz completa e
+**Desenho:** 3 conjuntos (2 POPs x 24 cenários + 8 POPs x 16 golden
+intermediárias + 8 POPs x 96 golden finais, 12 por POP), avaliados em
+5 braços (LightRAG hybrid, clarify fixo, clarify guiado + rota por doc,
+LLM puro, árvore de decisão) com juiz RAGAS `gemini-3.5-flash-lite` nos
+mesmos modelos — [matriz completa e
 metodologia](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/tree/main/relatorio-tcc).
 
-**Resultado principal:** grafo + roteador ≈ 0.86 de faithfulness contra ≈ 0.2
-do LLM puro (~4–5×); árvore de decisão empatada (0.86) como teto simbólico.
+**Resultado principal:** em 2 POPs, grafo + roteador ≈ 0.86 de faithfulness
+contra ≈ 0.18 do LLM puro (~4–5×), com árvore empatada (0.86) como teto
+simbólico; em 8 POPs x 96 golden, o grafo puro cai para 0.41 (−40%), o
+roteado mitiga (0.54, melhor braço com grafo) e a árvore v2 é a mais
+resistente (0.74).
 
-**Dados e relatório do estudo** (pasta `relatorio-tcc/` na `main`):
+**Dados e relatórios do estudo** (pasta `relatorio-tcc/` na `main`):
 
-- [Relatório da hipótese](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/blob/main/relatorio-tcc/relatorio-hipotese.md) — tabelas, leitura das métricas, limites
-- [Guia de revisão para leigos](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/blob/main/relatorio-tcc/relatorio-revisao.md) — dados, replicação, mapa de auditoria
-- [Evidências](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/tree/main/relatorio-tcc/evidencias) — RAGAS por pergunta, manifests, probes, cenários, testes linha a linha
+- [Comparativo 2 vs 8 POPs](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/blob/main/relatorio-tcc/relatorio-2-vs-8-pops.md) — matriz 3 níveis x 5 braços, gráfico, tuning revertido, ameaças à validade
+- [Desenvolvimento e execução](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/blob/main/relatorio-tcc/relatorio-desenvolvimento-execucao.md) — arquitetura, protocolo replicável, leitura dos resultados
+- [Timeline do projeto](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/blob/main/relatorio-tcc/timeline-projeto.md) — 57 commits de 06/09 a 05/10/2026, fase a fase
+- [Evidências](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/tree/main/relatorio-tcc/evidencias) — RAGAS por pergunta, manifests, cenários 24/16/96, tabela-máquina `tabela_bracos_2_vs_8.csv`
 
 ---
 
@@ -70,7 +76,7 @@ Index, chat e eval compartilham o mesmo pipeline resiliente (rate-limit + retrie
 
 | Papel | Variável | Padrão no código | Exemplo no `.env` |
 |---|---|---|---|
-| Index (LightRAG) | `LIGHTRAG__LLM_MODEL` | `qwen2.5:1.5b` | `gemini-3.5-flash-lite` |
+| Index (LightRAG) | `LIGHTRAG__LLM_MODEL` | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` |
 | Chat / query | `CHAT__LLM_MODEL` | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` |
 | Juiz RAGAS | `RAGAS__JUDGE_MODEL` | `gemini-3.8-flash` | `gemini-3.5-flash-lite` |
 | Embeddings (fonte única) | `LIGHTRAG__EMBED_MODEL` / `RAGAS__EMBED_MODEL` | `gemini-embedding-001` (768 dim) | `gemini-embedding-001` |
@@ -104,19 +110,30 @@ tcc-ia-benchmarking-lightrag/
 ├── pyproject.toml               # Empacotamento, dependências e configuração de ferramentas
 │
 ├── data/                        # Dados de entrada (versionados)
-│   ├── pops/                    # Documentos-fonte para indexação
-│   │   ├── pop_bloqueio_cartao.txt
-│   │   └── pop_cancelamento_pix.txt
-│   └── golden_dataset.json      # Dataset de perguntas + ground-truth para benchmark
+│   ├── pops/                    # Documentos-fonte para indexação (8 POPs em .md)
+│   │   ├── pop_acesso_pf.md
+│   │   ├── pop_cdc_pf.md
+│   │   └── POP_*_anonimizado.md (6 POPs: Limites, Cartões SAC, Fatura, INSS, Alfa Rende Fácil, Bloqueio Judicial)
+│   ├── hypothesis_inicial_scenarios.json  # 24 cenários (era 2 POPs)
+│   ├── golden_scenarios_completa.json     # 96 golden finais (12 por POP, era 8 POPs)
+│   └── golden_dataset.json      # Dataset gerado via generate-dataset
+│
+├── relatorio-tcc/               # Relatórios do TCC (versionados)
+│   ├── relatorio-2-vs-8-pops.md           # Comparativo 3 níveis x 5 braços + gráfico
+│   ├── relatorio-desenvolvimento-execucao.md  # Arquitetura + protocolo + resultados
+│   ├── timeline-projeto.md      # Timeline 57 commits (06/09–05/10/2026)
+│   ├── comparacao_2_vs_8_pops.png
+│   └── evidencias/              # RAGAS por amostra, manifests, cenários, tabela CSV
 │
 ├── src/
 │   └── ragbench/                # Pacote principal (Hexagonal Architecture)
 │       ├── cli.py               # Registro dos comandos Typer (wiring fino)
-│       ├── cli_commands/        # Implementação dos comandos (health, index, dataset, run, eval, chat)
+│       ├── cli_commands/        # Implementação dos comandos (health, config-check, index, dataset, run, run-clarify, run-direct, run-tree, probe-retrieval, eval, chat)
+│       ├── conversational/      # Clarificador + roteador só-grafo (hipótese)
 │       ├── config.py            # Configuração centralizada (Pydantic Settings)
 │       ├── runner.py            # Orquestrador de benchmark assíncrono
 │       ├── core/                # Domínio: modelos, interfaces, exceções
-│       ├── engines/             # Adaptadores RAG (LightRAG)
+│       ├── engines/             # Adaptadores RAG (LightRAG, baseline LLM puro, árvore de decisão)
 │       ├── evaluation/          # Geração de dataset e avaliação RAGAS
 │       ├── infrastructure/      # Cache semântico, storage SQLite/JSONL, clientes Gemini/Ollama
 │       └── reporting/           # Geração de relatórios Markdown e CSV
@@ -190,6 +207,16 @@ uv run ragbench run --run-name meu_experimento --resume
 uv run ragbench run --run-name exp_local --mode local
 uv run ragbench run --run-name exp_global --mode global
 uv run ragbench run --run-name exp_hybrid --mode hybrid
+```
+
+### 3b. Executar braços do estudo (clarify / direct / tree / probe)
+
+```bash
+uv run ragbench run-clarify --run-name clarify_fixo            # clarify fixo + grafo
+uv run ragbench run-clarify --routed --run-name routed         # clarify guiado + rota por doc
+uv run ragbench run-direct --run-name direct                   # só LLM, sem retrieval
+uv run ragbench run-tree --run-name tree                       # árvore de decisão, sem LLM
+uv run ragbench probe-retrieval --query "senha bloqueou" --mode hybrid  # só contexto, sem gerar
 ```
 
 ### 4. Avaliar qualidade (RAGAS)
