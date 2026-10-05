@@ -14,8 +14,30 @@ import re
 import unicodedata
 from pathlib import Path
 
+from pydantic import BaseModel, Field
+
 DOC_ACESSO = "pop_acesso_pf.md"
 DOC_CDC = "pop_cdc_pf.md"
+
+
+class RouteInfo(BaseModel):
+    """Decisão do roteador só-grafo (contrato tipado, sem dict genérico)."""
+
+    doc: str | None = None
+    mode: str = "hybrid"
+    top_k: int = Field(default=5, ge=1, le=100)
+    confident: bool = False
+    margin: float = Field(default=0.0, ge=0.0)
+    scores: dict[str, float] = Field(default_factory=dict)
+
+    def __getitem__(self, key: str):
+        """Acesso estilo dict (compat: callers/testes legados usam route["doc"])."""
+        return getattr(self, key)
+
+    def get(self, key: str, default=None):
+        """Acesso estilo dict com default (compat: route.get("confident"))."""
+        return getattr(self, key, default)
+
 
 # Slots expandidos para o vocabulário das entidades do índice: o valor cru
 # do slot (ex: "U") nunca apareceria num nome de entidade, então cada slot
@@ -161,7 +183,7 @@ def route_by_graph(
     index: dict[str, list[str]],
     margin_min: float = 0.05,
     filled: dict[str, str] | None = None,
-) -> dict:
+) -> RouteInfo:
     """Roteia só com dados do grafo. Retorna doc, estratégia e confiança.
 
     `confident` = margem >= margin_min. Sem índice ou sem overlap, doc=None
@@ -169,25 +191,25 @@ def route_by_graph(
     """
     scores = score_docs(text, index, filled=filled)
     if not scores or all(v == 0 for v in scores.values()):
-        return {
-            "doc": None,
-            "mode": DEFAULT_STRATEGY[0],
-            "top_k": DEFAULT_STRATEGY[1],
-            "confident": False,
-            "margin": 0.0,
-            "scores": scores,
-        }
+        return RouteInfo(
+            doc=None,
+            mode=DEFAULT_STRATEGY[0],
+            top_k=DEFAULT_STRATEGY[1],
+            confident=False,
+            margin=0.0,
+            scores=scores,
+        )
     best = max(scores, key=lambda d: scores[d])
     margin = route_margin(scores)
     mode, top_k = STRATEGY_FOR_DOC.get(best, DEFAULT_STRATEGY)
-    return {
-        "doc": best,
-        "mode": mode,
-        "top_k": top_k,
-        "confident": margin >= margin_min,
-        "margin": round(margin, 4),
-        "scores": {d: round(v, 4) for d, v in scores.items()},
-    }
+    return RouteInfo(
+        doc=best,
+        mode=mode,
+        top_k=top_k,
+        confident=margin >= margin_min,
+        margin=round(margin, 4),
+        scores={d: round(v, 4) for d, v in scores.items()},
+    )
 
 
 def next_discriminative_slot(missing: list[str]) -> str | None:

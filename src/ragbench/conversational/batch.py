@@ -18,6 +18,7 @@ from ragbench.conversational.clarifier import (
     should_ask_more,
 )
 from ragbench.conversational.router import (
+    RouteInfo,
     next_discriminative_slot,
     route_by_graph,
 )
@@ -70,14 +71,14 @@ def simulate_clarification_guided(
     entity_index: dict[str, list[str]] | None = None,
     max_turns: int = 3,
     margin_min: float = 0.05,
-) -> tuple[dict[str, str], int, str, dict]:
+) -> tuple[dict[str, str], int, str, RouteInfo]:
     """Diálogo guiado pelo grafo: para quando a margem entre docs estabiliza.
 
     A cada turno pergunta o slot faltante mais discriminativo (não o próximo
     da lista fixa) e re-avalia a rota. Para quando (margem >= margin_min E ao
     menos 1 turno) ou sem valores simulados ou sem turnos. Sem índice, recai
     no comportamento da `simulate_clarification` clássica.
-    Retorna (filled, turns, enriched_query, route_info).
+    Retorna (filled, turns, enriched_query, route_info como RouteInfo).
     """
     index = entity_index or {}
     filled = extract_slots(initial_query)

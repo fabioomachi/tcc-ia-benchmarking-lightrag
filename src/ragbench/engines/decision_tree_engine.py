@@ -18,6 +18,7 @@ import numpy as np
 from ragbench.config import BenchmarkSettings, get_settings
 from ragbench.conversational.clarifier import extract_slots, find_missing_slots
 from ragbench.conversational.router import next_discriminative_slot
+from ragbench.core.interfaces import BaseRAGPipeline
 from ragbench.core.models import SearchMode
 from ragbench.infrastructure.logging import get_logger
 
@@ -1064,7 +1065,7 @@ def decide(query: str) -> Decision:
     return Decision(FALLBACK_ANSWER, "FALLBACK", "", False, tuple(missing))
 
 
-class DecisionTreeEngine:
+class DecisionTreeEngine(BaseRAGPipeline):
     """Baseline simbólico: POPs codificadas, zero LLM, zero retrieval."""
 
     def __init__(self, settings: BenchmarkSettings | None = None):

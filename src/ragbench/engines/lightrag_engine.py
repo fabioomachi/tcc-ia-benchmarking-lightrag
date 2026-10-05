@@ -2,7 +2,7 @@ import asyncio
 import json
 from collections.abc import AsyncGenerator, Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 from lightrag import LightRAG, QueryParam
@@ -10,11 +10,14 @@ from lightrag.prompt import PROMPTS
 from lightrag.utils import EmbeddingFunc
 
 from ragbench.config import BenchmarkSettings, ChatSettings, get_settings
+from ragbench.core.interfaces import BaseRAGPipeline
 from ragbench.core.models import SearchMode
 from ragbench.infrastructure.logging import get_logger
 from ragbench.infrastructure.ollama_client import OllamaChatClient, ResilientOllamaClient
 
 logger = get_logger("ragbench.engine.lightrag")
+
+EngineRole = Literal["index", "chat"]
 
 # Injeção de Ontologia Bancária + Few-Shot Prompting no LightRAG
 BANKING_COMPLIANCE_ENTITY_EXTRACTION = (
@@ -78,7 +81,7 @@ def build_llm_messages(
     return messages
 
 
-class LightRAGEngine:
+class LightRAGEngine(BaseRAGPipeline):
     """Adaptador dual-model sobre transporte único resiliente (Gemini).
 
     Ambos os roles usam `ResilientOllamaClient` (endpoint Gemini
@@ -99,7 +102,7 @@ class LightRAGEngine:
         settings: BenchmarkSettings | None = None,
         ollama_client: ResilientOllamaClient | None = None,
         chat_client: OllamaChatClient | None = None,
-        role: str = "index",
+        role: EngineRole = "index",
         rag_factory: Callable[..., LightRAG] | None = None,
     ):
         self.settings = settings or get_settings()

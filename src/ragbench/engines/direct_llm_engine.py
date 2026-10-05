@@ -12,6 +12,7 @@ from collections.abc import AsyncGenerator
 import numpy as np
 
 from ragbench.config import BenchmarkSettings, get_settings
+from ragbench.core.interfaces import BaseRAGPipeline
 from ragbench.core.models import SearchMode
 from ragbench.infrastructure.logging import get_logger
 from ragbench.infrastructure.ollama_client import ResilientOllamaClient
@@ -26,7 +27,7 @@ DIRECT_SYSTEM_PROMPT = (
 )
 
 
-class DirectLLMEngine:
+class DirectLLMEngine(BaseRAGPipeline):
     """Baseline sem grafo: LLM puro, sem índice, sem vetores, sem chunks."""
 
     def __init__(

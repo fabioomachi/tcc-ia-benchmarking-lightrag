@@ -20,6 +20,7 @@ from ragbench.conversational.clarifier import (
     should_ask_more,
 )
 from ragbench.conversational.router import (
+    RouteInfo,
     load_entity_index,
     next_discriminative_slot,
     route_by_graph,
@@ -37,7 +38,7 @@ def collect_slots_interactive(
     max_turns: int,
     entity_index: dict | None = None,
     margin_min: float = 0.05,
-) -> tuple[dict[str, str], int, dict]:
+) -> tuple[dict[str, str], int, RouteInfo]:
     """Loop de clarificação guiado pelo grafo (testável sem console real).
 
     Pergunta o slot faltante mais discriminativo e para quando a margem do
@@ -49,7 +50,7 @@ def collect_slots_interactive(
     index = entity_index or {}
     filled = extract_slots(initial_query)
     turns = 0
-    route: dict = route_by_graph(initial_query, index, margin_min=margin_min, filled=filled)
+    route: RouteInfo = route_by_graph(initial_query, index, margin_min=margin_min, filled=filled)
     while True:
         missing = find_missing_slots(filled)
         if not should_ask_more(missing, turns, max_turns):

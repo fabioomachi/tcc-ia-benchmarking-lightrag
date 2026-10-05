@@ -1,6 +1,5 @@
 from datetime import datetime
 from enum import StrEnum
-from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -52,17 +51,17 @@ class RagExecutionStatus(StrEnum):
 class QueryExecutionRecord(BaseModel):
     """Registro individual de execução de uma pergunta no RAG."""
 
-    index: int = 0
+    index: int = Field(default=0, ge=0)
     query: str
     response: str | None = None
     mode: SearchMode = SearchMode.HYBRID
-    top_k: int = 5
+    top_k: int = Field(default=5, ge=0, le=100)
     model: str = ""
     source: QueryInteractionSource = QueryInteractionSource.LIGHTRAG_ENGINE
-    similarity_score: float | None = None
-    total_latency_seconds: float = 0.0
-    rag_retrieval_latency_seconds: float | None = None
-    ttft_seconds: float | None = None
+    similarity_score: float | None = Field(default=None, ge=0.0, le=1.0)
+    total_latency_seconds: float = Field(default=0.0, ge=0.0)
+    rag_retrieval_latency_seconds: float | None = Field(default=None, ge=0.0)
+    ttft_seconds: float | None = Field(default=None, ge=0.0)
     status: RagExecutionStatus = RagExecutionStatus.SUCCESS
     error_message: str | None = None
     timestamp: float = Field(default_factory=lambda: datetime.now().timestamp())
@@ -140,7 +139,7 @@ class RunManifest(BaseModel):
     run_id: str
     created_at: str = Field(default_factory=lambda: datetime.now().isoformat())
     git_commit: str = ""
-    config: dict[str, Any] = Field(default_factory=dict)
+    config: dict[str, str | int | float | bool] = Field(default_factory=dict)
     total_queries: int = 0
     completed_queries: int = 0
     failed_queries: int = 0

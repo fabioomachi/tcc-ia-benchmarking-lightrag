@@ -1,11 +1,12 @@
 from collections.abc import AsyncGenerator
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 import numpy as np
 
 from ragbench.core.models import QueryExecutionRecord, SearchMode
 
 
+@runtime_checkable
 class BaseRAGPipeline(Protocol):
     """Contrato comum para qualquer motor de RAG avaliado no benchmark."""
 
@@ -41,6 +42,7 @@ class BaseRAGPipeline(Protocol):
         ...
 
 
+@runtime_checkable
 class BaseCache(Protocol):
     """Contrato abstrato para implementações de cache."""
 
@@ -53,6 +55,7 @@ class BaseCache(Protocol):
         ...
 
 
+@runtime_checkable
 class BaseExecutionStorage(Protocol):
     """Contrato para persistência e checkpointing de execuções de lote."""
 
