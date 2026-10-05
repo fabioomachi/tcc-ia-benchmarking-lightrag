@@ -10,12 +10,11 @@ três conjuntos, cf. `RAGAS__JUDGE_MODEL` no `.env`).
   (Limites, Cartões SAC, Fatura, INSS, Alfa Rende Fácil, Bloqueio Judicial), avaliados
   com **16 golden** (2 por POP, `golden-00`…`golden-15`, com `pergunta_incompleta ==
   pergunta_completa` e `slots_simulados` vazio).
-- **8 POPs final** (estado atual): mesmos 8 POPs, avaliados com **96 golden**
+- **8 POPs final** (runs 02–05/10/2026): mesmos 8 POPs, avaliados com **96 golden**
   (`golden96-00`…`golden96-95`, 12 por POP, incompleta ≠ completa, com
-  `slots_simulados` preenchidos; `data/golden_scenarios_completa.json`). Os braços
-  `golden_clarify_fixo`, `golden_routed` e `golden_tree_v2` já foram re-executados sobre
-  os 96; `golden_full_hybrid` e `golden_direct_completa` ainda refletem o conjunto
-  intermediário de 16 e estão pendentes de re-run nos 96.
+  `slots_simulados` preenchidos; `data/golden_scenarios_completa.json`). Todos os 5
+  braços têm re-run nos 96 — hybrid e direct sob novos run-ids (`*_96`), preservando
+  os runs de 16 como evidência do nível intermediário.
 
 ![Comparativo RAGAS 2 vs 8 POPs](comparacao_2_vs_8_pops.png)
 
@@ -24,10 +23,10 @@ três conjuntos, cf. `RAGAS__JUDGE_MODEL` no `.env`).
 Fonte: `runs/<id>/resumo_qualidade_ragas.md` (métricas globais, conferidas contra a média
 das colunas de `ragas_evaluation_results.csv`); `n` e latência média de
 `runs/<id>/benchmark_analise_detalhada.csv` via `csv.DictReader`
-(coluna `total_latency_seconds`). Os números do nível intermediário foram recuperados
-dos arquivos de evidência versionados em git (runs não são versionados). Tabela
-legível por máquina em `evidencias/tabela_bracos_2_vs_8.csv` (coluna `conjunto`:
-`2pops-24`, `8pops-16`, `8pops-96`).
+(coluna `total_latency_seconds`). Os números do nível intermediário de clarify/routed/tree
+foram recuperados dos arquivos de evidência versionados em git (runs não são
+versionados). Tabela legível por máquina em `evidencias/tabela_bracos_2_vs_8.csv`
+(coluna `conjunto`: `2pops-24`, `8pops-16`, `8pops-96`).
 
 ### Nível 1 — 2 POPs (24 cenários, exceto hybrid com n=4)
 
@@ -55,26 +54,29 @@ legível por máquina em `evidencias/tabela_bracos_2_vs_8.csv` (coluna `conjunto
 
 | Braço | Run | n | Faithfulness | Answer Relevancy | Context Recall | Context Precision | Lat. média |
 |---|---|---|---|---|---|---|---|
+| Grafo `hybrid/k5`, pergunta completa | `golden_full_hybrid_96` | 96 | 0.4050 | 0.5317 | 0.9896 | 0.9896 | 90.8s |
 | Incompleta + clarify fixo (≤3 turnos) + grafo `hybrid/k5` | `golden_clarify_fixo` | 96 | 0.4731 | 0.5844 | 0.9649 | 1.0000 | 24.2s |
 | Incompleta + clarify guiado + rota por documento | `golden_routed` | 96 | 0.5439 | 0.6579 | 0.9740 | 0.9896 | 5.1s |
+| Só LLM, pergunta completa (zero retrieval) | `golden_direct_completa_96` | 96 | 0.1534 | 0.8016 | 0.9896 | 0.9896 | 16.3s |
 | Árvore de decisão v2 (regras dos 8 POPs) | `golden_tree_v2` | 96 | 0.7362 | 0.6797 | 0.9722 | 0.9792 | 0.0s |
 
-(Hybrid puro e só-LLM ainda sem re-run nos 96; valem os números do nível 2.)
-
-Resumo da trajetória (faithfulness / relevancy): hybrid 0.68→0.27 (sem nível 3);
-clarify_fixo 0.73→0.35→0.47 / 0.70→0.43→0.58; routed 0.86→0.48→0.54 /
-0.78→0.59→0.66; direct 0.18→0.13 / 0.82→0.81; tree 0.86→0.78→0.74 /
+Resumo da trajetória (faithfulness / relevancy): hybrid 0.68→0.27→0.41 /
+0.66→0.38→0.53; clarify_fixo 0.73→0.35→0.47 / 0.70→0.43→0.58; routed 0.86→0.48→0.54 /
+0.78→0.59→0.66; direct 0.18→0.13→0.15 / 0.82→0.81→0.80; tree 0.86→0.78→0.74 /
 0.71→0.74→0.68.
 
 ## O que aconteceu com o crescimento de 2 → 8 POPs
 
-1. **O grafo puro colapsou.** Faithfulness do `hybrid/k5` caiu de 0.68 para 0.27
-   (−60%) e relevancy de 0.66 para 0.38 (−42%) já no intermediário. Com 8 POPs,
+1. **O grafo puro colapsou e recuperou-se só em parte.** Faithfulness do `hybrid/k5`
+   caiu de 0.68 para 0.27 no intermediário (−60%) e voltou a 0.41 nos 96 (+49% sobre
+   o intermediário, ainda −40% vs era 2 POPs); relevancy 0.66→0.38→0.53. Com 8 POPs,
    entidades e chunks de domínios distintos (CDC, acesso, cartões, INSS, judicial…)
    passam a competir no mesmo espaço vetorial: o retrieval retorna contexto do POP
    errado ou diluído, e o gerador ancora a resposta em fatos vizinhos incorretos. A
-   latência média do braço (65.6s) é consistente com buscas mais ambíguas. Ressalvas:
-   o baseline da era 2 POPs tem n=4 e o braço ainda não foi re-executado nos 96.
+   recuperação parcial nos 96 reflete o mix de perguntas (12 por POP, tipos variados)
+   e não clarificação — o braço hybrid não executa clarify. A latência média (90.8s
+   nos 96) é consistente com buscas mais ambíguas. Ressalva: o baseline da era 2 POPs
+   tem n=4.
 2. **O roteamento por documento mitigou, mas não salvou.** O braço roteado caiu de
    0.86 para 0.48 no intermediário (−44%) e recuperou para 0.54 nos 96 — perda menor
    que a do hybrid puro, porque restringir o modo de busca por documento reduz o
@@ -92,9 +94,10 @@ clarify_fixo 0.73→0.35→0.47 / 0.70→0.43→0.58; routed 0.86→0.48→0.54 
    determinístico novo, sem interferir nos existentes. O custo aparece em outro lugar:
    manutenção manual das regras (árvore v2 precisou de ramos para os 8 POPs +
    detecção anti-colisão).
-5. **O só-LLM é o piso da comparação e não mudou** (faithfulness 0.18 → 0.13, sempre
-   baixo; relevancy 0.82 → 0.81, estável): sem grounding, o modelo responde bem na
-   forma e erra no conteúdo, independente do tamanho do corpus.
+5. **O só-LLM é o piso da comparação e não mudou** (faithfulness 0.18 → 0.13 → 0.15,
+   sempre baixo; relevancy 0.82 → 0.81 → 0.80, estável): sem grounding, o modelo
+   responde bem na forma e erra no conteúdo, independente do tamanho do corpus e do
+   questionário.
 6. **Recall/precision perto do teto; a degradação concentra-se em faithfulness e
    relevancy.** No intermediário, recall e precision saturaram em 1.0000; nos 96,
    ficam em 0.96–1.00: o contexto recuperado ainda *contém* a resposta na maioria dos
@@ -117,17 +120,20 @@ das respostas de forma penalizada pelo juiz. Os números do roteado nos 96 golde
 - Conjuntos de perguntas diferentes entre os três níveis (24 cenários situacionais vs
   16 golden adversariais vs 96 `golden96-*`, 12 por POP) e N assimétrico no baseline
   hybrid (n=4) — o efeito-corpus está confundido com o efeito-questionário.
-- `golden_full_hybrid` e `golden_direct_completa` ainda refletem só o intermediário
-  (n=16), pendentes de re-run nos 96.
 - No intermediário, `pergunta_incompleta == pergunta_completa` e `slots_simulados`
   vazio: os braços de clarificação executaram 0 turnos — o contraste com/sem
   esclarecimento está subestimado no nível 2. O nível 3 corrige isso (slots
   preenchidos; clarify médio 1.44 turnos no fixo e 1.24 no roteado).
 - Cache-hit de LLM nos runs intermediários achata as latências dos braços de grafo
-  (4.8s/0.9s); os re-runs nos 96 registram 0.0% de cache-hit
-  (`resumo_benchmark.md`), com latências genuínas (24.2s/5.1s).
-- Juiz único (`gemini-3.5-flash-lite`); variação entre rodadas do juiz explica
-  oscilações de ~±0.05.
+  (4.8s/0.9s); os runs nos 96 registram 0.0% de cache-hit
+  (`resumo_benchmark.md`), com latências genuínas (hybrid 90.8s, clarify 24.2s,
+  routed 5.1s).
+- Os evals dos runs `*_96` executaram entre 02–05/10 com o mesmo juiz
+  (`gemini-3.5-flash-lite`), atravessando janelas de instabilidade da API (429/503 com
+  retries); variação entre rodadas do juiz explica oscilações de ~±0.05.
+- `golden_full_hybrid_96`/`golden_direct_completa_96` usam run-ids novos, preservando
+  os runs de 16; o `golden.json` do hybrid_96 (96 perguntas completas) está na pasta
+  da run e equivale às `pergunta_completa` de `cenarios_8pops.json`.
 
 ## Evidências (pasta `evidencias/`)
 
@@ -137,14 +143,15 @@ das respostas de forma penalizada pelo juiz. Os números do roteado nos 96 golde
   `era8_16_tree_ragas.csv`: resultados RAGAS por amostra do intermediário (n=16,
   recuperados do git — os runs foram re-executados e não são versionados); o
   intermediário de hybrid/direct coincide com `era8_hybrid_ragas.csv` /
-  `era8_direct_ragas.csv` (ainda nos 16).
-- `era8_*_ragas.csv` (5 arquivos): resultados RAGAS por amostra do estado atual (de
-  `runs/golden_*/ragas_evaluation_results.csv`; n=16 em hybrid/direct, n=96 nos
-  demais).
+  `era8_direct_ragas.csv`.
+- `era8_*_ragas.csv` (clarify_fixo, routed, tree, n=96) + `era8_96_hybrid_ragas.csv` e
+  `era8_96_direct_ragas.csv` (n=96, runs `golden_full_hybrid_96` /
+  `golden_direct_completa_96`): resultados RAGAS por amostra do nível final.
 - `era2_*_manifest.json` (clarify_fixo, routed, direct, tree),
   `era8_16_*_manifest.json` (clarify_fixo, routed, tree),
-  `era8_*_manifest.json` (clarify_fixo, routed, direct, tree): manifests de
-  clarify/tree/direct dos runs (braços hybrid puros não possuem manifest).
+  `era8_*_manifest.json` (clarify_fixo, routed, direct, tree) +
+  `era8_96_direct_manifest.json`: manifests de clarify/tree/direct dos runs (braços
+  hybrid puros não possuem manifest).
 - `cenarios_2pops.json` (24 cenários, de `data/hypothesis_inicial_scenarios.json`),
   `cenarios_8pops_16.json` (16 golden intermediárias, `golden-00`…`golden-15`) e
   `cenarios_8pops.json` (96 golden finais, de `data/golden_scenarios_completa.json`).

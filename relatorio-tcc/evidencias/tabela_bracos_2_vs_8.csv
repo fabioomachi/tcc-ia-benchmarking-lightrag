@@ -9,6 +9,8 @@ conjunto,pops,braco,run,n,faithfulness,answer_relevancy,context_recall,context_p
 8pops-16,8,clarify guiado + rota por doc,golden_routed,16,0.4783,0.5862,1.0000,1.0000,0.9
 8pops-16,8,so LLM completa,golden_direct_completa,16,0.1310,0.8110,1.0000,1.0000,10.0
 8pops-16,8,arvore de regras v2,golden_tree_v2,16,0.7761,0.7386,1.0000,1.0000,0.0
+8pops-96,8,grafo hybrid/k5 completa,golden_full_hybrid_96,96,0.4050,0.5317,0.9896,0.9896,90.8
 8pops-96,8,clarify fixo + grafo hybrid/k5,golden_clarify_fixo,96,0.4731,0.5844,0.9649,1.0000,24.2
 8pops-96,8,clarify guiado + rota por doc,golden_routed,96,0.5439,0.6579,0.9740,0.9896,5.1
+8pops-96,8,so LLM completa,golden_direct_completa_96,96,0.1534,0.8016,0.9896,0.9896,16.3
 8pops-96,8,arvore de regras v2,golden_tree_v2,96,0.7362,0.6797,0.9722,0.9792,0.0
