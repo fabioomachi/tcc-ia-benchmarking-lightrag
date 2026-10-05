@@ -13,7 +13,7 @@ from ragbench.cli import app
 from ragbench.cli_commands import deps
 from ragbench.cli_commands.index_cmd import QUOTA_EXIT_CODE
 from ragbench.config import BenchmarkSettings
-from ragbench.core.exceptions import QuotaExhaustedError
+from ragbench.core.exceptions import OllamaConnectionError, QuotaExhaustedError
 from ragbench.engines.lightrag_engine import LightRAGEngine
 from ragbench.infrastructure.index_manifest import manifest_path
 from ragbench.infrastructure.ollama_client import (
@@ -291,6 +291,8 @@ def test_embeddings_persistent_429_raises_quota(monkeypatch):
 
 
 def test_embeddings_non_429_still_returns_zeros(monkeypatch):
+    """Falha não-quota em embeddings levanta (sem envenenar cache com zeros)."""
+
     async def _no_sleep(_delay):
         return None
 
@@ -313,9 +315,8 @@ def test_embeddings_non_429_still_returns_zeros(monkeypatch):
     client = ResilientOllamaClient(settings.ollama, genai_client=object())
 
     async def _run():
-        result = await client.get_embeddings(model="fake", texts=["oi", "ola"])
-        assert result.shape == (2, settings.ollama.embedding_default_dim)
-        assert (result == 0.0).all()
+        with pytest.raises(OllamaConnectionError):
+            await client.get_embeddings(model="fake", texts=["oi", "ola"])
 
     asyncio.run(_run())
 

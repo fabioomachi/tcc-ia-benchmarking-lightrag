@@ -127,9 +127,10 @@ class BenchmarkRunner:
                 )
 
                 # 1. Checagem de Cache Semântico (embeddings do role do engine)
+                query_embs = None
                 try:
                     query_embs = await self.engine.get_query_embeddings([query_text])
-                    if len(query_embs) > 0:
+                    if query_embs is not None and len(query_embs) > 0:
                         cached_resp, similarity = self.cache.get(query_embs[0])
                         if cached_resp:
                             record.response = cached_resp
@@ -146,6 +147,7 @@ class BenchmarkRunner:
                     raise
                 except Exception as e:
                     logger.debug(f"Bypass de cache devido a erro transitório: {e}")
+                    query_embs = None
 
                 # 2. Execução no Motor RAG
                 rag_start = time.perf_counter()
@@ -180,7 +182,7 @@ class BenchmarkRunner:
                         record.status = RagExecutionStatus.ERROR
                         record.error_message = "O modelo de chat retornou uma resposta vazia."
 
-                    if len(query_embs) > 0 and response_text.strip():
+                    if query_embs is not None and len(query_embs) > 0 and response_text.strip():
                         self.cache.add(query_embs[0], response_text)
 
                 except QuotaExhaustedError as e:
@@ -202,23 +204,47 @@ class BenchmarkRunner:
                 await asyncio.to_thread(self.storage.save_record, record)
                 return record
 
-        tasks = [asyncio.create_task(worker(i, q)) for i, q in enumerate(queries)]
+        # Tarefas limitadas ao tamanho do chunk: evita criar N tasks
+        # de uma vez em lotes de 1000+ queries (pico de memória).
+        pending = [(i, q) for i, q in enumerate(queries) if i not in completed_indices]
+        chunk_size = max(1, concurrency)
+        live_tasks: list[asyncio.Task[QueryExecutionRecord | None]] = []
 
         async def _cancel_pending() -> None:
-            for task in tasks:
+            for task in live_tasks:
                 if not task.done():
                     task.cancel()
-            await asyncio.gather(*tasks, return_exceptions=True)
+            if live_tasks:
+                await asyncio.gather(*live_tasks, return_exceptions=True)
+
+        async def _drain(
+            coros: list,
+            on_item: Callable[[QueryExecutionRecord], None] | None = None,
+        ) -> None:
+            batch_tasks = [asyncio.create_task(c) for c in coros]
+            live_tasks.extend(batch_tasks)
+            try:
+                for coro in asyncio.as_completed(batch_tasks):
+                    res = await coro
+                    if res is not None:
+                        results.append(res)
+                        if on_item is not None:
+                            on_item(res)
+                        if on_progress:
+                            on_progress(len(results), total_queries, res)
+            finally:
+                for task in batch_tasks:
+                    if task in live_tasks:
+                        live_tasks.remove(task)
 
         if not show_progress:
             # Caminho silencioso para testes e uso programático (sem rich).
             try:
-                for coro in asyncio.as_completed(tasks):
-                    res = await coro
-                    if res is not None:
-                        results.append(res)
-                        if on_progress:
-                            on_progress(len(results), total_queries, res)
+                for start in range(0, len(pending), chunk_size):
+                    if quota_stop.is_set():
+                        break
+                    chunk = [worker(i, q) for i, q in pending[start : start + chunk_size]]
+                    await _drain(chunk)
                 return await asyncio.to_thread(self.storage.load_all_records)
             except QuotaExhaustedError:
                 await _cancel_pending()
@@ -235,14 +261,15 @@ class BenchmarkRunner:
             task_id = progress.add_task("Executando benchmark...", total=total_queries)
             progress.update(task_id, completed=len(completed_indices))
 
+            def _advance(_rec: QueryExecutionRecord) -> None:
+                progress.update(task_id, advance=1)
+
             try:
-                for coro in asyncio.as_completed(tasks):
-                    res = await coro
-                    if res is not None:
-                        results.append(res)
-                        progress.update(task_id, advance=1)
-                        if on_progress:
-                            on_progress(len(results), total_queries, res)
+                for start in range(0, len(pending), chunk_size):
+                    if quota_stop.is_set():
+                        break
+                    chunk = [worker(i, q) for i, q in pending[start : start + chunk_size]]
+                    await _drain(chunk, on_item=_advance)
 
                 return await asyncio.to_thread(self.storage.load_all_records)
             except QuotaExhaustedError:

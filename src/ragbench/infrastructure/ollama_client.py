@@ -24,6 +24,20 @@ def is_quota_message(message: str) -> bool:
     return any(keyword in lowered for keyword in _QUOTA_KEYWORDS)
 
 
+def is_quota_error(error: Exception) -> bool:
+    """Detecta esgotamento de cota em qualquer exceção (puro: sem I/O, testável).
+
+    Cobre `RateLimitError`, `APIStatusError(429)` e mensagens com
+    `quota/resource_exhausted/billing`. Evita que 429 vire erro genérico.
+    """
+    if isinstance(error, RateLimitError):
+        return True
+    status = getattr(error, "status_code", None)
+    if status == 429:
+        return True
+    return is_quota_message(str(error))
+
+
 # Factory de cliente HTTP: retorna um httpx.AsyncClient ou fake compatível
 # (async CM com get/post/stream). Permite testes sem rede via injeção.
 HttpClientFactory = Callable[..., Any]
@@ -142,6 +156,18 @@ class ResilientOllamaClient:
 
             except Exception as e:
                 only_rate_limits = False
+                if is_quota_error(e):
+                    if attempt == max_attempts:
+                        raise QuotaExhaustedError(
+                            f"Cota da API esgotada no modelo {model}: {e}"
+                        ) from e
+                    jittered_delay = self.calc_rate_limit_delay(attempt)
+                    logger.warning(
+                        f"⚠️ [Quota 429] Tentativa {attempt}/{max_attempts} falhou. "
+                        f"Aguardando {jittered_delay:.2f}s..."
+                    )
+                    await asyncio.sleep(jittered_delay)
+                    continue
                 logger.warning(f"Tentativa {attempt}/{max_attempts} de completion falhou: {e}")
                 if attempt == max_attempts:
                     raise OllamaConnectionError(f"Falha no modelo ({model}): {e}") from e
@@ -184,16 +210,28 @@ class ResilientOllamaClient:
                                 continue
 
                             resp.raise_for_status()
-                            return resp.json().get("embedding", {}).get("values", [0.0] * dim)
+                            values = resp.json().get("embedding", {}).get("values", [])
+                            if not values:
+                                raise OllamaConnectionError("Resposta de embedding sem valores.")
+                            return values
 
                     except QuotaExhaustedError:
                         raise
                     except Exception as e:
+                        if is_quota_error(e):
+                            if attempt == self.settings.embedding_max_attempts:
+                                raise QuotaExhaustedError(
+                                    "Cota da API de embeddings esgotada (429 persistente)."
+                                ) from e
+                            await asyncio.sleep(self.settings.embedding_retry_delay * attempt)
+                            continue
                         if attempt == self.settings.embedding_max_attempts:
                             logger.error(f"Falha REST no embedding: {e}")
-                            return [0.0] * dim
+                            raise OllamaConnectionError(
+                                f"Falha REST no embedding após retries: {e}"
+                            ) from e
                         await asyncio.sleep(self.settings.embedding_retry_short_delay)
-            return [0.0] * dim
+            raise OllamaConnectionError("Falha REST no embedding após retries.")
 
         # Processamento em MICRO-LOTES para evitar que o LightRAG estoure o timeout
         all_embeddings = []
