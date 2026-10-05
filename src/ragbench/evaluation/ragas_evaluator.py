@@ -109,7 +109,7 @@ class RagasEvaluator:
     """Avaliador LLM-as-a-Judge via RAGAS sobre transporte Gemini unificado.
 
     O juiz usa o MESMO endpoint Gemini do index/chat (OpenAI-compatível),
-    diferenciando apenas o modelo (`RAGAS__JUDGE_MODEL`, ex: `gemini-3.8-flash`).
+    diferenciando apenas o modelo (`RAGAS__JUDGE_MODEL`, ex: `gemini-3.5-flash-lite`).
     Modelos sem prefixo `gemini-` mantêm fallback Ollama local.
     """
 

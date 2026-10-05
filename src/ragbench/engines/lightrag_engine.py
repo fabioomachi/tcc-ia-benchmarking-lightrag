@@ -167,7 +167,7 @@ class LightRAGEngine(BaseRAGPipeline):
         chat_client: OllamaChatClient | None = None,
         rag_factory: Callable[..., LightRAG] | None = None,
     ) -> "LightRAGEngine":
-        """Engine de chat/query (Ollama local, ex: qwen3.5:4b)."""
+        """Engine de chat/query (transporte Gemini, modelo de `CHAT__LLM_MODEL`)."""
         return cls(
             settings=settings,
             ollama_client=ollama_client,
@@ -225,8 +225,8 @@ class LightRAGEngine(BaseRAGPipeline):
             raise
 
     async def _custom_embedding_func(self, texts: list[str]) -> np.ndarray:
-        # Fonte única de verdade: embeddings sempre via index (Gemini
-        # text-embedding-005/768). Usar all-minilm no chat quebraria o
+        # Fonte única de verdade: embeddings sempre via index
+        # (gemini-embedding-001/768). Outro modelo no chat quebraria o
         # retrieval contra vetores já indexados.
         return await self.ollama_client.get_embeddings(
             model=self.settings.lightrag.embed_model,

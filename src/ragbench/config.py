@@ -6,13 +6,18 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class OllamaSettings(BaseModel):
-    """Configurações da API local do Ollama / Gemini."""
+    """Transporte Gemini unificado (Ollama local só como fallback de `health`).
 
-    base_url: str = "http://localhost:11434/v1/"
+    Defaults espelham o executado no estudo (02–05/10/2026): endpoint
+    OpenAI-compatível do Gemini. A chave real vem do `.env`
+    (`OLLAMA__API_KEY`); o default é placeholder não funcional.
+    """
+
+    base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
     # SecretStr: repr/print/model_dump nunca expõem o valor (exige
     # .get_secret_value() nos pontos de uso real: clientes HTTP e headers).
     api_key: SecretStr = Field(default_factory=lambda: SecretStr("ollama_local"))
-    request_timeout: float = 900.0
+    request_timeout: float = 600.0
     max_retries: int = 3
     connect_timeout: float = 10.0
 
@@ -43,11 +48,11 @@ class OllamaSettings(BaseModel):
 
 
 class LightRAGSettings(BaseModel):
-    """Configurações do motor LightRAG."""
+    """Configurações do motor LightRAG (defaults = executado no estudo)."""
 
-    llm_model: str = "qwen2.5:1.5b"
-    embed_model: str = "all-minilm"
-    embed_dim: int = 384
+    llm_model: str = "gemini-3.5-flash-lite"
+    embed_model: str = "gemini-embedding-001"
+    embed_dim: int = 768
     chunk_token_size: int = 1500
     chunk_overlap_token_size: int = 128
     llm_func_timeout: int = 600
@@ -61,11 +66,11 @@ class LightRAGSettings(BaseModel):
     default_llm_timeout: int = 2400
     llm_model_max_async: int = 1
     embedding_func_timeout: int = 600
-    embedding_func_max_async: int = 1
+    embedding_func_max_async: int = 8
     language: str = "Portuguese"
-    # Workers do CHAT (Ollama local) — usados quando role="chat".
-    # Local aguenta mais concorrência que a API Gemini (rate-limit),
-    # mas com timeouts menores pois a resposta é interativa.
+    # Workers do CHAT (role="chat") sobre o mesmo transporte Gemini.
+    # Index usa max_async=1 (respeita rate-limit); chat admite mais
+    # concorrência pois as consultas são interativas e curtas.
     chat_default_llm_timeout: int = 2400
     chat_llm_model_max_async: int = 16
     chat_llm_func_timeout: int = 600
@@ -89,12 +94,12 @@ class ChatSettings(BaseModel):
     `embed_model/embed_dim` aqui são apenas espelho documentado e devem
     igualar `lightrag.embed_*`.
 
-    `base_url/api_key` legados do Ollama local são mantidos para fallback
-    manual, mas o caminho padrão do `LightRAGEngine(role="chat")` reutiliza
-    `settings.ollama` (Gemini) como transporte.
+    `base_url/api_key` espelham o transporte Gemini por default (o fallback
+    Ollama local é só para `health` manual). O caminho padrão do
+    `LightRAGEngine(role="chat")` reutiliza `settings.ollama` (Gemini).
     """
 
-    base_url: str = "http://localhost:11434/v1/"
+    base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
     api_key: SecretStr = Field(default_factory=lambda: SecretStr("ollama"))
     llm_model: str = "gemini-3.1-flash-lite"
     embed_model: str = "gemini-embedding-001"
@@ -113,11 +118,11 @@ class RagasSettings(BaseModel):
     Arquitetura unificada: o juiz usa o MESMO transporte Gemini do
     index/chat (endpoint OpenAI-compatível em `ollama.base_url` + `api_key`).
     A diferenciação é SÓ no modelo: `ragas.judge_model` (`RAGAS__JUDGE_MODEL`,
-    ex: `gemini-3.8-flash`) ≠ `lightrag.llm_model` ≠ `chat.llm_model`.
+    ex: `gemini-3.5-flash-lite`) ≠ `lightrag.llm_model` ≠ `chat.llm_model`.
     Modelos sem prefixo `gemini-` mantêm fallback Ollama local.
     """
 
-    judge_model: str = "gemini-3.8-flash"
+    judge_model: str = "gemini-3.5-flash-lite"
     embed_model: str = "gemini-embedding-001"
     num_ctx: int = 8192
     timeout: int = 1200

@@ -14,10 +14,11 @@ def test_default_config(tmp_path, monkeypatch):
         if key.startswith(("OLLAMA__", "LIGHTRAG__", "CHAT__", "RAGAS__")):
             monkeypatch.delenv(key, raising=False)
     settings = BenchmarkSettings(_env_file=None)
-    assert settings.ollama.base_url == "http://localhost:11434/v1/"
-    assert settings.lightrag.llm_model == "qwen2.5:1.5b"
-    assert settings.lightrag.embed_model == "all-minilm"
-    assert settings.ragas.judge_model == "gemini-3.8-flash"
+    assert settings.ollama.base_url == "https://generativelanguage.googleapis.com/v1beta/openai/"
+    assert settings.lightrag.llm_model == "gemini-3.5-flash-lite"
+    assert settings.lightrag.embed_model == "gemini-embedding-001"
+    assert settings.lightrag.embed_dim == 768
+    assert settings.ragas.judge_model == "gemini-3.5-flash-lite"
     assert settings.concurrency_limit == 10
     assert settings.cache_threshold == 0.92
 
