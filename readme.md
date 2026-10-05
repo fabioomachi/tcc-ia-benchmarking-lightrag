@@ -76,7 +76,7 @@ Index, chat e eval compartilham o mesmo pipeline resiliente (rate-limit + retrie
 
 | Papel | Variável | Padrão no código | Exemplo no `.env` |
 |---|---|---|---|
-| Index (LightRAG) | `LIGHTRAG__LLM_MODEL` | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` |
+| Index (LightRAG) | `LIGHTRAG__LLM_MODEL` | `gemini-3.5-flash-lite` | `gemini-3.5-flash-lite` |
 | Chat / query | `CHAT__LLM_MODEL` | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` |
 | Juiz RAGAS | `RAGAS__JUDGE_MODEL` | `gemini-3.8-flash` | `gemini-3.5-flash-lite` |
 | Embeddings (fonte única) | `LIGHTRAG__EMBED_MODEL` / `RAGAS__EMBED_MODEL` | `gemini-embedding-001` (768 dim) | `gemini-embedding-001` |
@@ -128,7 +128,7 @@ tcc-ia-benchmarking-lightrag/
 ├── src/
 │   └── ragbench/                # Pacote principal (Hexagonal Architecture)
 │       ├── cli.py               # Registro dos comandos Typer (wiring fino)
-│       ├── cli_commands/        # Implementação dos comandos (health, config-check, index, dataset, run, run-clarify, run-direct, run-tree, probe-retrieval, eval, chat)
+│       ├── cli_commands/        # Implementação dos comandos (health, config-check, index, generate-dataset, run, run-clarify, run-direct, run-tree, probe-retrieval, eval, chat, chat-clarify)
 │       ├── conversational/      # Clarificador + roteador só-grafo (hipótese)
 │       ├── config.py            # Configuração centralizada (Pydantic Settings)
 │       ├── runner.py            # Orquestrador de benchmark assíncrono
@@ -159,6 +159,7 @@ tcc-ia-benchmarking-lightrag/
 
 ```bash
 uv run ragbench health
+uv run ragbench config-check  # valida .env sem vazar a chave (SecretStr + scrub)
 ```
 
 ### 1. Indexar documentos
@@ -169,7 +170,12 @@ Indexa todos os `.txt` da pasta `data/pops/` no Knowledge Graph LightRAG.
 uv run ragbench index
 # ou especificar diretório customizado:
 uv run ragbench index --pops-dir caminho/para/docs/
+# rebuild total / reconciliação / simulação:
+uv run ragbench index --force
+uv run ragbench index --reconcile --dry-run
 ```
+Index incremental por SHA256 (pula o já indexado); `--force` reconstrói.
+Cota esgotada (429) aborta com exit 3 e limpa o resíduo parcial.
 
 ### 2. Gerar Golden Dataset adversarial
 
@@ -213,16 +219,20 @@ uv run ragbench run --run-name exp_hybrid --mode hybrid
 
 ```bash
 uv run ragbench run-clarify --run-name clarify_fixo            # clarify fixo + grafo
-uv run ragbench run-clarify --routed --run-name routed         # clarify guiado + rota por doc
-uv run ragbench run-direct --run-name direct                   # só LLM, sem retrieval
+uv run ragbench run-clarify --run-name routed                  # clarify guiado (roteamento via ROUTING__ENABLED)
+uv run ragbench run-direct --run-name direct                   # só LLM, sem retrieval (--input completa|incompleta)
 uv run ragbench run-tree --run-name tree                       # árvore de decisão, sem LLM
-uv run ragbench probe-retrieval --query "senha bloqueou" --mode hybrid  # só contexto, sem gerar
+uv run ragbench probe-retrieval --modes hybrid local --top-k 5 # só contexto, sem gerar
+uv run ragbench chat-clarify --mode hybrid                     # chat interativo com clarificação
 ```
+Flags úteis: `run-clarify/run-tree --scenarios <json> --max-clarify-turns 3 --resume`;
+`probe-retrieval --scenarios <json> --ids <id> --run-name <id>`. Cota esgotada → exit 3 (`--resume` retoma).
 
 ### 4. Avaliar qualidade (RAGAS)
 
 ```bash
 uv run ragbench eval --run-id meu_experimento
+# alternativas: --checkpoint <sqlite> --golden <json> (ou usa o run mais recente)
 ```
 
 Gera em `runs/meu_experimento/` (mais cópia em `resultados/`):
