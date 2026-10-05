@@ -181,9 +181,14 @@ class GoldenDatasetGenerator:
                 return await self.generate_for_doc(doc, questions_per_doc)
 
         tasks = [_bounded(f) for f in txt_files]
-        results = await asyncio.gather(*tasks)
+        results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        dataset = [q for sublist in results for q in sublist if q.question]
+        dataset: list[GoldenQuestion] = []
+        for result in results:
+            if isinstance(result, BaseException):
+                logger.warning(f"Geração parcial falhou para um documento: {result}")
+                continue
+            dataset.extend([q for q in result if q.question])
 
         payload = json.dumps([q.model_dump() for q in dataset], ensure_ascii=False, indent=2)
         await asyncio.to_thread(out_file.write_text, payload, encoding="utf-8")

@@ -19,8 +19,14 @@ class SQLiteExecutionStorage(BaseExecutionStorage):
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
 
+    def _connect(self) -> sqlite3.Connection:
+        """Conexão com timeout e WAL (evita `database is locked` sob concorrência)."""
+        conn = sqlite3.connect(str(self.db_path), timeout=30.0)
+        conn.execute("PRAGMA journal_mode=WAL;")
+        return conn
+
     def _init_db(self) -> None:
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS execution_records (
@@ -44,7 +50,7 @@ class SQLiteExecutionStorage(BaseExecutionStorage):
             conn.commit()
 
     def save_record(self, record: QueryExecutionRecord) -> None:
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
@@ -79,14 +85,14 @@ class SQLiteExecutionStorage(BaseExecutionStorage):
             conn.commit()
 
     def get_completed_indices(self) -> set[int]:
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT query_index FROM execution_records WHERE status = 'success'")
             rows = cursor.fetchall()
             return {row[0] for row in rows}
 
     def load_all_records(self) -> list[QueryExecutionRecord]:
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM execution_records ORDER BY query_index ASC")

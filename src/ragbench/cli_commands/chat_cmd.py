@@ -67,7 +67,11 @@ def interactive_chat(
 
             while True:
                 try:
-                    query = deps.console.input("\n[bold yellow]Pergunta > [/bold yellow]").strip()
+                    query = (
+                        await asyncio.to_thread(
+                            deps.console.input, "\n[bold yellow]Pergunta > [/bold yellow]"
+                        )
+                    ).strip()
                     if query.lower() in ["sair", "exit", "quit"]:
                         break
                     if not query:

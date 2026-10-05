@@ -186,34 +186,32 @@ class ResilientOllamaClient:
         )
         headers = {"x-goog-api-key": api_key}
 
-        # Semáforo reduzido para não sobrecarregar as conexões ativas
+        # Semáforo reduzido para não sobrecarregar as conexões ativas.
+        # Um único AsyncClient por chamada (pool reutilizado, sem thrashing).
         semaphore = asyncio.Semaphore(self.settings.embedding_max_concurrency)
 
-        async def _safe_fetch(text: str) -> list[float]:
+        async def _safe_fetch(client: httpx.AsyncClient, text: str) -> list[float]:
             payload = {"content": {"parts": [{"text": text}]}, "outputDimensionality": dim}
 
             async with semaphore:
                 for attempt in range(1, self.settings.embedding_max_attempts + 1):
                     try:
                         # Timeout super curto (10s) para falhar rápido e retentar se o Google travar
-                        async with httpx.AsyncClient(
-                            timeout=self.settings.embedding_timeout
-                        ) as client:
-                            resp = await client.post(url, json=payload, headers=headers)
+                        resp = await client.post(url, json=payload, headers=headers)
 
-                            if resp.status_code == 429:
-                                if attempt == self.settings.embedding_max_attempts:
-                                    raise QuotaExhaustedError(
-                                        "Cota da API de embeddings esgotada (429 persistente)."
-                                    )
-                                await asyncio.sleep(self.settings.embedding_retry_delay * attempt)
-                                continue
+                        if resp.status_code == 429:
+                            if attempt == self.settings.embedding_max_attempts:
+                                raise QuotaExhaustedError(
+                                    "Cota da API de embeddings esgotada (429 persistente)."
+                                )
+                            await asyncio.sleep(self.settings.embedding_retry_delay * attempt)
+                            continue
 
-                            resp.raise_for_status()
-                            values = resp.json().get("embedding", {}).get("values", [])
-                            if not values:
-                                raise OllamaConnectionError("Resposta de embedding sem valores.")
-                            return values
+                        resp.raise_for_status()
+                        values = resp.json().get("embedding", {}).get("values", [])
+                        if not values:
+                            raise OllamaConnectionError("Resposta de embedding sem valores.")
+                        return values
 
                     except QuotaExhaustedError:
                         raise
@@ -237,16 +235,17 @@ class ResilientOllamaClient:
         all_embeddings = []
         chunk_size = self.settings.embedding_batch_size
 
-        for i in range(0, len(texts), chunk_size):
-            batch = texts[i : i + chunk_size]
-            tasks = [_safe_fetch(t) for t in batch]
+        async with httpx.AsyncClient(timeout=self.settings.embedding_timeout) as client:
+            for i in range(0, len(texts), chunk_size):
+                batch = texts[i : i + chunk_size]
+                tasks = [_safe_fetch(client, t) for t in batch]
 
-            # Aguarda a resolução do pequeno lote
-            batch_results = await asyncio.gather(*tasks)
-            all_embeddings.extend(batch_results)
+                # Aguarda a resolução do pequeno lote
+                batch_results = await asyncio.gather(*tasks)
+                all_embeddings.extend(batch_results)
 
-            # Micro-pausa para respiro do servidor
-            await asyncio.sleep(self.settings.embedding_micro_pause)
+                # Micro-pausa para respiro do servidor
+                await asyncio.sleep(self.settings.embedding_micro_pause)
 
         return np.array(all_embeddings)
 

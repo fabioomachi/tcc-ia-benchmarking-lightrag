@@ -200,6 +200,7 @@ class RagasEvaluator:
         default_context: str = "Regras operacionais padrão de compliance bancário extraídas do grafo.",
     ) -> Dataset:
         golden_map = self.load_golden_map(golden_path)
+        context_cache: dict[str, str] = {}
 
         questions, answers, contexts, ground_truths, question_types, latencies, ttfts = (
             [],
@@ -232,9 +233,13 @@ class RagasEvaluator:
 
             context_text = default_context
             if source_doc:
-                doc_path = self.settings.pops_dir / source_doc
-                if doc_path.exists():
-                    context_text = doc_path.read_text(encoding="utf-8")
+                if source_doc not in context_cache:
+                    doc_path = self.settings.pops_dir / source_doc
+                    if doc_path.exists():
+                        context_cache[source_doc] = doc_path.read_text(encoding="utf-8")
+                    else:
+                        context_cache[source_doc] = default_context
+                context_text = context_cache[source_doc]
 
             questions.append(rec.query)
             answers.append(rec.response)

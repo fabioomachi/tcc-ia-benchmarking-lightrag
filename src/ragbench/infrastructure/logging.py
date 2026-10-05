@@ -91,7 +91,8 @@ def setup_logging(settings: BenchmarkSettings, run_id: str | None = None) -> Pat
     """
     try:
         return _setup_logging(settings, run_id=run_id)
-    except Exception:
+    except Exception as e:
+        print(f"ragbench: falha ao configurar logs em {settings.logging.dir}: {e}")
         return settings.logging.dir / settings.logging.file_name
 
 

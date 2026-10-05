@@ -76,7 +76,7 @@ def run_direct_batch(
                 f"[bold blue]run-direct: {len(items)} cenários | input={input} "
                 f"| modelo={engine.llm_model} (sem grafo, sem cache)[/bold blue]"
             )
-            sem = asyncio.Semaphore(2)
+            sem = asyncio.Semaphore(settings.concurrency_limit)
             quota_stop = asyncio.Event()
             manifest: list[dict] = []
 
