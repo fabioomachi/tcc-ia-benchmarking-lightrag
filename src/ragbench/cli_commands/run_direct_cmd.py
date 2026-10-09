@@ -18,6 +18,7 @@ import typer
 from ragbench.cli_commands import deps
 from ragbench.cli_commands.quota_support import (
     QUOTA_EXIT_CODE,
+    merge_run_manifest,
     print_quota_stopped,
 )
 from ragbench.cli_commands.run_cmd import build_run_id
@@ -148,6 +149,7 @@ def run_direct_batch(
             md_path = run_dir / "resumo_benchmark.md"
             manifest_path = run_dir / "direct_manifest.json"
             golden_path = run_dir / "golden.json"
+            manifest = merge_run_manifest(manifest, manifest_path)
             golden_entries = [
                 {
                     "question": m["pergunta"],

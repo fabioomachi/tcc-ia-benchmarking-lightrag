@@ -5,6 +5,7 @@ detectar `QuotaExhaustedError`, o comando interrompe o lote, persiste o
 progresso e orienta a retomada posterior com o comando literal.
 """
 
+import json
 from pathlib import Path
 
 from rich.console import Console
@@ -31,6 +32,25 @@ def export_run_reports(
         records, results_dir / "resumo_benchmark.md"
     )
     return csv_path, md_path
+
+
+def merge_run_manifest(manifest: list[dict], manifest_path: Path) -> list[dict]:
+    """Mescla entries novas com o manifest de invocação anterior (puro).
+
+    Índices pulados via checkpoint não passam pelo loop do lote; sem merge,
+    manifest/golden de runs retomadas sairiam parciais e o `eval` avaliaria
+    só o subconjunto. Entradas novas prevalecem; arquivo ausente ou
+    ilegível mantém só as novas.
+    """
+    if not manifest_path.exists():
+        return manifest
+    try:
+        prior = json.loads(manifest_path.read_text(encoding="utf-8"))
+        merged = {m["index"]: m for m in prior if isinstance(m, dict)}
+        merged.update({m["index"]: m for m in manifest})
+        return [merged[k] for k in sorted(merged)]
+    except (json.JSONDecodeError, OSError, KeyError):
+        return manifest
 
 
 def print_quota_stopped(

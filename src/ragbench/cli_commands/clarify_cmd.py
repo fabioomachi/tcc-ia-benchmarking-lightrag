@@ -13,6 +13,7 @@ from ragbench.cli_commands.chat_cmd import apply_chat_model_override
 from ragbench.config import BenchmarkSettings
 from ragbench.conversational.clarifier import (
     build_enriched_query,
+    build_routed_query,
     extract_slots,
     find_missing_slots,
     merge_slots,
@@ -79,8 +80,9 @@ def collect_slots_interactive(
             margin_min=margin_min,
             filled=filled,
         )
+    provisional = build_enriched_query(initial_query, filled)
     route = route_by_graph(
-        build_enriched_query(initial_query, filled),
+        provisional,
         index,
         margin_min=margin_min,
         filled=filled,
@@ -140,7 +142,14 @@ def interactive_clarify_chat(
                     else:
                         eff_mode, eff_top_k = search_mode, top_k
                     missing = find_missing_slots(filled)
-                    enriched = build_enriched_query(query, filled)
+                    enriched = build_routed_query(
+                        query,
+                        filled,
+                        route_doc=route.get("doc"),
+                        margin=route.get("margin"),
+                        mode=route.get("mode"),
+                        top_k=route.get("top_k"),
+                    )
                     deps.console.print(
                         f"[dim]Slots: {filled or '{}'} | "
                         f"faltando: {missing or 'nenhum'} | "

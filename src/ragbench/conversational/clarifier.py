@@ -3,9 +3,10 @@
 Hipótese: conversar para coletar os dados faltantes antes de consultar o
 grafo gera resposta mais acurada do que o single-turn direto.
 
-Escopo do spike: extração por regex/keywords para o domínio bancário dos
-POPs (`pop_acesso_pf.md`, `pop_cdc_pf.md`). Não usa LLM aqui para manter o
-teste determinístico e barato; o LLM/grafo entra só na resposta final.
+Extração por regex/keywords para os slots legados de acesso/CDC, com
+fallback genérico para slots de novos POPs (qualquer `expected_slot`
+desconhecido é aceito como valor literal). Não usa LLM aqui para manter
+o teste determinístico e barato; o LLM/grafo entra só na resposta final.
 """
 
 from __future__ import annotations
@@ -53,7 +54,9 @@ BANKING_SLOTS: list[BankingSlot] = [
 _SLOT_BY_NAME = {s.name: s for s in BANKING_SLOTS}
 
 _BLOQUEIO_RE = re.compile(r"bloqueio\s*['\"]([A-Za-z0-9])['\"]", re.IGNORECASE)
-_CODIGO_ISOLADO_RE = re.compile(r"c[oó]digo\s*['\"]?([A-Za-z0-9])['\"]?", re.IGNORECASE)
+# "código de barras" (fatura) não é código de bloqueio: o caractere
+# capturado não pode ser continuação de palavra ("d" de "de").
+_CODIGO_ISOLADO_RE = re.compile(r"c[oó]digo\s*['\"]?([A-Za-z0-9])(?![A-Za-z0-9])", re.IGNORECASE)
 _QUOTED_CODE_RE = re.compile(r"['\"]([A-Za-z0-9])['\"]", re.IGNORECASE)
 _BIOMETRIA_RE = re.compile(r"biometria[^0-9]{0,20}(\d+)\s*dias?", re.IGNORECASE)
 _DIAS_RE = re.compile(r"(\d+)\s*dias?", re.IGNORECASE)
@@ -145,6 +148,10 @@ def extract_slots(text: str, expected_slot: str | None = None) -> dict[str, str]
                 found["tipo_cliente"] = "correntista"
             elif stripped.lower() in {"não", "nao", "n", "não correntista"}:
                 found["tipo_cliente"] = "não correntista"
+        elif stripped and len(stripped) <= 120:
+            # Slot genérico de novo POP: aceita o valor literal para que
+            # qualquer cenário simulado flua sem tabela por documento.
+            found[expected_slot] = stripped
 
     return found
 
@@ -156,17 +163,34 @@ def merge_slots(base: dict[str, str], new: dict[str, str]) -> dict[str, str]:
     return merged
 
 
-def find_missing_slots(filled: dict[str, str]) -> list[str]:
-    """Retorna os nomes dos slots ainda não preenchidos, na ordem canônica."""
-    return [s.name for s in BANKING_SLOTS if not filled.get(s.name)]
+def find_missing_slots(filled: dict[str, str], extra_slots: list[str] | None = None) -> list[str]:
+    """Retorna os slots ainda não preenchidos (canônicos + extras genéricos).
+
+    `extra_slots` carrega chaves simuladas de novos POPs que não estão em
+    `BANKING_SLOTS`; elas entram após as canônicas, sem duplicar.
+    """
+    missing = [s.name for s in BANKING_SLOTS if not filled.get(s.name)]
+    if extra_slots:
+        for slot in extra_slots:
+            if slot not in missing and not filled.get(slot):
+                missing.append(slot)
+    return missing
+
+
+def question_for_slot(slot: str) -> str:
+    """Pergunta de clarificação para qualquer slot (legado ou genérico)."""
+    known = _SLOT_BY_NAME.get(slot)
+    if known:
+        return known.question
+    human = slot.replace("_", " ")
+    return f"Por favor, informe {human}?"
 
 
 def next_clarifying_question(missing: list[str]) -> str | None:
     """Retorna a próxima pergunta de clarificação, ou None se não há pendência."""
     if not missing:
         return None
-    slot = _SLOT_BY_NAME.get(missing[0])
-    return slot.question if slot else None
+    return question_for_slot(missing[0])
 
 
 def should_ask_more(missing: list[str], turns_used: int, max_turns: int) -> bool:
@@ -175,8 +199,76 @@ def should_ask_more(missing: list[str], turns_used: int, max_turns: int) -> bool
 
 
 def build_enriched_query(original: str, filled: dict[str, str]) -> str:
-    """Monta a query enriquecida para o grafo a partir dos slots coletados."""
+    """Monta a query enriquecida para o grafo a partir dos slots coletados.
+
+    Formato legado `k=v` preservado byte-igual (testes e runs históricas
+    dependem da substring); ver `build_routed_query()` para o bloco
+    adicional em linguagem natural.
+    """
     if not filled:
         return original
     parts = [f"{k}={v}" for k, v in sorted(filled.items())]
     return f"{original}\n[Dados coletados via clarificação: {'; '.join(parts)}]"
+
+
+def build_routed_instruction(
+    filled: dict[str, str],
+    route_doc: str | None = None,
+    margin: float | None = None,
+    mode: str | None = None,
+    top_k: int | None = None,
+) -> str:
+    """Instrução em linguagem natural com tudo que a IA precisa (pura).
+
+    Traduz o `k=v` máquina para frases + rota prevista, para a IA não
+    precisar adivinhar o significado dos códigos.
+    """
+    if not filled:
+        facts = "Nenhum dado adicional foi coletado; responda com o contexto."
+    else:
+        phrases = [f"{k.replace('_', ' ')} é '{v}'" for k, v in sorted(filled.items())]
+        facts = "O cliente informou que " + "; ".join(phrases) + "."
+    route = ""
+    if route_doc:
+        detail = f"Rota prevista: {route_doc}"
+        extras = []
+        if margin is not None:
+            extras.append(f"margem {margin:.4f}")
+        if mode is not None and top_k is not None:
+            extras.append(f"estratégia {mode}/k{top_k}")
+        if extras:
+            detail += f" ({', '.join(extras)})"
+        detail += ". Trate os dados coletados como fatos verdadeiros."
+        route = " " + detail
+    return (
+        "[Resumo para o assistente: "
+        f"{facts}{route} Responda estritamente com base no contexto "
+        "recuperado e nesses fatos.]"
+    )
+
+
+def build_routed_query(
+    original: str,
+    filled: dict[str, str],
+    route_doc: str | None = None,
+    margin: float | None = None,
+    mode: str | None = None,
+    top_k: int | None = None,
+) -> str:
+    """Query roteada completa: legada `k=v` + bloco natural aditivo (pura).
+
+    A primeira linha após o original é sempre a legada, para compatibilidade
+    com probes e testes que buscam `"k=v" in enriched`.
+    """
+    base = build_enriched_query(original, filled)
+    if not filled:
+        return base
+    return f"{base}\n{build_routed_instruction(filled, route_doc, margin, mode, top_k)}"
+
+
+def clarify_history_turn(question: str, answer: str) -> list[dict[str, str]]:
+    """Um turno de clarificação como mensagens de histórico (puro)."""
+    return [
+        {"role": "user", "content": question},
+        {"role": "assistant", "content": answer},
+    ]

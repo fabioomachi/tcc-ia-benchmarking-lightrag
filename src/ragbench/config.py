@@ -154,8 +154,15 @@ class ClarifySettings(BaseModel):
     require_all_slots: bool = False
 
 
+class DocStrategy(BaseModel):
+    """Estratégia de retrieval por documento (genérica para N POPs)."""
+
+    mode: str = "hybrid"
+    top_k: int = Field(default=5, ge=1, le=100)
+
+
 class RoutingSettings(BaseModel):
-    """Roteador só-grafo: decide acesso-vs-CDC pelo índice de entidades."""
+    """Roteador só-grafo: decide entre N POPs pelo índice de entidades."""
 
     enabled: bool = True
     margin_min: float = 0.05
@@ -163,6 +170,14 @@ class RoutingSettings(BaseModel):
     acesso_top_k: int = 10
     cdc_mode: str = "hybrid"
     cdc_top_k: int = 5
+    # Estratégias por documento (override do default hybrid/k5). Chave é o
+    # nome do arquivo do POP; novos POPs caem no default sem exigir código.
+    strategies: dict[str, DocStrategy] = Field(default_factory=dict)
+    default_mode: str = "hybrid"
+    default_top_k: int = Field(default=5, ge=1, le=100)
+    # Reparo: contexto com menos marcadores que isso do doc previsto
+    # dispara 1 turno extra de clarificação.
+    weak_markers_threshold: int = Field(default=5, ge=0)
 
 
 class BenchmarkSettings(BaseSettings):

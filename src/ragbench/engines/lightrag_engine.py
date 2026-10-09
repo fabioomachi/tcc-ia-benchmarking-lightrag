@@ -58,21 +58,44 @@ def build_entity_extraction_prompt(base_prompt: str) -> str:
     return base_prompt + BANKING_COMPLIANCE_ENTITY_EXTRACTION
 
 
+# Marcador da query roteada (ver `clarifier.build_enriched_query`).
+ROUTED_QUERY_MARKER = "[Dados coletados via clarificação"
+
+# Sufixo de sistema dedicado ao run roteado: diz à IA que os dados
+# coletados são fatos verdadeiros e que o contexto recuperado tem
+# prioridade sobre conhecimento geral (anti-alucinação).
+ROUTED_SYSTEM_SUFFIX = (
+    "INSTRUÇÃO DE ROTEAMENTO:\n"
+    "1. Os dados em [Dados coletados via clarificação] e [Resumo para o "
+    "assistente] são fatos verdadeiros informados pelo cliente — use-os "
+    "como verdade, sem questionar.\n"
+    "2. Priorize o contexto recuperado dos documentos internos; em "
+    "conflito com conhecimento geral, prevalece o documento.\n"
+    "3. Se o contexto não cobrir o caso, diga o que falta em vez de "
+    "inventar regra ou número de rotina/sistema."
+)
+
+
 def build_llm_messages(
     prompt: str,
     system_prompt: str | None = None,
     history_messages: list[dict[str, str]] | None = None,
 ) -> list[dict[str, str]]:
-    """Monta as mensagens do LLM com a restrição de idioma (puro: sem I/O)."""
+    """Monta as mensagens do LLM com a restrição de idioma (puro: sem I/O).
+
+    Queries roteadas (com o marcador de dados coletados) recebem o sufixo
+    de roteamento no system, para a IA tratar os slots como fatos e o
+    contexto como fonte primária.
+    """
     language_constraint = (
         "DIRETRIZES OBRIGATÓRIAS:\n"
         "1. Responda SEMPRE e EXCLUSIVAMENTE em Português do Brasil (pt-BR).\n"
         "2. Seja direto e objetivo.\n"
         "3. Responda estritamente com base nos fatos fornecidos no contexto."
     )
-    final_sys_prompt = (
-        f"{system_prompt}\n\n{language_constraint}" if system_prompt else language_constraint
-    )
+    extra = f"\n\n{ROUTED_SYSTEM_SUFFIX}" if ROUTED_QUERY_MARKER in prompt else ""
+    full_constraint = f"{language_constraint}{extra}"
+    final_sys_prompt = f"{system_prompt}\n\n{full_constraint}" if system_prompt else full_constraint
 
     messages = [{"role": "system", "content": final_sys_prompt}]
     if history_messages:
@@ -295,12 +318,15 @@ class LightRAGEngine(BaseRAGPipeline):
         stream: bool = False,
         enable_rerank: bool = False,
         history_messages: list[dict[str, str]] | None = None,
+        user_prompt: str | None = None,
     ) -> str | AsyncGenerator[str, None]:
         """Executa consulta contra o grafo e vetores do LightRAG.
 
         Espelha o `ainsert` do index em robustez: `stream` e
         `conversation_history` são repassados ao `QueryParam` (antes eram
-        aceitos na assinatura e silenciosamente ignorados).
+        aceitos na assinatura e silenciosamente ignorados). `user_prompt`
+        permite instrução extra por chamada (ex: resumo da rota), sem
+        estado mutável no engine (thread-safe em lote concorrente).
         """
         if not self.rag:
             raise RuntimeError("Motor LightRAG não foi inicializado. Chame initialize() primeiro.")
@@ -312,6 +338,7 @@ class LightRAGEngine(BaseRAGPipeline):
             stream=stream,
             conversation_history=history_messages or [],
             enable_rerank=enable_rerank,
+            user_prompt=user_prompt,
         )
         return await self.rag.aquery(query, param=param)
 

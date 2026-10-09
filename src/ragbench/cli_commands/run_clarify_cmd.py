@@ -2,9 +2,12 @@
 
 Fluxo por cenário (`data/hypothesis_inicial_scenarios.json`):
   pergunta_incompleta + slots_simulados
-    -> clarificação guiada pelo grafo (para na margem entre docs)
-    -> roteamento só-grafo (acesso=local/k10, cdc=hybrid/k5)
-    -> engine.aquery (grafo) + probe de reparo se contexto fraco
+    -> clarificação guiada pelo grafo (para na margem entre N docs)
+    -> roteamento só-grafo genérico (legado acesso=local/k10,
+       cdc=hybrid/k5; demais POPs via default/overrides de settings)
+    -> query roteada (linha legada `k=v` + resumo natural + rota) + system
+       prompt de roteamento + histórico de turnos no `aquery`
+    -> probe genérica de reparo se contexto fraco do doc previsto
     -> checkpoint.sqlite3 + CSV + MD (compatível com `eval --run-id`)
 """
 
@@ -18,18 +21,24 @@ from typing import Annotated
 import typer
 
 from ragbench.cli_commands import deps
-from ragbench.cli_commands.probe_cmd import classify_context
+from ragbench.cli_commands.probe_cmd import classify_context_generic
 from ragbench.cli_commands.quota_support import (
     QUOTA_EXIT_CODE,
+    merge_run_manifest,
     print_quota_stopped,
 )
 from ragbench.cli_commands.run_cmd import build_run_id
 from ragbench.conversational.batch import (
     load_scenarios,
     simulate_clarification,
-    simulate_clarification_guided,
+    simulate_clarification_guided_full,
 )
-from ragbench.conversational.router import DOC_ACESSO, load_entity_index
+from ragbench.conversational.router import (
+    DEFAULT_STRATEGY,
+    DOC_ACESSO,
+    DOC_CDC,
+    load_entity_index,
+)
 from ragbench.core.exceptions import QuotaExhaustedError
 from ragbench.core.models import (
     QueryExecutionRecord,
@@ -42,9 +51,28 @@ from ragbench.infrastructure.logging import setup_logging
 from ragbench.infrastructure.storage import SQLiteExecutionStorage
 from ragbench.reporting.reporters import BenchmarkReporter
 
-# Reparo: se o contexto recuperado tiver menos marcadores que isso do doc
-# previsto, faz 1 turno extra mirando o slot discriminativo restante.
+# Legado: limiar fixo de reparo. Uso atual via
+# `settings.routing.weak_markers_threshold` (default 5); mantido para
+# compatibilidade com imports externos.
 WEAK_CONTEXT_MARKERS = 5
+
+
+def build_routing_strategies(settings) -> tuple[dict[str, tuple[str, int]], tuple[str, int]]:
+    """Compõe overrides de estratégia + default a partir do settings (puro).
+
+    Precedência por doc: `routing.strategies[doc]` > legado acesso/CDC do
+    settings > `STRATEGY_FOR_DOC` do router > default hybrid/k5.
+    """
+    strategies: dict[str, tuple[str, int]] = {
+        DOC_ACESSO: (settings.routing.acesso_mode, settings.routing.acesso_top_k),
+        DOC_CDC: (settings.routing.cdc_mode, settings.routing.cdc_top_k),
+    }
+    for doc, strat in (settings.routing.strategies or {}).items():
+        strategies[doc] = (strat.mode, strat.top_k)
+    default = (settings.routing.default_mode, settings.routing.default_top_k)
+    if default == ("hybrid", 5) and DEFAULT_STRATEGY != ("hybrid", 5):
+        default = DEFAULT_STRATEGY
+    return strategies, default
 
 
 def run_clarify_batch(
@@ -75,6 +103,8 @@ def run_clarify_batch(
     storage = SQLiteExecutionStorage(db_path)
     routing_enabled = settings.routing.enabled
     entity_index = load_entity_index(settings.storage_dir) if routing_enabled else {}
+    strategies, default_strategy = build_routing_strategies(settings)
+    weak_threshold = settings.routing.weak_markers_threshold
 
     async def _run():
         items = await asyncio.to_thread(load_scenarios, scenarios_path)
@@ -97,13 +127,18 @@ def run_clarify_batch(
                     continue
                 q_incomplete = str(item.get("pergunta_incompleta", ""))
                 simulated = dict(item.get("slots_simulados", {}))
+                history: list[dict[str, str]] = []
+                probe_ctx_preview = ""
+                probe_counts: dict[str, int] = {}
                 if routing_enabled:
-                    filled, turns, enriched, route = simulate_clarification_guided(
+                    filled, turns, enriched, route, history = simulate_clarification_guided_full(
                         q_incomplete,
                         simulated,
                         entity_index=entity_index,
                         max_turns=max_clarify_turns,
                         margin_min=settings.routing.margin_min,
+                        strategies=strategies,
+                        default_strategy=default_strategy,
                     )
                     eff_mode = SearchMode(route["mode"])
                     eff_top_k = int(route["top_k"])
@@ -120,27 +155,37 @@ def run_clarify_batch(
                         "scores": {},
                     }
                     eff_mode, eff_top_k = search_mode, top_k
-                # Probe de reparo: contexto fraco do doc previsto -> 1 turno
-                # extra mirando slot discriminativo restante (se simulado).
+                # Probe de reparo genérica (N POPs): contexto fraco do doc
+                # previsto -> 1 turno extra mirando slot discriminativo
+                # restante (se simulado).
                 repair_turns = 0
                 if routing_enabled and route.get("doc"):
                     try:
                         probe_ctx = await engine.aget_context(
                             query=enriched, mode=eff_mode, top_k=eff_top_k
                         )
-                        predicted, n_acesso, n_cdc = classify_context(probe_ctx or "")
-                        own = n_acesso if route["doc"] == DOC_ACESSO else n_cdc
-                        if own < WEAK_CONTEXT_MARKERS:
+                        probe_ctx_preview = (probe_ctx or "")[:600].replace("\n", " ")
+                        _, probe_counts = classify_context_generic(
+                            probe_ctx or "",
+                            docs=sorted(set(list(entity_index) + [str(route.get("doc"))])) or None,
+                        )
+                        own = probe_counts.get(str(route.get("doc")), 0)
+                        if own < weak_threshold:
                             from ragbench.conversational.clarifier import (
+                                build_enriched_query,
+                                build_routed_query,
+                                clarify_history_turn,
                                 extract_slots,
                                 find_missing_slots,
                                 merge_slots,
+                                question_for_slot,
                             )
                             from ragbench.conversational.router import (
                                 next_discriminative_slot,
+                                route_by_graph,
                             )
 
-                            missing = find_missing_slots(filled)
+                            missing = find_missing_slots(filled, extra_slots=list(simulated))
                             target = next_discriminative_slot(
                                 [s for s in missing if s in simulated]
                             )
@@ -151,17 +196,27 @@ def run_clarify_batch(
                                     answered[target] = str(value)
                                 filled = merge_slots(filled, answered)
                                 repair_turns = 1
-                                from ragbench.conversational.clarifier import (
-                                    build_enriched_query,
+                                history.extend(
+                                    clarify_history_turn(question_for_slot(target), str(value))
                                 )
-                                from ragbench.conversational.router import route_by_graph
-
-                                enriched = build_enriched_query(q_incomplete, filled)
+                                # Roteia sobre o texto legado: o Resumo cita o
+                                # arquivo previsto e realimentaria o scoring.
+                                provisional = build_enriched_query(q_incomplete, filled)
                                 route = route_by_graph(
-                                    enriched,
+                                    provisional,
                                     entity_index,
                                     margin_min=settings.routing.margin_min,
                                     filled=filled,
+                                    strategies=strategies,
+                                    default_strategy=default_strategy,
+                                )
+                                enriched = build_routed_query(
+                                    q_incomplete,
+                                    filled,
+                                    route_doc=route.get("doc"),
+                                    margin=route.get("margin"),
+                                    mode=route.get("mode"),
+                                    top_k=route.get("top_k"),
                                 )
                                 eff_mode = SearchMode(route["mode"])
                                 eff_top_k = int(route["top_k"])
@@ -178,9 +233,20 @@ def run_clarify_batch(
                     model=engine.llm_model,
                 )
                 try:
-                    resp = await engine.aquery(
-                        query=enriched, mode=eff_mode, top_k=eff_top_k, stream=False
-                    )
+                    # Histórico de turnos: a IA recebe o diálogo estruturado
+                    # além da query achatada (fake engine de testes ignora).
+                    try:
+                        resp = await engine.aquery(
+                            query=enriched,
+                            mode=eff_mode,
+                            top_k=eff_top_k,
+                            stream=False,
+                            history_messages=history or None,
+                        )
+                    except TypeError:
+                        resp = await engine.aquery(
+                            query=enriched, mode=eff_mode, top_k=eff_top_k, stream=False
+                        )
                     if not isinstance(resp, str) and hasattr(resp, "__aiter__"):
                         full = ""
                         async for chunk in resp:
@@ -222,8 +288,12 @@ def run_clarify_batch(
                         "rota_mode": route.get("mode"),
                         "rota_top_k": route.get("top_k"),
                         "rota_margin": route.get("margin"),
+                        "rota_confident": route.get("confident"),
                         "rota_scores": route.get("scores"),
                         "query_enriquecida": enriched,
+                        "historico_clarify": history,
+                        "probe_ctx_preview": probe_ctx_preview,
+                        "probe_counts": probe_counts,
                         "ground_truth": item.get("ground_truth", ""),
                         "tipo": item.get("tipo", ""),
                     }
@@ -233,6 +303,7 @@ def run_clarify_batch(
             md_path = run_dir / "resumo_benchmark.md"
             manifest_path = run_dir / "clarify_manifest.json"
             golden_path = run_dir / "golden.json"
+            manifest = merge_run_manifest(manifest, manifest_path)
             golden_entries = [
                 {
                     "question": m["query_enriquecida"],

@@ -17,6 +17,7 @@ from typing import Annotated
 import typer
 
 from ragbench.cli_commands import deps
+from ragbench.cli_commands.quota_support import merge_run_manifest
 from ragbench.cli_commands.run_cmd import build_run_id
 from ragbench.conversational.batch import load_scenarios, simulate_clarification
 from ragbench.core.models import (
@@ -106,6 +107,7 @@ def run_tree_batch(
             md_path = run_dir / "resumo_benchmark.md"
             manifest_path = run_dir / "tree_manifest.json"
             golden_path = run_dir / "golden.json"
+            manifest = merge_run_manifest(manifest, manifest_path)
             golden_entries = [
                 {
                     "question": m["query_enriquecida"],

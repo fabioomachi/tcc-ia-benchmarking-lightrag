@@ -59,7 +59,11 @@ CDC_MARKERS = [
 
 
 def classify_context(context: str) -> tuple[str, int, int]:
-    """Classifica o contexto como acesso/cdc/empate por contagem de marcadores."""
+    """Classifica o contexto como acesso/cdc/empate por contagem de marcadores.
+
+    Legado 2-POPs preservado (probes e testes históricos). Para N POPs,
+    ver `classify_context_generic()`.
+    """
     low = context.lower()
     acesso = sum(low.count(m) for m in ACESSO_MARKERS)
     cdc = sum(low.count(m) for m in CDC_MARKERS)
@@ -68,6 +72,49 @@ def classify_context(context: str) -> tuple[str, int, int]:
     if cdc > acesso:
         return "pop_cdc_pf.md", acesso, cdc
     return "empate", acesso, cdc
+
+
+def doc_markers_for(doc: str) -> list[str]:
+    """Marcadores de um documento (genérico para N POPs, puro)."""
+    if doc == "pop_acesso_pf.md":
+        return ACESSO_MARKERS
+    if doc == "pop_cdc_pf.md":
+        return CDC_MARKERS
+    try:
+        from ragbench.engines.decision_tree_engine import NEW_DOC_KEYWORDS
+
+        kws = NEW_DOC_KEYWORDS.get(doc)
+        if kws:
+            return list(kws)
+    except Exception:
+        pass
+    return [doc.replace(".md", "").replace("_", " ").replace("pop ", "").lower()]
+
+
+def classify_context_generic(
+    context: str, docs: list[str] | None = None
+) -> tuple[str, dict[str, int]]:
+    """Classifica o contexto entre N documentos por marcadores (puro).
+
+    Retorna (previsto, contagens). `docs=None` usa acesso/CDC + os 6 POPs
+    novos conhecidos; lista explícita restringe a competição. Empate ou
+    zero geral retorna ("empate", contagens).
+    """
+    low = (context or "").lower()
+    if docs is None:
+        docs = ["pop_acesso_pf.md", "pop_cdc_pf.md"]
+        try:
+            from ragbench.engines.decision_tree_engine import NEW_DOC_KEYWORDS
+
+            docs += [d for d in NEW_DOC_KEYWORDS if d not in docs]
+        except Exception:
+            pass
+    counts = {d: sum(low.count(m) for m in doc_markers_for(d)) for d in docs}
+    best = max(counts, key=lambda d: counts[d]) if counts else "empate"
+    top = counts.get(best, 0) if counts else 0
+    if top <= 0 or sum(1 for v in counts.values() if v == top) != 1:
+        return "empate", counts
+    return best, counts
 
 
 def probe_retrieval(

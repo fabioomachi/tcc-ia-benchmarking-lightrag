@@ -12,12 +12,16 @@ from pathlib import Path
 
 from ragbench.conversational.clarifier import (
     build_enriched_query,
+    build_routed_query,
+    clarify_history_turn,
     extract_slots,
     find_missing_slots,
     merge_slots,
+    question_for_slot,
     should_ask_more,
 )
 from ragbench.conversational.router import (
+    DEFAULT_STRATEGY,
     RouteInfo,
     next_discriminative_slot,
     route_by_graph,
@@ -47,7 +51,8 @@ def simulate_clarification(
     filled = extract_slots(initial_query)
     turns = 0
     while True:
-        missing = find_missing_slots(filled)
+        # Genérico: inclui chaves simuladas de novos POPs além das canônicas.
+        missing = find_missing_slots(filled, extra_slots=list(simulated_slots))
         if not should_ask_more(missing, turns, max_turns):
             break
         # Preenche o próximo slot faltante que tenha valor simulado; pula os
@@ -71,6 +76,8 @@ def simulate_clarification_guided(
     entity_index: dict[str, list[str]] | None = None,
     max_turns: int = 3,
     margin_min: float = 0.05,
+    strategies: dict | None = None,
+    default_strategy: tuple[str, int] = DEFAULT_STRATEGY,
 ) -> tuple[dict[str, str], int, str, RouteInfo]:
     """Diálogo guiado pelo grafo: para quando a margem entre docs estabiliza.
 
@@ -79,13 +86,51 @@ def simulate_clarification_guided(
     menos 1 turno) ou sem valores simulados ou sem turnos. Sem índice, recai
     no comportamento da `simulate_clarification` clássica.
     Retorna (filled, turns, enriched_query, route_info como RouteInfo).
+
+    A query enriquecida mantém a linha legada `k=v` e apenda o bloco
+    `[Resumo para o assistente]` (ver `build_routed_query`).
+    """
+    filled, turns, enriched, route, _ = simulate_clarification_guided_full(
+        initial_query,
+        simulated_slots,
+        entity_index=entity_index,
+        max_turns=max_turns,
+        margin_min=margin_min,
+        strategies=strategies,
+        default_strategy=default_strategy,
+    )
+    return filled, turns, enriched, route
+
+
+def simulate_clarification_guided_full(
+    initial_query: str,
+    simulated_slots: dict[str, str],
+    entity_index: dict[str, list[str]] | None = None,
+    max_turns: int = 3,
+    margin_min: float = 0.05,
+    strategies: dict | None = None,
+    default_strategy: tuple[str, int] = DEFAULT_STRATEGY,
+) -> tuple[dict[str, str], int, str, RouteInfo, list[dict[str, str]]]:
+    """Variante com histórico de turnos para o `aquery` (pura, sem I/O).
+
+    Retorna (filled, turns, enriched_query, route, history_messages), onde
+    o histórico reproduz pergunta/resposta de cada turno simulado para a
+    IA receber o diálogo estruturado além da query achatada.
     """
     index = entity_index or {}
     filled = extract_slots(initial_query)
     turns = 0
-    route = route_by_graph(initial_query, index, margin_min=margin_min, filled=filled)
+    history: list[dict[str, str]] = []
+    route = route_by_graph(
+        initial_query,
+        index,
+        margin_min=margin_min,
+        filled=filled,
+        strategies=strategies,
+        default_strategy=default_strategy,
+    )
     while True:
-        missing = find_missing_slots(filled)
+        missing = find_missing_slots(filled, extra_slots=list(simulated_slots))
         if not should_ask_more(missing, turns, max_turns):
             break
         if turns > 0 and route.get("confident"):
@@ -101,8 +146,35 @@ def simulate_clarification_guided(
             answered[target] = str(value)
         filled = merge_slots(filled, answered)
         turns += 1
-        enriched = build_enriched_query(initial_query, filled)
-        route = route_by_graph(enriched, index, margin_min=margin_min, filled=filled)
-    enriched = build_enriched_query(initial_query, filled)
-    route = route_by_graph(enriched, index, margin_min=margin_min, filled=filled)
-    return filled, turns, enriched, route
+        history.extend(clarify_history_turn(question_for_slot(target), str(value)))
+        provisional = build_enriched_query(initial_query, filled)
+        route = route_by_graph(
+            provisional,
+            index,
+            margin_min=margin_min,
+            filled=filled,
+            strategies=strategies,
+            default_strategy=default_strategy,
+        )
+    # Roteamento final SEMPRE sobre o texto legado (sem Resumo): o bloco
+    # [Resumo para o assistente] cita o nome do arquivo previsto
+    # ("..._acesso_....md"), cujos tokens realimentariam o scoring e
+    # tornariam qualquer rota intermediária auto-confirmatória.
+    legacy = build_enriched_query(initial_query, filled)
+    route = route_by_graph(
+        legacy,
+        index,
+        margin_min=margin_min,
+        filled=filled,
+        strategies=strategies,
+        default_strategy=default_strategy,
+    )
+    enriched = build_routed_query(
+        initial_query,
+        filled,
+        route_doc=route.get("doc"),
+        margin=route.get("margin"),
+        mode=route.get("mode"),
+        top_k=route.get("top_k"),
+    )
+    return filled, turns, enriched, route, history
