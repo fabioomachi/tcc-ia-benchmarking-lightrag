@@ -65,6 +65,60 @@ Resumo da trajetória (faithfulness / relevancy): hybrid 0.68→0.27→0.41 /
 0.78→0.59→0.66; direct 0.18→0.13→0.15 / 0.82→0.81→0.80; tree 0.86→0.78→0.74 /
 0.71→0.74→0.68.
 
+## Série v2 — roteador generalizado N-POPs (06–09/10/2026, juiz `gemini-3.5-flash-lite`)
+
+Re-execução dos braços de clarificação e árvore com o **roteador generalizado
+para N POPs** (código em working tree, runs `*_v2_24` e `golden_*_v2`, mesmos
+cenários-fonte `data/hypothesis_inicial_scenarios.json` e
+`data/golden_scenarios_completa.json`). Mudanças vs configuração original:
+scoring por **recall ponderado sobre a query** (antes: fração do doc — inflava
+POPs com poucas entidades), stopwords estendidas (`meu/minha/não/…`), valores
+crus de slots excluídos do scoring (só os hints desenhados contam), bônus de
+**keywords normativas** (mesmo vocabulário da árvore) para desempate, query
+roteada aditiva (`k=v` preservado + `[Resumo para o assistente]`), system prompt
+de roteamento automático, histórico de turnos no `aquery` e probe de reparo
+genérica N-docs. Extrator corrigido: `código de barras` não vira mais
+`codigo_bloqueio='D'`. Tabela-máquina: linhas `2pops-24-v2` / `8pops-96-v2` em
+`evidencias/tabela_bracos_2_vs_8.csv`; amostras em `evidencias/erav2_*`.
+
+| Braço | Run | n | Faithfulness (antes) | Answer Relevancy (antes) | Context Recall | Context Precision | Lat. média |
+|---|---|---|---|---|---|---|---|
+| Incompleta + clarify fixo + grafo `hybrid/k5` (24) | `exp_clarify_fixo_v2_24` | 24 | 0.6909 (0.7349) | 0.7146 (0.6980) | 0.9792 | 1.0000 | 1.8s |
+| Incompleta + clarify guiado + rota N-POPs (24) | `exp_routed_v2_24` | 24 | 0.8579 (0.8588) | 0.7642 (0.7788) | 1.0000 | 1.0000 | 10.4s |
+| Árvore de decisão (24) | `exp_tree_v2_24` | 24 | 0.8576 (0.8631) | 0.7110 (0.7103) | 0.9792 | 1.0000 | 0.0s |
+| Incompleta + clarify fixo + grafo `hybrid/k5` (96) | `golden_clarify_fixo_v2` | 96 | 0.4589 (0.4731) | 0.5988 (0.5844) | 0.9870 | 1.0000 | 1.2s |
+| Incompleta + clarify guiado + rota N-POPs (96) | `golden_routed_v2` | 96 | 0.5485 (0.5439) | 0.6088 (0.6579) | 0.9844 | 0.9896 | 23.9s |
+| Árvore de decisão v2 (96) | `golden_tree_v2` | 96 | 0.7162† (0.7362) | 0.6758 (0.6797) | 0.9789 | 1.0000 | 0.0s |
+
+† Faithfulness da árvore nos 96 é média sobre 79/96 amostras (17 NaN: o juiz não
+extraiu declarações das respostas-template curtas — "No statements were
+generated", zero jobs com erro). Demais células v2 sem NaN, exceto 1 NaN em
+faithfulness/relevancy do routed nos 24/96.
+
+Leitura da série v2:
+
+1. **Sem regressão na generalização.** Routed 24/24 rotas corretas (12 acesso +
+   12 CDC, rota==source) com faithfulness 0.8579 ≈ 0.8588 legado; nos 96,
+   61/96 rotas corretas nos 8 POPs (teto da árvore manual: 72/96) com
+   faithfulness 0.5485 ≈ 0.5439 legado. O roteador saiu de ~5/24 (scoring antigo
+   aplicado a 8 docs) para 24/24 sem nenhuma regra por documento.
+2. **Routed confirma a hipótese nos 8 POPs:** +0.09 de faithfulness sobre o fixo
+   nos 96 (0.5485 vs 0.4589) e +0.17 nos 24 (0.8579 vs 0.6909). Clarify médio:
+   1.00 turno (routed 24), 1.21 (routed 96, 3 reparos), 2.04 (fixo 24), 1.44
+   (fixo 96) — mesmos patamares da série original.
+3. **`answer_relevancy` cede ~0.05 no routed-96** (0.6088 vs 0.6579): o bloco
+   `[Resumo para o assistente]` alonga a pergunta e dilui a métrica, que gera
+   pseudo-perguntas a partir dela. Tuning futuro mapeado: mover a instrução para
+   `user_prompt` do `QueryParam` em vez do corpo da query.
+4. **Árvore segue líder nos 96** (0.72 vs 0.55 routed), como na série original
+   (0.74 vs 0.54): regras manuais vencem onde o grafo extraiu poucas entidades
+   (ex: judicial tem 11 entidades; queries curtas empatam em tokens genéricos).
+5. Operação da série: egress IPv6 do host intermitente (workaround `PYTHONPATH`
+   com `sitecustomize` forçando IPv4), cota free-tier (embeddings 1000/dia, juiz
+   500/dia → 1 eval-96 por dia), `health` checa só a presença da chave (sem I/O
+   de rede). Runs divididas por timeout geravam manifest/golden parciais —
+   corrigido com merge por índice em `run_clarify/tree/direct`.
+
 ## O que aconteceu com o crescimento de 2 → 8 POPs
 
 1. **O grafo puro colapsou e recuperou-se só em parte.** Faithfulness do `hybrid/k5`
@@ -147,6 +201,10 @@ das respostas de forma penalizada pelo juiz. Os números do roteado nos 96 golde
 - `era8_*_ragas.csv` (clarify_fixo, routed, tree, n=96) + `era8_96_hybrid_ragas.csv` e
   `era8_96_direct_ragas.csv` (n=96, runs `golden_full_hybrid_96` /
   `golden_direct_completa_96`): resultados RAGAS por amostra do nível final.
+- `erav2_24_*` / `erav2_96_*` (6 `_ragas.csv` + 6 `_*_manifest.json`): série v2
+  (roteador N-POPs, 06–09/10/2026) — mesmos cenários-fonte (`cenarios_2pops.json` /
+  `cenarios_8pops.json`); manifests trazem `rota_*`, `historico_clarify`,
+  `probe_ctx_preview` e `probe_counts`.
 - `era2_*_manifest.json` (clarify_fixo, routed, direct, tree),
   `era8_16_*_manifest.json` (clarify_fixo, routed, tree),
   `era8_*_manifest.json` (clarify_fixo, routed, direct, tree) +
@@ -156,4 +214,5 @@ das respostas de forma penalizada pelo juiz. Os números do roteado nos 96 golde
   `cenarios_8pops_16.json` (16 golden intermediárias, `golden-00`…`golden-15`) e
   `cenarios_8pops.json` (96 golden finais, de `data/golden_scenarios_completa.json`).
 - `tabela_bracos_2_vs_8.csv`: tabela-fonte da matriz acima, legível por máquina
-  (`conjunto,pops,braco,run,n,faithfulness,answer_relevancy,context_recall,context_precision,lat_media_s`).
+  (`conjunto,pops,braco,run,n,faithfulness,answer_relevancy,context_recall,context_precision,lat_media_s`),
+  estendida com as linhas `2pops-24-v2` / `8pops-96-v2` (série v2).

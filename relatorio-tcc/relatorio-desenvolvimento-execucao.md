@@ -4,7 +4,8 @@
 > **Resultado experimental:** ver [`relatorio-2-vs-8-pops.md`](relatorio-2-vs-8-pops.md) — matriz 3 níveis x 5 braços, gráfico e ameaças à validade.
 > **Dados auditáveis:** pasta [`evidencias/`](evidencias/) + tabela-máquina [`evidencias/tabela_bracos_2_vs_8.csv`](evidencias/tabela_bracos_2_vs_8.csv).
 
-Estado em 05/10/2026, branch `main` (`9cb5b85`). Repositório: `github.com/fabioomachi/tcc-ia-benchmarking-lightrag`.
+Estado em 09/10/2026, branch `main` (série v2 com código em working tree, não
+commitado; último commit `57813bb`). Repositório: `github.com/fabioomachi/tcc-ia-benchmarking-lightrag`.
 
 ## 1. Objeto e pergunta de pesquisa
 
@@ -28,7 +29,7 @@ Braços (mesmos modelos, juiz único `gemini-3.5-flash-lite` nos 3 níveis):
 |---|---|---|---|
 | 1 | Grafo `hybrid/k5`, pergunta completa | `run --mode hybrid --top-k 5` | LightRAG hybrid |
 | 2 | Incompleta + clarify fixo (≤3 turnos) + grafo | `run-clarify` | `hybrid/k5` |
-| 3 | Incompleta + clarify guiado + rota por documento | `run-clarify --routed` | `local/k10` p/ acesso, `hybrid/k5` p/ demais (nos 96: 62 `hybrid/k5` + 34 `local/k10`) |
+| 3 | Incompleta + clarify guiado + rota por documento | `run-clarify` (roteador on/off via `ROUTING__ENABLED`) | legado: `local/k10` p/ acesso, `hybrid/k5` p/ demais (nos 96: 62 `hybrid/k5` + 34 `local/k10`); **v2 (N-POPs)**: estratégias via `RoutingSettings.strategies` + default `hybrid/k5`, scoring por recall sobre a query + bônus de keywords normativas |
 | 4 | Só LLM, pergunta completa (zero retrieval) | `run-direct` | nenhum |
 | 5 | Árvore de decisão, regras fixas (zero LLM/grafo) | `run-tree` | nenhum |
 
@@ -98,7 +99,7 @@ Componentes (`src/ragbench/`, ~6943 linhas):
 
 - `config.py`: `BenchmarkSettings` via `pydantic-settings` (delimitador `__`). Modelos por papel: `LIGHTRAG__LLM_MODEL`, `CHAT__LLM_MODEL=gemini-3.1-flash-lite`, `RAGAS__JUDGE_MODEL` (eras avaliadas em `gemini-3.5-flash-lite`); embeddings fonte única `gemini-embedding-001/768` via REST `:embedContent` (endpoint OpenAI-compatível retorna 501 para `/embeddings`). Rate-limit `4.2s`, `concurrency=10`.
 - `engines/lightrag_engine.py`: `LightRAGEngine(role=index|chat)` sobre `ResilientOllamaClient`. Ontologia bancária injetada na extração: `REGRA_BACEN, PROCEDIMENTO, SISTEMA, CONDICAO, EXCECAO, ATOR, DOCUMENTO, PRAZO` + few-shot. `_SafeCallable` contorna `RLock deepcopy`. `aget_context()` audita retrieval sem gerar.
-- `conversational/router.py + clarifier.py`: roteador **só-grafo** — overlap ponderado com entidades reais de `kv_store_full_entities.json` (exclusivo 1.0, compartilhado 0.25), margem `≥0.05` como parada, pergunta o slot mais discriminativo primeiro. Sem keyword fixa.
+- `conversational/router.py + clarifier.py`: roteador **só-grafo generalizado N-POPs (v2)** — recall ponderado da query sobre entidades reais de `kv_store_full_entities.json` (exclusivo 1.0, compartilhado 0.25; denominador = tokens da query, nunca tamanho do doc), margem `≥0.05` como parada, pergunta o slot mais discriminativo primeiro; bônus de keywords normativas (mesmo vocabulário da árvore) só para desempate; `load_entity_index` descobre POPs via `DOCUMENTO_ORIGEM:` (sem hardcoded); slots genéricos e `question_for_slot()` para novos POPs; query roteada aditiva (`k=v` + `[Resumo para o assistente]`); `ROUTED_SYSTEM_SUFFIX` automático no system; histórico de turnos no `aquery` (`user_prompt` por chamada); probe de reparo genérica N-docs. Corrigidos no caminho: `código de barras` → falso `codigo_bloqueio`, feedback loop do Resumo no re-routing, manifest parcial em resume (merge por índice).
 - `engines/direct_llm_engine.py`: baseline `mode=direct`. `engines/decision_tree_engine.py` (~1100L): chatbot simbólico, v1 ~40 ramos (2 POPs) → v2 8 POPs + anti-colisão, templates fixos.
 - `runner.py`: `BenchmarkRunner.execute_batch()` — cache semântico → `aquery()` → `save_record` por query, `quota_stop`, `asyncio.to_thread` para SQLite.
 - `evaluation/ragas_evaluator.py`: `GeminiRestEmbeddings`, `AnswerRelevancy(strictness=1)` (Gemini rejeita `n=3`), `RunConfig(max_retries=15, max_wait=180)`, alerta NaN só em colunas de score.
@@ -141,6 +142,34 @@ Consolidação (cf. `PROMPT-regenerar-relatorio.md`): extrair médias de `resumo
 6. **Degradação em faithfulness/relevancy**, recall/precision `0.96–1.00`: contexto contém a resposta, gerador ancora no trecho errado.
 7. Tuning revertido 27/09 (sobre 16): `k10→k5` + sem `[Dados coletados]` + prompt rígido → `0.4783→~0.25`. **Revertido**; 96 já refletem o revert.
 
+## 6b. Série v2 — roteador N-POPs (06–09/10/2026)
+
+Motivação: o roteador original fora tunado para 2 docs (`local/k10` acesso,
+`hybrid/k5` CDC; demais POPs em fallback) e o scoring (fração do doc) inflava
+POPs com poucas entidades quando aplicado aos 8 docs (5/24 rotas corretas nos
+cenários hipótese). Correções (ver seção 4) elevaram o roteamento offline para
+24/24 nos 24 e 61/96 nos 96 (teto manual da árvore: 72/96; judicial tem só 11
+entidades e queries curtas empatam em tokens genéricos).
+
+Runs `*_v2_24` / `golden_*_v2` (mesmos cenários-fonte; juiz
+`gemini-3.5-flash-lite`; evidências `evidencias/erav2_*` + linhas
+`2pops-24-v2`/`8pops-96-v2` na tabela-máquina):
+
+| Braço | n=24 faith (antes) | n=96 faith (antes) |
+|---|---|---|
+| Routed N-POPs | 0.8579 (0.8588) | 0.5485 (0.5439) |
+| Clarify fixo | 0.6909 (0.7349) | 0.4589 (0.4731) |
+| Árvore v2 | 0.8576 (0.8631) | 0.7162† (0.7362) |
+
+† Média sobre 79/96 (17 NaN: juiz não extraiu declarações de templates curtos).
+
+Conclusões: sem regressão na generalização; routed confirma a hipótese nos 8
+POPs (+0.09 sobre o fixo nos 96); árvore segue líder nos 96; `answer_relevancy`
+do routed cede ~0.05 no 96 (Resumo alonga a pergunta — mover instrução para
+`user_prompt` é o próximo tuning). Operação: egress IPv6 intermitente
+(workaround `PYTHONPATH` forçando IPv4), cotas free-tier (embeddings 1000/dia,
+juiz 500/dia → 1 eval-96/dia), `health` não faz I/O de rede (só checa a chave).
+
 ## 7. Ameaças à validade (copiar para Metodologia)
 
 - 3 questionários diferentes + `n=4` no baseline — efeito-corpus confundido com efeito-questionário.
@@ -148,3 +177,11 @@ Consolidação (cf. `PROMPT-regenerar-relatorio.md`): extrair médias de `resumo
 - Cache no nível 2 vs 0% no nível 3.
 - Juiz único + instabilidade 02–05/10.
 - `golden.json` do `hybrid_96` equivale às `pergunta_completa` de `cenarios_8pops.json`.
+- Série v2: código em working tree (não commitado em 09/10); faithfulness da
+  árvore nos 96 sobre 79/96 amostras (17 NaN por template curto, não por erro);
+  1 NaN em faithfulness/relevancy do routed 24/96; latências v2 genuínas
+  (0% cache-hit), porém menores que as originais (10.4s vs 40.5s nos 24) por
+  0 reparos e menos retries.
+- Série v2 mediu rota==source offline: 24/24 (hipótese) e 61/96 (golden) —
+  erro de rota custa só a estratégia (modo/top_k), nunca filtra documento,
+  pois o retrieval consulta o grafo inteiro.

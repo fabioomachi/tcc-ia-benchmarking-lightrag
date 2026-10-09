@@ -1,9 +1,9 @@
-# Timeline do projeto `ragbench` — 06/09 a 05/10/2026
+# Timeline do projeto `ragbench` — 06/09 a 09/10/2026
 
 > **Documento complementar:** ver também [`relatorio-desenvolvimento-execucao.md`](relatorio-desenvolvimento-execucao.md) — desenvolvimento, protocolo de execução, matriz 3 níveis x 5 braços e leitura dos resultados.
 > **Resultado experimental:** ver [`relatorio-2-vs-8-pops.md`](relatorio-2-vs-8-pops.md) — matriz, gráfico `comparacao_2_vs_8_pops.png` e evidências em [`evidencias/`](evidencias/).
 
-Repositório: `github.com/fabioomachi/tcc-ia-benchmarking-lightrag` — branch `main`, **57 commits**, conferido no GitHub (`/commits/main`) + `git log --reverse` local. Todos os hashes abaixo são verificáveis em `/commit/<hash>`.
+Repositório: `github.com/fabioomachi/tcc-ia-benchmarking-lightrag` — branch `main`, **57 commits** (+ working tree v2 não commitado em 09/10), conferido no GitHub (`/commits/main`) + `git log --reverse` local. Todos os hashes abaixo são verificáveis em `/commit/<hash>`.
 
 ## Fase 0 — PoC com scripts soltos — 06/09
 
@@ -85,6 +85,24 @@ Números finais na matriz Níveis 2–3 de [`relatorio-desenvolvimento-execucao.
 
 Estado final: `golden_scenarios_completa.json` 96 itens, `relatorio-2-vs-8-pops.md` 3 níveis, `tabela_bracos_2_vs_8.csv` 15 linhas, `evidencias/` 11MB (32 arquivos), `runs/` 30+ pastas.
 
+## Fase 6 — Roteador N-POPs + série v2 — 06–09/10 (working tree, sem commit)
+
+Auditoria do `run` roteado mostrou que o roteador 2-docs quebrava com 8 POPs
+(scoring por fração do doc inflava POPs pequenos: 5/24 rotas certas). Correções
+sem regra por documento: recall sobre a query, stopwords (`meu/não/…`), valores
+crus fora do scoring, bônus de keywords normativas p/ desempate, query aditiva
+`k=v` + `[Resumo para o assistente]`, system prompt de roteamento, histórico no
+`aquery`, probe genérica, fix `código de barras`→`codigo_bloqueio` e do feedback
+loop do Resumo, merge de manifest em resume. Offline: 24/24 (hipótese) e 61/96
+(golden; teto árvore 72/96).
+
+Série v2 (juiz `gemini-3.5-flash-lite`; evidências `evidencias/erav2_*`, tabela
+`2pops-24-v2`/`8pops-96-v2`): routed 0.8579 (24) / 0.5485 (96) ≈ legado
+0.8588/0.5439; fixo 0.6909/0.4589; tree 0.8576/0.7162† (†79/96, templates curtos).
+Routed confirma a hipótese nos 8 POPs (+0.09 vs fixo nos 96). Operação: IPv6
+intermitente (workaround `PYTHONPATH`→IPv4), cotas free-tier (embed 1000/dia,
+juiz 500/dia → 1 eval-96/dia), `health` sem I/O real.
+
 ## Síntese para a banca (1 parágrafo por virada)
 
 1. **07/09:** local não aguenta lote → troca embeddings/juiz + throttling.
@@ -93,5 +111,6 @@ Estado final: `golden_scenarios_completa.json` 96 itens, `relatorio-2-vs-8-pops.
 4. **16/09:** modo LightRAG → hipótese clarify+router só-grafo.
 5. **18/09:** só neural → teto simbólico (árvore 0.86 empata grafo).
 6. **26/09–05/10:** 2→8 POPs→96 golden revela colapso parcial do grafo (`0.68→0.27→0.41`), mitigação do roteamento (`0.86→0.48→0.54`), imunidade relativa da árvore (`0.86→0.78→0.74`).
+7. **06–09/10:** roteador vira N-POPs sem regra por documento (24/24 e 61/96 rotas certas); série v2 confirma hipótese nos 8 POPs (routed 0.55 vs fixo 0.46 nos 96) sem regressão vs legado.
 
 Ver interpretação completa em [`relatorio-desenvolvimento-execucao.md`](relatorio-desenvolvimento-execucao.md) (seções 6–7).
