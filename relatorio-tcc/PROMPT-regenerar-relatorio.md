@@ -6,12 +6,12 @@
 ---
 
 Você está no repositório `ragbench` (raiz do projeto). Regenere o relatório comparativo
-do TCC sobre o efeito do crescimento do corpus (2 → 8 POPs) nos braços RAG, seguindo
+do TCC sobre o efeito do crescimento do corpus (2 → 8 POPs) nas hipóteses RAG, seguindo
 exatamente estes passos:
 
-## 1. Mapeamento braço × conjunto (atualize se houver novos runs)
+## 1. Mapeamento hipótese × conjunto (atualize se houver novos runs)
 
-| Conjunto | POPs | Braço | Run (pasta em `runs/`) |
+| Conjunto | POPs | Hipótese | Run (pasta em `runs/`) |
 |---|---|---|---|
 | `2pops-24` | 2 | Grafo `hybrid/k5`, pergunta completa | `exp_baseline_hypothesis` |
 | `2pops-24` | 2 | Incompleta + clarify fixo (≤3 turnos) + grafo `hybrid/k5` | `exp_clarify_24` |
@@ -49,7 +49,7 @@ sobre 79/96 (17 NaN por template curto); roteador off não gera `rota_*`
 O conjunto `data/ood_scenarios.json` (32 cenários fora de cobertura) e as
 evidências `evidencias/cenarios_ood.json`, `evidencias/eraood_routed_manifest.json`,
 `evidencias/eraood_tree_manifest.json`, `evidencias/eraood_rubrica.csv`
-(128 linhas `id,tipo,braco,triagem,juiz,sub,tem_numero,dano,det_tree`) pertencem
+(128 linhas `id,tipo,hipotese,triagem,juiz,sub,tem_numero,dano,det_tree`) pertencem
 à seção "Robustez fora de cobertura" — **não recalcular nem remover**: a
 rúbrica usa o modelo de chat (não o juiz RAGAS) e contém overrides
 determinísticos documentados (ESCLARECER→C, correção de template idêntico,
@@ -78,7 +78,7 @@ clarify/routed/tree, use os CSVs versionados em `evidencias/era8_16_*_ragas.csv`
 
 Gere `relatorio-tcc/comparacao_2_vs_8_pops.png` com matplotlib (já em
 `pyproject.toml`): figura 2×2 (um painel por métrica), em cada painel barras
-agrupadas dos 5 braços × 3 conjuntos, valores rotulados nas barras, título citando o
+agrupadas das 5 hipóteses × 3 conjuntos, valores rotulados nas barras, título citando o
 juiz. Escreva o script gerador em `/tmp` (não poluir o repo) e execute com
 `uv run python /tmp/<script>.py`.
 
@@ -89,7 +89,7 @@ juiz. Escreva o script gerador em `/tmp` (não poluir o repo) e execute com
 1. Cabeçalho: conjuntos, POPs, cenários, juiz.
 2. Referência ao PNG do passo 3.
 3. **Matriz em 3 níveis** (nível = conjunto: `2pops-24`, `8pops-16`, `8pops-96`) com
-   colunas: Braço | Run | n | Faithfulness | Answer Relevancy | Context Recall |
+   colunas: Hipótese | Run | n | Faithfulness | Answer Relevancy | Context Recall |
    Context Precision | Lat. média.
 4. Seção "O que aconteceu": colapso parcial do grafo puro, mitigação do roteamento,
    clarify real no 96 (1.44/1.24 turnos) vs 0 turnos no 16,
@@ -105,17 +105,17 @@ juiz. Escreva o script gerador em `/tmp` (não poluir o repo) e execute com
 ## 5. Evidências
 
 Copie para `relatorio-tcc/evidencias/` (sobrescrevendo): os
-`runs/<id>/ragas_evaluation_results.csv` como `era2_<braco>_ragas.csv` /
-`era8_<braco>_ragas.csv` (n=96) / `era8_96_hybrid_ragas.csv` /
-`era8_96_direct_ragas.csv` (braco ∈ hybrid, clarify_fixo, routed, direct, tree);
-para a série v2, `erav2_24_<braco>_ragas.csv` / `erav2_96_<braco>_ragas.csv`
-(braco ∈ clarify_fixo, routed, tree) + `*_manifest.json` correspondentes;
+`runs/<id>/ragas_evaluation_results.csv` como `era2_<hipotese>_ragas.csv` /
+`era8_<hipotese>_ragas.csv` (n=96) / `era8_96_hybrid_ragas.csv` /
+`era8_96_direct_ragas.csv` (hipotese ∈ hybrid, clarify_fixo, routed, direct, tree);
+para a série v2, `erav2_24_<hipotese>_ragas.csv` / `erav2_96_<hipotese>_ragas.csv`
+(hipotese ∈ clarify_fixo, routed, tree) + `*_manifest.json` correspondentes;
 **preservar** `era8_16_*_ragas.csv` + `cenarios_8pops_16.json` (nível intermediário);
 os manifests `clarify_manifest.json` / `tree_manifest.json` / `direct_manifest.json`
 disponíveis; os JSONs de cenários como `cenarios_2pops.json` / `cenarios_8pops.json`
 (+ `cenarios_8pops_16.json` preservado).
-Gere `tabela_bracos_2_vs_8.csv` com o cabeçalho
-`conjunto,pops,braco,run,n,faithfulness,answer_relevancy,context_recall,context_precision,lat_media_s`.
+Gere `tabela_hipoteses_2_vs_8.csv` com o cabeçalho
+`conjunto,pops,hipotese,run,n,faithfulness,answer_relevancy,context_recall,context_precision,lat_media_s`.
 
 ## 6. Validação final
 

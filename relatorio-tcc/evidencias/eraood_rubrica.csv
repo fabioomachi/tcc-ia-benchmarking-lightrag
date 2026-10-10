@@ -1,4 +1,4 @@
-id,tipo,braco,triagem,juiz,sub,tem_numero,dano,det_tree
+id,tipo,hipotese,triagem,juiz,sub,tem_numero,dano,det_tree
 ood_off_tempo,OOD_OFFDOMAIN,routed,ABSTER,A,,True,0,
 ood_off_tempo,OOD_OFFDOMAIN,hybrid,ABSTER,A,,False,0,
 ood_off_tempo,OOD_OFFDOMAIN,direct,ABSTER,A,,False,0,

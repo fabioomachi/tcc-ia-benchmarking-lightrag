@@ -1,8 +1,8 @@
 # Desenvolvimento e Execução do `ragbench` — Relatório para TCC
 
 > **Documento complementar:** ver também [`timeline-projeto.md`](timeline-projeto.md) — timeline commit a commit de 06/09 a 10/10/2026 (69 commits, com síntese final revista pelo teste OOD) que sustenta a narrativa abaixo.
-> **Resultado experimental:** ver [`relatorio-2-vs-8-pops.md`](relatorio-2-vs-8-pops.md) — matriz 3 níveis x 5 braços, gráfico e ameaças à validade.
-> **Dados auditáveis:** pasta [`evidencias/`](evidencias/) + tabela-máquina [`evidencias/tabela_bracos_2_vs_8.csv`](evidencias/tabela_bracos_2_vs_8.csv).
+> **Resultado experimental:** ver [`relatorio-2-vs-8-pops.md`](relatorio-2-vs-8-pops.md) — matriz 3 níveis x 5 hipóteses, gráfico e ameaças à validade.
+> **Dados auditáveis:** pasta [`evidencias/`](evidencias/) + tabela-máquina [`evidencias/tabela_hipoteses_2_vs_8.csv`](evidencias/tabela_hipoteses_2_vs_8.csv).
 
 Estado em 09/10/2026, branch `main` (série v2 com código em working tree, não
 commitado; último commit `57813bb`). Repositório: `github.com/fabioomachi/tcc-ia-benchmarking-lightrag`.
@@ -15,17 +15,17 @@ Pergunta conduzida no repositório:
 
 > Com a base de grafos, conduzir clarificação para coletar os dados que faltam produz respostas mais acuradas do que o single-turn direto — e o próprio grafo indica o que ainda falta perguntar?
 
-## 2. Desenho atual — 3 conjuntos x 5 braços
+## 2. Desenho atual — 3 conjuntos x 5 hipóteses
 
 Ver detalhamento da evolução em [`timeline-projeto.md`](timeline-projeto.md) (Fases 4–5).
 
 - **Nível 1 — 2 POPs (16–18/09/2026):** `pop_acesso_pf.md` (senhas/acesso) + `pop_cdc_pf.md` (crédito) = 24 cenários situacionais (`data/hypothesis_inicial_scenarios.json`, 12+12).
 - **Nível 2 — 8 POPs intermediário (26–27/09/2026):** aos 2 POPs somam-se 6 POPs anonimizados (Limites, Cartões SAC, Fatura, INSS, Alfa Rende Fácil, Bloqueio Judicial), avaliados com **16 golden** (2 por POP, `golden-00`…`golden-15`, com `pergunta_incompleta == pergunta_completa` e `slots_simulados` vazio → clarify executa 0 turnos).
-- **Nível 3 — 8 POPs final (02–05/10/2026):** mesmos 8 POPs, avaliados com **96 golden** (`golden96-00`…`golden96-95`, 12 por POP, incompleta ≠ completa, `slots_simulados` preenchidos; `data/golden_scenarios_completa.json`, 96 itens confirmados). Todos os 5 braços têm re-run nos 96 — hybrid e direct sob novos run-ids (`*_96`), preservando os runs de 16 como controle.
+- **Nível 3 — 8 POPs final (02–05/10/2026):** mesmos 8 POPs, avaliados com **96 golden** (`golden96-00`…`golden96-95`, 12 por POP, incompleta ≠ completa, `slots_simulados` preenchidos; `data/golden_scenarios_completa.json`, 96 itens confirmados). Todas as 5 hipóteses têm re-run nos 96 — hybrid e direct sob novos run-ids (`*_96`), preservando os runs de 16 como controle.
 
-Braços (mesmos modelos, juiz único `gemini-3.5-flash-lite` nos 3 níveis):
+Hipóteses (mesmos modelos, juiz único `gemini-3.5-flash-lite` nos 3 níveis):
 
-| # | Braço | Comando | Retrieval |
+| # | Hipótese | Comando | Retrieval |
 |---|---|---|---|
 | 1 | Grafo `hybrid/k5`, pergunta completa | `run --mode hybrid --top-k 5` | LightRAG hybrid |
 | 2 | Incompleta + clarify fixo (≤3 turnos) + grafo | `run-clarify` | `hybrid/k5` |
@@ -41,7 +41,7 @@ Fonte dos números: `runs/<id>/resumo_qualidade_ragas.md` (métricas globais, co
 
 ### Nível 1 — 2 POPs (24 cenários, exceto hybrid com n=4)
 
-| Braço | Run | n | Faithfulness | Answer Relevancy | Context Recall | Context Precision | Lat. média |
+| Hipótese | Run | n | Faithfulness | Answer Relevancy | Context Recall | Context Precision | Lat. média |
 |---|---|---|---|---|---|---|---|
 | Grafo `hybrid/k5`, pergunta completa | `exp_baseline_hypothesis` | 4 | 0.6786 | 0.6647 | 0.7292 | 1.0000 | 1.7s |
 | Incompleta + clarify fixo (≤3 turnos) + grafo `hybrid/k5` | `exp_clarify_24` | 24 | 0.7349 | 0.6980 | 0.9792 | 1.0000 | 47.4s |
@@ -51,7 +51,7 @@ Fonte dos números: `runs/<id>/resumo_qualidade_ragas.md` (métricas globais, co
 
 ### Nível 2 — 8 POPs intermediário (16 golden, 2 por POP)
 
-| Braço | Run | n | Faithfulness | Answer Relevancy | Context Recall | Context Precision | Lat. média |
+| Hipótese | Run | n | Faithfulness | Answer Relevancy | Context Recall | Context Precision | Lat. média |
 |---|---|---|---|---|---|---|---|
 | Grafo `hybrid/k5`, pergunta completa | `golden_full_hybrid` | 16 | 0.2715 | 0.3835 | 1.0000 | 1.0000 | 65.6s |
 | Incompleta + clarify fixo (≤3 turnos) + grafo `hybrid/k5` | `golden_clarify_fixo` | 16 | 0.3522 | 0.4342 | 1.0000 | 1.0000 | 4.8s* |
@@ -63,7 +63,7 @@ Fonte dos números: `runs/<id>/resumo_qualidade_ragas.md` (métricas globais, co
 
 ### Nível 3 — 8 POPs final (96 golden, 12 por POP)
 
-| Braço | Run | n | Faithfulness | Answer Relevancy | Context Recall | Context Precision | Lat. média |
+| Hipótese | Run | n | Faithfulness | Answer Relevancy | Context Recall | Context Precision | Lat. média |
 |---|---|---|---|---|---|---|---|
 | Grafo `hybrid/k5`, pergunta completa | `golden_full_hybrid_96` | 96 | 0.4050 | 0.5317 | 0.9896 | 0.9896 | 90.8s |
 | Incompleta + clarify fixo (≤3 turnos) + grafo `hybrid/k5` | `golden_clarify_fixo` | 96 | 0.4731 | 0.5844 | 0.9649 | 1.0000 | 24.2s |
@@ -73,7 +73,7 @@ Fonte dos números: `runs/<id>/resumo_qualidade_ragas.md` (métricas globais, co
 
 Trajetória (faithfulness / relevancy): hybrid `0.68→0.27→0.41 / 0.66→0.38→0.53`; clarify_fixo `0.73→0.35→0.47 / 0.70→0.43→0.58`; routed `0.86→0.48→0.54 / 0.78→0.59→0.66`; direct `0.18→0.13→0.15 / 0.82→0.81→0.80`; tree `0.86→0.78→0.74 / 0.71→0.74→0.68`.
 
-Gráfico: `comparacao_2_vs_8_pops.png` (figura 2x2, um painel por métrica, 5 braços x 3 conjuntos).
+Gráfico: `comparacao_2_vs_8_pops.png` (figura 2x2, um painel por métrica, 5 hipóteses x 3 conjuntos).
 
 ## 4. Arquitetura — como descrever o sistema no TCC
 
@@ -130,12 +130,12 @@ Detalhes: chunk `1500/128`, idioma `Portuguese`, timeout LLM `2400s`, `max_async
 
 Curadoria de cenários: `hypothesis_inicial_scenarios.json` (ex. `acesso_bloqueio_u8_site` — senha 6d bloqueio `U` + biometria 5 dias + sem Alfa Code → “só presencial”) e `golden_scenarios_completa.json` (ex. `golden96-01` — varredura SISJUD de 2 anos inválida, limite 1 ano). Cada item: `id, pergunta_completa/incompleta, slots_esperados/simulados, ground_truth, source_document, tipo`.
 
-Consolidação (cf. `PROMPT-regenerar-relatorio.md`): extrair médias de `resumo_qualidade_ragas.md`, `n`/latência de `benchmark_analise_detalhada.csv` via `csv.DictReader`, gerar PNG 2x2 com matplotlib, copiar 10+ CSVs + manifests + 3 JSONs de cenários para `evidencias/`, gerar `tabela_bracos_2_vs_8.csv`.
+Consolidação (cf. `PROMPT-regenerar-relatorio.md`): extrair médias de `resumo_qualidade_ragas.md`, `n`/latência de `benchmark_analise_detalhada.csv` via `csv.DictReader`, gerar PNG 2x2 com matplotlib, copiar 10+ CSVs + manifests + 3 JSONs de cenários para `evidencias/`, gerar `tabela_hipoteses_2_vs_8.csv`.
 
 ## 6. Leitura dos resultados (para Discussão)
 
 1. **Grafo puro colapsou e recuperou só em parte** (`0.68→0.27→0.41`): competição vetorial entre domínios; recuperação parcial é efeito do mix de 96, não clarify (hybrid não clarifica). Latência 90.8s confirma busca ambígua. Ressalva: baseline 2 POPs tem `n=4`.
-2. **Roteamento mitigou, não salvou** (`0.86→0.48→0.54`): restringir modo por doc reduz vazamento; melhor braço com grafo em 8 POPs.
+2. **Roteamento mitigou, não salvou** (`0.86→0.48→0.54`): restringir modo por doc reduz vazamento; melhor hipótese com grafo em 8 POPs.
 3. **Do 16 para o 96, clarify passou a funcionar** (0 turnos → 1.44 médio no fixo, 1.24 no roteado; slots preenchidos): explica `0.35→0.47 (+34%)` e `0.48→0.54 (+14%)`; recall/precision saem de `1.0000` artificial para `0.96–0.99`.
 4. **Árvore mais resistente** (`0.86→0.78→0.74`): template sem retrieval; custo é manutenção manual.
 5. **Só-LLM é o piso** (`0.18→0.13→0.15`, relevancy `~0.80`): boa forma, conteúdo errado.
@@ -155,7 +155,7 @@ Runs `*_v2_24` / `golden_*_v2` (mesmos cenários-fonte; juiz
 `gemini-3.5-flash-lite`; evidências `evidencias/erav2_*` + linhas
 `2pops-24-v2`/`8pops-96-v2` na tabela-máquina):
 
-| Braço | n=24 faith (antes) | n=96 faith (antes) |
+| Hipótese | n=24 faith (antes) | n=96 faith (antes) |
 |---|---|---|
 | Routed N-POPs | 0.8579 (0.8588) | 0.5485 (0.5439) |
 | Clarify fixo | 0.6909 (0.7349) | 0.4589 (0.4731) |

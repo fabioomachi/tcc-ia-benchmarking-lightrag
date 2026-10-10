@@ -12,7 +12,7 @@ single-turn direto — e o próprio grafo indica o que ainda falta perguntar?
 
 **Desenho:** 3 conjuntos (2 POPs x 24 cenários + 8 POPs x 16 golden
 intermediárias + 8 POPs x 96 golden finais, 12 por POP), avaliados em
-5 braços (LightRAG hybrid, clarify fixo, clarify guiado + rota por doc,
+5 hipóteses (LightRAG hybrid, clarify fixo, clarify guiado + rota por doc,
 LLM puro, árvore de decisão) com juiz RAGAS `gemini-3.5-flash-lite` nos
 mesmos modelos — [matriz completa e
 metodologia](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/tree/main/relatorio-tcc).
@@ -20,17 +20,17 @@ metodologia](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/tree/ma
 **Resultado principal:** em 2 POPs, grafo + roteador ≈ 0.86 de faithfulness
 contra ≈ 0.18 do LLM puro (~4–5×), com árvore empatada (0.86) como teto
 simbólico; em 8 POPs x 96 golden, o grafo puro cai para 0.41 (−40%), o
-roteado mitiga (0.54, melhor braço com grafo) e a árvore v2 lidera in-dist
+roteado mitiga (0.54, melhor hipótese com grafo) e a árvore v2 lidera in-dist
 (0.74) — mas fora de cobertura (OOD-32) a árvore nunca se abstém (dano 51)
 e o routed é o mais seguro (20 abstenções, dano 18). Ver
 [Visão geral do TCC](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/blob/main/VISAO-GERAL-TCC.md).
 
 **Dados e relatórios do estudo** (pasta `relatorio-tcc/` na `main`):
 
-- [Comparativo 2 vs 8 POPs](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/blob/main/relatorio-tcc/relatorio-2-vs-8-pops.md) — matriz 3 níveis x 5 braços, gráfico, tuning revertido, ameaças à validade
+- [Comparativo 2 vs 8 POPs](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/blob/main/relatorio-tcc/relatorio-2-vs-8-pops.md) — matriz 3 níveis x 5 hipóteses, gráfico, tuning revertido, ameaças à validade
 - [Desenvolvimento e execução](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/blob/main/relatorio-tcc/relatorio-desenvolvimento-execucao.md) — arquitetura, protocolo replicável, leitura dos resultados
 - [Timeline do projeto](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/blob/main/relatorio-tcc/timeline-projeto.md) — 69 commits de 06/09 a 10/10/2026, fase a fase
-- [Evidências](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/tree/main/relatorio-tcc/evidencias) — RAGAS por pergunta, manifests, cenários 24/16/96, tabela-máquina `tabela_bracos_2_vs_8.csv`
+- [Evidências](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/tree/main/relatorio-tcc/evidencias) — RAGAS por pergunta, manifests, cenários 24/16/96, tabela-máquina `tabela_hipoteses_2_vs_8.csv`
 - [Visão geral do TCC](https://github.com/fabioomachi/tcc-ia-benchmarking-lightrag/blob/main/VISAO-GERAL-TCC.md) — projeto, arquitetura (diagramas), plano de testes da semana e resultados esperados
 
 ---
@@ -122,7 +122,7 @@ tcc-ia-benchmarking-lightrag/
 │   └── golden_dataset.json      # Dataset gerado via generate-dataset
 │
 ├── relatorio-tcc/               # Relatórios do TCC (versionados)
-│   ├── relatorio-2-vs-8-pops.md           # Comparativo 3 níveis x 5 braços + gráfico
+│   ├── relatorio-2-vs-8-pops.md           # Comparativo 3 níveis x 5 hipóteses + gráfico
 │   ├── relatorio-desenvolvimento-execucao.md  # Arquitetura + protocolo + resultados
 │   ├── timeline-projeto.md      # Timeline 57 commits (06/09–05/10/2026)
 │   ├── comparacao_2_vs_8_pops.png
@@ -218,7 +218,7 @@ uv run ragbench run --run-name exp_global --mode global
 uv run ragbench run --run-name exp_hybrid --mode hybrid
 ```
 
-### 3b. Executar braços do estudo (clarify / direct / tree / probe)
+### 3b. Executar hipóteses do estudo (clarify / direct / tree / probe)
 
 ```bash
 uv run ragbench run-clarify --run-name clarify_fixo            # clarify fixo + grafo

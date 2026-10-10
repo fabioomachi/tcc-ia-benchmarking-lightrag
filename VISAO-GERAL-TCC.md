@@ -20,7 +20,7 @@ single-turn direto — e o próprio grafo indica o que ainda falta perguntar?
 
 ## 2. Resultados vigentes (juiz `gemini-3.5-flash-lite`)
 
-| Braço | Faith 24 | Faith 96 | OOD (A/dano) |
+| Hipótese | Faith 24 | Faith 96 | OOD (A/dano) |
 |---|---|---|---|
 | Routed (grafo guiado + rota) | 0,86 | 0,55 | 20 / 18 |
 | Clarify fixo | 0,69 | 0,46 | — (em medição) |
@@ -34,6 +34,22 @@ single-turn direto — e o próprio grafo indica o que ainda falta perguntar?
 (0,72–0,86) e o routed o melhor sistema que generaliza (0,55–0,86, +0,09/+0,17
 sobre o fixo); fora de distribuição, a árvore vira o maior risco (0 FALLBACK,
 dano 51) e o routed o mais seguro (20 abstenções, dano 18).
+
+### 2.1. Como as 5 hipóteses diferem
+
+```mermaid
+flowchart TD
+    Q["pergunta incompleta"] --> HG["Grafo puro<br/>pergunta completa → hybrid/k5"]
+    Q --> FX["Clarify fixo<br/>≤3 turnos (ordem canônica) → hybrid/k5"]
+    Q --> RT["Clarify guiado + rota<br/>slot discriminativo → local/k10 ou hybrid/k5"]
+    Q --> DL["Só LLM<br/>sem retrieval, sem grafo"]
+    Q --> TR["Árvore de regras<br/>templates fixos, sem LLM e sem grafo"]
+    HG & FX & RT & DL & TR --> EV["eval RAGAS<br/>mesmo juiz, mesmos gabaritos"]
+```
+
+Na tabela acima (e nas matrizes do relatório comparativo) elas aparecem como:
+Grafo puro (`hybrid/k5`), Clarify fixo, Clarify guiado + rota, Só LLM e
+Árvore de decisão — mesma pergunta de entrada, mesmo juiz cego na saída.
 
 ## 3. Arquitetura
 
@@ -52,7 +68,7 @@ flowchart LR
   graciosa em cota (exit 3).
 - Princípios: Ports & Adapters, schemas Pydantic v2, sem `dict` genérico.
 
-## 4. Fluxo roteado (braço principal da hipótese)
+## 4. Fluxo roteado (hipótese principal do estudo)
 
 ```mermaid
 flowchart TD
@@ -72,10 +88,10 @@ Células `<perguntas>-<índice>`, amostragem seed 42 estratificada por tipo:
 | Dia | Trabalho |
 |---|---|
 | D1 | `data/pops_2` + build `idx2` + sanidade ±15% + amostragem + `piloto-duo2-idx2` + OOD-fixo |
-| D2 | `duo-denso-idx2` (5 braços) |
+| D2 | `duo-denso-idx2` (5 hipóteses) |
 | D3 | `duo-denso-idx8` + `ood-idx2` + rúbrica OOD |
-| D4 | `octeto-esparso-idx8` (5 braços) |
-| D5–D7 | `octeto-denso-idx8` (2+2+1 braços; parar em 429) |
+| D4 | `octeto-esparso-idx8` (5 hipóteses) |
+| D5–D7 | `octeto-denso-idx8` (2+2+1 hipóteses; parar em 429) |
 | D8 | Gráficos + `relatorio-comparativo-final.md` |
 
 Regras: `STORAGE_DIR` por índice (`lightrag_2pops_db` vs `lightrag_ollama_db`),

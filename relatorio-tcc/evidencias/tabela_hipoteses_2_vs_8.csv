@@ -1,4 +1,4 @@
-conjunto,pops,braco,run,n,faithfulness,answer_relevancy,context_recall,context_precision,lat_media_s
+conjunto,pops,hipotese,run,n,faithfulness,answer_relevancy,context_recall,context_precision,lat_media_s
 2pops-24,2,grafo hybrid/k5 completa,exp_baseline_hypothesis,4,0.6786,0.6647,0.7292,1.0000,1.7
 2pops-24,2,clarify fixo + grafo hybrid/k5,exp_clarify_24,24,0.7349,0.6980,0.9792,1.0000,47.4
 2pops-24,2,clarify guiado + rota por doc,exp_routed_24,24,0.8588,0.7788,0.9565,1.0000,40.5

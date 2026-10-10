@@ -8,7 +8,7 @@ registrado aqui com data e motivo — nunca decidido após ver os números.
 Células `<perguntas>-<índice>`: `piloto-duo2-idx2` (2×2, n=4),
 `duo-denso-idx2` (2×8, n=16), `duo-denso-idx8` (mesmas 16, n=16),
 `octeto-esparso-idx8` (8×2, n=16), `octeto-denso-idx8` (8×8, n=64),
-`ood-idx2`/`ood-idx8` (32 OOD fixas). Braços: routed, fixo, hybrid, direct,
+`ood-idx2`/`ood-idx8` (32 OOD fixas). Hipóteses: routed, fixo, hybrid, direct,
 tree (OOD-idx8 sem fixo = lacuna registrada; OOD inclui fixo nas duas).
 Amostragem: seed 42, estratificada por `tipo`, IDs publicados
 (`evidencias/amostra_fatorial.json`, a gerar no D1).

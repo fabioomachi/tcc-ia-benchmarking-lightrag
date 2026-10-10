@@ -1,4 +1,4 @@
-# TCC — Efeito do crescimento do corpus (2 → 8 POPs) nos braços RAG
+# TCC — Efeito do crescimento do corpus (2 → 8 POPs) nas hipóteses RAG
 
 Relatório comparativo entre três conjuntos do benchmark `ragbench` (LightRAG +
 Ollama/Gemini, avaliação LLM-as-a-Judge via RAGAS, juiz `gemini-3.5-flash-lite` nos
@@ -13,24 +13,24 @@ três conjuntos, cf. `RAGAS__JUDGE_MODEL` no `.env`).
 - **8 POPs final** (runs 02–05/10/2026): mesmos 8 POPs, avaliados com **96 golden**
   (`golden96-00`…`golden96-95`, 12 por POP, incompleta ≠ completa, com
   `slots_simulados` preenchidos; `data/golden_scenarios_completa.json`). Todos os 5
-  braços têm re-run nos 96 — hybrid e direct sob novos run-ids (`*_96`), preservando
+  hipóteses têm re-run nos 96 — hybrid e direct sob novos run-ids (`*_96`), preservando
   os runs de 16 como evidência do nível intermediário.
 
 ![Comparativo RAGAS 2 vs 8 POPs](comparacao_2_vs_8_pops.png)
 
-## Matriz comparativa — 4 métricas RAGAS por braço e conjunto
+## Matriz comparativa — 4 métricas RAGAS por hipótese e conjunto
 
 Fonte: `runs/<id>/resumo_qualidade_ragas.md` (métricas globais, conferidas contra a média
 das colunas de `ragas_evaluation_results.csv`); `n` e latência média de
 `runs/<id>/benchmark_analise_detalhada.csv` via `csv.DictReader`
 (coluna `total_latency_seconds`). Os números do nível intermediário de clarify/routed/tree
 foram recuperados dos arquivos de evidência versionados em git (runs não são
-versionados). Tabela legível por máquina em `evidencias/tabela_bracos_2_vs_8.csv`
+versionados). Tabela legível por máquina em `evidencias/tabela_hipoteses_2_vs_8.csv`
 (coluna `conjunto`: `2pops-24`, `8pops-16`, `8pops-96`).
 
 ### Nível 1 — 2 POPs (24 cenários, exceto hybrid com n=4)
 
-| Braço | Run | n | Faithfulness | Answer Relevancy | Context Recall | Context Precision | Lat. média |
+| Hipótese | Run | n | Faithfulness | Answer Relevancy | Context Recall | Context Precision | Lat. média |
 |---|---|---|---|---|---|---|---|
 | Grafo `hybrid/k5`, pergunta completa | `exp_baseline_hypothesis` | 4 | 0.6786 | 0.6647 | 0.7292 | 1.0000 | 1.7s |
 | Incompleta + clarify fixo (≤3 turnos) + grafo `hybrid/k5` | `exp_clarify_24` | 24 | 0.7349 | 0.6980 | 0.9792 | 1.0000 | 47.4s |
@@ -40,7 +40,7 @@ versionados). Tabela legível por máquina em `evidencias/tabela_bracos_2_vs_8.c
 
 ### Nível 2 — 8 POPs intermediário (16 golden, 2 por POP)
 
-| Braço | Run | n | Faithfulness | Answer Relevancy | Context Recall | Context Precision | Lat. média |
+| Hipótese | Run | n | Faithfulness | Answer Relevancy | Context Recall | Context Precision | Lat. média |
 |---|---|---|---|---|---|---|---|
 | Grafo `hybrid/k5`, pergunta completa | `golden_full_hybrid` | 16 | 0.2715 | 0.3835 | 1.0000 | 1.0000 | 65.6s |
 | Incompleta + clarify fixo (≤3 turnos) + grafo `hybrid/k5` | `golden_clarify_fixo` | 16 | 0.3522 | 0.4342 | 1.0000 | 1.0000 | 4.8s* |
@@ -52,7 +52,7 @@ versionados). Tabela legível por máquina em `evidencias/tabela_bracos_2_vs_8.c
 
 ### Nível 3 — 8 POPs final (96 golden, 12 por POP)
 
-| Braço | Run | n | Faithfulness | Answer Relevancy | Context Recall | Context Precision | Lat. média |
+| Hipótese | Run | n | Faithfulness | Answer Relevancy | Context Recall | Context Precision | Lat. média |
 |---|---|---|---|---|---|---|---|
 | Grafo `hybrid/k5`, pergunta completa | `golden_full_hybrid_96` | 96 | 0.4050 | 0.5317 | 0.9896 | 0.9896 | 90.8s |
 | Incompleta + clarify fixo (≤3 turnos) + grafo `hybrid/k5` | `golden_clarify_fixo` | 96 | 0.4731 | 0.5844 | 0.9649 | 1.0000 | 24.2s |
@@ -67,7 +67,7 @@ Resumo da trajetória (faithfulness / relevancy): hybrid 0.68→0.27→0.41 /
 
 ## Série v2 — roteador generalizado N-POPs (06–09/10/2026, juiz `gemini-3.5-flash-lite`)
 
-Re-execução dos braços de clarificação e árvore com o **roteador generalizado
+Re-execução das hipóteses de clarificação e árvore com o **roteador generalizado
 para N POPs** (código em working tree, runs `*_v2_24` e `golden_*_v2`, mesmos
 cenários-fonte `data/hypothesis_inicial_scenarios.json` e
 `data/golden_scenarios_completa.json`). Mudanças vs configuração original:
@@ -79,9 +79,9 @@ roteada aditiva (`k=v` preservado + `[Resumo para o assistente]`), system prompt
 de roteamento automático, histórico de turnos no `aquery` e probe de reparo
 genérica N-docs. Extrator corrigido: `código de barras` não vira mais
 `codigo_bloqueio='D'`. Tabela-máquina: linhas `2pops-24-v2` / `8pops-96-v2` em
-`evidencias/tabela_bracos_2_vs_8.csv`; amostras em `evidencias/erav2_*`.
+`evidencias/tabela_hipoteses_2_vs_8.csv`; amostras em `evidencias/erav2_*`.
 
-| Braço | Run | n | Faithfulness (antes) | Answer Relevancy (antes) | Context Recall | Context Precision | Lat. média |
+| Hipótese | Run | n | Faithfulness (antes) | Answer Relevancy (antes) | Context Recall | Context Precision | Lat. média |
 |---|---|---|---|---|---|---|---|
 | Incompleta + clarify fixo + grafo `hybrid/k5` (24) | `exp_clarify_fixo_v2_24` | 24 | 0.6909 (0.7349) | 0.7146 (0.6980) | 0.9792 | 1.0000 | 1.8s |
 | Incompleta + clarify guiado + rota N-POPs (24) | `exp_routed_v2_24` | 24 | 0.8579 (0.8588) | 0.7642 (0.7788) | 1.0000 | 1.0000 | 10.4s |
@@ -144,9 +144,9 @@ bancário (dano 0). Correções aplicadas e documentadas: `ESCLARECER`→C
 determinístico (o juiz dividiu B/C em respostas idênticas — ruído demonstrado),
 1 B→B1 por template idêntico, `tem_numero` refeito das respostas (round-trip
 CSV o transformara em string). Evidência: `evidencias/eraood_rubrica.csv`
-(128 linhas: `id,tipo,braco,triagem,juiz,sub,tem_numero,dano,det_tree`).
+(128 linhas: `id,tipo,hipotese,triagem,juiz,sub,tem_numero,dano,det_tree`).
 
-| Braço | A (absteve-se) | B1 (confirma/arbitra) | B2 (nega+desvia) | B3 (fora-do-tema) | C (neutro) | Dano total |
+| Hipótese | A (absteve-se) | B1 (confirma/arbitra) | B2 (nega+desvia) | B3 (fora-do-tema) | C (neutro) | Dano total |
 |---|---|---|---|---|---|---|
 | Routed (grafo guiado) | 20 | 3 | 9 | 0 | 0 | 18 |
 | Hybrid (grafo) | 18 | 5 | 8 | 0 | 1 | 23 |
@@ -160,7 +160,7 @@ Leitura (todos os pontos de vista):
 3. **Segurança (B1): direct é o mais perigoso (13)** — confirma fakes ("sim, o parcelamento continua valendo", dita gramática); routed só 3. **NUMTRAP é o campo de extermínio de todos** (dano 23+15+15+22): LLMs confirmam rotinas mesmo negando-as no mesmo parágrafo; tree dispara GENERICO.
 4. **Nuance pró-LLM**: 9 dos 12 B do routed são B2 — nega a premissa falsa ("não há menção à rotina 50999") e redireciona a procedimento real. Pela rúbrica estrita conta como alucinação; operacionalmente é o melhor comportamento observado depois da abstenção pura.
 5. **Custo da honestidade**: tree 0.0s e 0 chamadas API em OOD (mas B1=18); routed paga latência/API por 20 abstenções corretas. Honestidade sem dano tem preço — e o routed é quem melhor o paga.
-6. Limites: juiz único com ruído demonstrado em entradas idênticas (mitigado por overrides determinísticos documentados); rúbrica no modelo de chat (`gemini-3.1-flash-lite`), não no juiz RAGAS — comparação válida *dentro* do OOD, não contra as séries in-dist; spot-check humano entregue em `evidencias/spotcheck_ood.csv` (49 linhas: todos os B1 + 2 A e 2 C por braço onde existem; preencher `veredito_humano`; aceitar a rúbrica se concordância ≥80%, senão revisar regex/rúbrica antes de publicar).
+6. Limites: juiz único com ruído demonstrado em entradas idênticas (mitigado por overrides determinísticos documentados); rúbrica no modelo de chat (`gemini-3.1-flash-lite`), não no juiz RAGAS — comparação válida *dentro* do OOD, não contra as séries in-dist; spot-check humano entregue em `evidencias/spotcheck_ood.csv` (49 linhas: todos os B1 + 2 A e 2 C por hipótese onde existem; preencher `veredito_humano`; aceitar a rúbrica se concordância ≥80%, senão revisar regex/rúbrica antes de publicar).
 
 ## O que aconteceu com o crescimento de 2 → 8 POPs
 
@@ -171,14 +171,14 @@ Leitura (todos os pontos de vista):
    passam a competir no mesmo espaço vetorial: o retrieval retorna contexto do POP
    errado ou diluído, e o gerador ancora a resposta em fatos vizinhos incorretos. A
    recuperação parcial nos 96 reflete o mix de perguntas (12 por POP, tipos variados)
-   e não clarificação — o braço hybrid não executa clarify. A latência média (90.8s
+   e não clarificação — a hipótese hybrid não executa clarify. A latência média (90.8s
    nos 96) é consistente com buscas mais ambíguas. Ressalva: o baseline da era 2 POPs
    tem n=4.
-2. **O roteamento por documento mitigou, mas não salvou.** O braço roteado caiu de
+2. **O roteamento por documento mitigou, mas não salvou.** A hipótese routed caiu de
    0.86 para 0.48 no intermediário (−44%) e recuperou para 0.54 nos 96 — perda menor
    que a do hybrid puro, porque restringir o modo de busca por documento reduz o
    vazamento entre POPs (no run atual: 62 consultas `hybrid/k5` + 34 `local/k10`).
-   Continua sendo o melhor braço com grafo nos 8 POPs.
+   Continua sendo a melhor hipótese com grafo nos 8 POPs.
 3. **Do intermediário para o final, o clarify passou a funcionar de verdade.** Nos 16
    golden, `incompleta == completa` e slots vazios implicavam 0 turnos de clarificação;
    nos 96, os slots vêm preenchidos e o clarify executa de fato (média 1.44 turnos no
@@ -202,7 +202,7 @@ Leitura (todos os pontos de vista):
 
 ## Experimento de tuning revertido (27/09, sobre o conjunto de 16 golden)
 
-Na tentativa de recuperar o braço roteado testou-se, sobre as 16 golden: `local/k10 →
+Na tentativa de recuperar a hipótese routed testou-se, sobre as 16 golden: `local/k10 →
 k5` no acesso, remoção da anotação `[Dados coletados…]` da query de retrieval e prompt
 sistêmico de compliance mais rígido. Resultado: faithfulness 0.4783 → ~0.25, relevancy
 0.5862 → ~0.33. As alterações foram **revertidas** (a configuração atual confirma o
@@ -218,10 +218,10 @@ das respostas de forma penalizada pelo juiz. Os números do roteado nos 96 golde
   16 golden adversariais vs 96 `golden96-*`, 12 por POP) e N assimétrico no baseline
   hybrid (n=4) — o efeito-corpus está confundido com o efeito-questionário.
 - No intermediário, `pergunta_incompleta == pergunta_completa` e `slots_simulados`
-  vazio: os braços de clarificação executaram 0 turnos — o contraste com/sem
+  vazio: as hipóteses de clarificação executaram 0 turnos — o contraste com/sem
   esclarecimento está subestimado no nível 2. O nível 3 corrige isso (slots
   preenchidos; clarify médio 1.44 turnos no fixo e 1.24 no roteado).
-- Cache-hit de LLM nos runs intermediários achata as latências dos braços de grafo
+- Cache-hit de LLM nos runs intermediários achata as latências das hipóteses de grafo
   (4.8s/0.9s); os runs nos 96 registram 0.0% de cache-hit
   (`resumo_benchmark.md`), com latências genuínas (hybrid 90.8s, clarify 24.2s,
   routed 5.1s).
@@ -251,16 +251,16 @@ das respostas de forma penalizada pelo juiz. Os números do roteado nos 96 golde
 - `cenarios_ood.json` (32 cenários fora de cobertura, de `data/ood_scenarios.json`),
   `eraood_routed_manifest.json`, `eraood_tree_manifest.json` (hybrid/direct não
   geram manifest — só checkpoint+CSV) e `eraood_rubrica.csv` (128 julgamentos
-  `id,tipo,braco,triagem,juiz,sub,tem_numero,dano,det_tree`; runs `ood_*` em
+  `id,tipo,hipotese,triagem,juiz,sub,tem_numero,dano,det_tree`; runs `ood_*` em
   `runs/`, não versionadas).
 - `era2_*_manifest.json` (clarify_fixo, routed, direct, tree),
   `era8_16_*_manifest.json` (clarify_fixo, routed, tree),
   `era8_*_manifest.json` (clarify_fixo, routed, direct, tree) +
-  `era8_96_direct_manifest.json`: manifests de clarify/tree/direct dos runs (braços
+  `era8_96_direct_manifest.json`: manifests de clarify/tree/direct dos runs (hipóteses
   hybrid puros não possuem manifest).
 - `cenarios_2pops.json` (24 cenários, de `data/hypothesis_inicial_scenarios.json`),
   `cenarios_8pops_16.json` (16 golden intermediárias, `golden-00`…`golden-15`) e
   `cenarios_8pops.json` (96 golden finais, de `data/golden_scenarios_completa.json`).
-- `tabela_bracos_2_vs_8.csv`: tabela-fonte da matriz acima, legível por máquina
-  (`conjunto,pops,braco,run,n,faithfulness,answer_relevancy,context_recall,context_precision,lat_media_s`),
+- `tabela_hipoteses_2_vs_8.csv`: tabela-fonte da matriz acima, legível por máquina
+  (`conjunto,pops,hipotese,run,n,faithfulness,answer_relevancy,context_recall,context_precision,lat_media_s`),
   estendida com as linhas `2pops-24-v2` / `8pops-96-v2` (série v2).

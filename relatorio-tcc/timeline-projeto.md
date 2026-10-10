@@ -1,6 +1,6 @@
 # Timeline do projeto `ragbench` — 06/09 a 10/10/2026
 
-> **Documento complementar:** ver também [`relatorio-desenvolvimento-execucao.md`](relatorio-desenvolvimento-execucao.md) — desenvolvimento, protocolo de execução, matriz 3 níveis x 5 braços e leitura dos resultados.
+> **Documento complementar:** ver também [`relatorio-desenvolvimento-execucao.md`](relatorio-desenvolvimento-execucao.md) — desenvolvimento, protocolo de execução, matriz 3 níveis x 5 hipóteses e leitura dos resultados.
 > **Resultado experimental:** ver [`relatorio-2-vs-8-pops.md`](relatorio-2-vs-8-pops.md) — matriz, gráfico `comparacao_2_vs_8_pops.png` e evidências em [`evidencias/`](evidencias/).
 
 Repositório: `github.com/fabioomachi/tcc-ia-benchmarking-lightrag` — branch `main`, **69 commits**, conferido no GitHub (`/commits/main`) + `git log --reverse` local. Todos os hashes abaixo são verificáveis em `/commit/<hash>`.
@@ -62,9 +62,9 @@ Pergunta passa a ser: *clarificar guiado pelo grafo supera single-turn?* Número
 |---|---|---|
 | 16/09 | `9bbe766` (+2370L) | `conversational/clarifier.py 182L + router.py 198L + batch.py`, `run-clarify 259L`, `run-direct 168L + DirectLLMEngine 83L`, `probe-retrieval 189L`, `data/hypothesis_inicial_scenarios.json 320L` (24 cenários). Roteador só-grafo (overlap ponderado, margem `≥0.05`, `local/k10` acesso vs `hybrid/k5` CDC, 23/24) |
 | 16/09 | `d321244` (+2313L) | `relatorio-hipotese.md` + evidências (`baseline 4`, `clarify 24`, `roteado 24`, `direto 24`, `sweep_topk`, piores casos). `routed 0.859 vs fixo 0.735 vs direto 0.183` |
-| 17/09 | `9ec2cd4` | Matriz 5 braços + série `_35` + limites cota |
+| 17/09 | `9ec2cd4` | Matriz 5 hipóteses + série `_35` + limites cota |
 | 18/09 | `f4558f9`, `c229e03`, `47ca8f6`, `3a5c646` | Fecha `direct_35`, conclusão 9 avaliações, guia leigos + auditoria, matriz 4 dimensões |
-| 18/09 | `b38254e` (+1299L) | **5º braço:** `DecisionTreeEngine 537L` (~40 ramos), `SearchMode.TREE`, `run-tree`, `test_tree`. `exp_tree_24: 0.8631, 0 fallbacks` |
+| 18/09 | `b38254e` (+1299L) | **5ª hipótese:** `DecisionTreeEngine 537L` (~40 ramos), `SearchMode.TREE`, `run-tree`, `test_tree`. `exp_tree_24: 0.8631, 0 fallbacks` |
 | 18/09 | `ea2b7b2`, `ee83ced`, `3302374`, `987e5b5`, `35b72dd` | Anexo 158 testes, coluna definição cenário, seção TCC no readme |
 
 Execução da era: `runs/exp_*` (16–18/09), `n=24` exceto baseline `n=4`.
@@ -83,7 +83,7 @@ Números finais na matriz Níveis 2–3 de [`relatorio-desenvolvimento-execucao.
 | 02/10 | `f141de6` | Preserva intermediário 16 como controle (`era8_16_*`, `cenarios_8pops_16.json`). Matriz vira 3 níveis |
 | 05/10 | `9cb5b85` | Fecha nível 96 com `hybrid_96 0.4050/0.5317` + `direct_96 0.1534/0.8016` |
 
-Estado final: `golden_scenarios_completa.json` 96 itens, `relatorio-2-vs-8-pops.md` 3 níveis + série v2 + seção OOD, `tabela_bracos_2_vs_8.csv` 22 linhas (16 históricas + 6 v2), `evidencias/` 47 arquivos (inclui `erav2_*` e `eraood_*`), `runs/` 45 pastas.
+Estado final: `golden_scenarios_completa.json` 96 itens, `relatorio-2-vs-8-pops.md` 3 níveis + série v2 + seção OOD, `tabela_hipoteses_2_vs_8.csv` 22 linhas (16 históricas + 6 v2), `evidencias/` 47 arquivos (inclui `erav2_*` e `eraood_*`), `runs/` 45 pastas.
 
 ## Fase 6 — Roteador N-POPs + série v2 — 06–09/10 (`93db44b` + `1bf3625`)
 
