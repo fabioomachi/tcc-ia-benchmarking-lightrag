@@ -85,35 +85,19 @@ flowchart TD
 
 Células `<perguntas>-<índice>`, amostragem seed 42 estratificada por tipo:
 
-| Dia | Trabalho |
-|---|---|
-| D1 | `data/pops_2` + build `idx2` + sanidade ±15% + amostragem + `piloto-duo2-idx2` + OOD-fixo |
-| D2 | `duo-denso-idx2` (5 hipóteses) |
-| D3 | `duo-denso-idx8` + `ood-idx2` + rúbrica OOD |
-| D4 | `octeto-esparso-idx8` (5 hipóteses) |
-| D5–D7 | `octeto-denso-idx8` (2+2+1 hipóteses; parar em 429) |
-| D8 | Gráficos + `relatorio-comparativo-final.md` |
+| Dia | Trabalho | Esperado (validação com a banca) |
+|---|---|---|
+| D1 | `data/pops_2` + build `idx2` + sanidade ±15% + amostragem + `piloto-duo2-idx2` + OOD-fixo | idx2 com 2 docs e SHAs dos POPs-fonte; amostragem reproduz 4/16/16/64/16 com IDs publicados; piloto 5/5 runs + 5/5 evals prova o pipeline antes de gastar cota |
+| D2 | `duo-denso-idx2` (5 hipóteses) | `rota==source` ≈100% (mundo fechado — se baixo, o problema é o roteador, não o volume) |
+| D3 | `duo-denso-idx8` + `ood-idx2` + rúbrica OOD | cruzado sobre as **mesmas 16** do D2 (IDs byte a byte); rúbrica no modelo de chat sem tocar a cota do juiz |
+| D4 | `octeto-esparso-idx8` (5 hipóteses) | manifests com n exato, 0 vazias; NaN dentro do gatilho |
+| D5–D7 | `octeto-denso-idx8` (2+2+1 hipóteses; parar em 429) | qualquer 429 → para o dia, resume no seguinte |
+| D8 | Gráficos + `relatorio-comparativo-final.md` | 4 gráficos legíveis como resposta às H1–H4 (interação, painel pareado, dano OOD, deltas por pergunta) |
 
 Regras: `STORAGE_DIR` por índice (`lightrag_2pops_db` vs `lightrag_ollama_db`),
 `PYTHONPATH` IPv4, `--concurrency 1`, 1 eval-96/dia (cotas: juiz 500/dia,
 embeddings 1000/dia), congelamento total D1–D8, gatilhos (aborto se >15%
 NaN-429; sanidade idx2 ±15%).
-
-### O que se espera de cada dia (validação com a banca)
-
-- **D1**: idx2 com exatamente 2 docs e SHAs iguais aos POPs-fonte; sanidade
-  dentro de ±15% (ou divergência declarada); amostragem reproduzindo as
-  contagens (4/16/16/64/16) com os IDs publicados; piloto 5/5 runs + 5/5
-  evals — prova de que o pipeline ponta a ponta funciona antes de gastar cota.
-- **D2**: `duo-denso-idx2` com `rota==source` próximo de 100% (2 docs, mundo
-  fechado — se ficar baixo, o problema é no roteador, não no volume).
-- **D3**: cruzado `duo-denso-idx8` executando sobre as **mesmas 16 perguntas**
-  do D2 (verificação byte a byte dos IDs); rúbrica OOD rodando no modelo de
-  chat sem tocar a cota do juiz.
-- **D4–D7**: manifests com n exato da célula e 0 respostas vazias; evals com
-  NaN dentro do gatilho; qualquer 429 → para o dia, resume no seguinte.
-- **D8**: os 4 gráficos legíveis diretamente como resposta às H1–H4
-  (interação, painel pareado, dano OOD, deltas por pergunta).
 
 Por que a abordagem é sólida (argumento para a banca): amostragem
 pré-registrada antes de qualquer número; contraste-estrela com perguntas
