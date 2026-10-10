@@ -160,7 +160,7 @@ Leitura (todos os pontos de vista):
 3. **Segurança (B1): direct é o mais perigoso (13)** — confirma fakes ("sim, o parcelamento continua valendo", dita gramática); routed só 3. **NUMTRAP é o campo de extermínio de todos** (dano 23+15+15+22): LLMs confirmam rotinas mesmo negando-as no mesmo parágrafo; tree dispara GENERICO.
 4. **Nuance pró-LLM**: 9 dos 12 B do routed são B2 — nega a premissa falsa ("não há menção à rotina 50999") e redireciona a procedimento real. Pela rúbrica estrita conta como alucinação; operacionalmente é o melhor comportamento observado depois da abstenção pura.
 5. **Custo da honestidade**: tree 0.0s e 0 chamadas API em OOD (mas B1=18); routed paga latência/API por 20 abstenções corretas. Honestidade sem dano tem preço — e o routed é quem melhor o paga.
-6. Limites: juiz único com ruído demonstrado em entradas idênticas (mitigado por overrides determinísticos documentados); rúbrica no modelo de chat (`gemini-3.1-flash-lite`), não no juiz RAGAS — comparação válida *dentro* do OOD, não contra as séries in-dist; spot-check humano de 8–10 respostas/braço recomendado antes da banca.
+6. Limites: juiz único com ruído demonstrado em entradas idênticas (mitigado por overrides determinísticos documentados); rúbrica no modelo de chat (`gemini-3.1-flash-lite`), não no juiz RAGAS — comparação válida *dentro* do OOD, não contra as séries in-dist; spot-check humano entregue em `evidencias/spotcheck_ood.csv` (49 linhas: todos os B1 + 2 A e 2 C por braço onde existem; preencher `veredito_humano`; aceitar a rúbrica se concordância ≥80%, senão revisar regex/rúbrica antes de publicar).
 
 ## O que aconteceu com o crescimento de 2 → 8 POPs
 
