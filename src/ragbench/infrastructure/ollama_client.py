@@ -97,7 +97,9 @@ class ResilientOllamaClient:
         embeddings; qualquer falha vira False (health nunca propaga exceção).
         """
         try:
-            vecs = await self.get_embeddings(texts=["health"])
+            vecs = await self.get_embeddings(
+                model=self.settings.embedding_api_model, texts=["health"]
+            )
             return bool(len(vecs) > 0 and len(vecs[0]) > 0)
         except Exception as e:
             logger.warning(f"Health da API Gemini falhou: {e}")
