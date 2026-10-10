@@ -20,6 +20,7 @@ htmlcov/
 
 # Banco de dados e índice LightRAG (gerado em runtime)
 lightrag_ollama_db/
+lightrag_2pops_db/
 *.sqlite3
 *.db
 

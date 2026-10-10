@@ -90,8 +90,18 @@ class ResilientOllamaClient:
             self._last_request_time = asyncio.get_running_loop().time()
 
     async def check_health(self) -> bool:
-        """Verifica a conectividade básica com a API Gemini."""
-        return bool(self.settings.api_key.get_secret_value())
+        """Verifica conectividade real com a API Gemini (1 embedding barato).
+
+        Checar só a presença da chave mascarava quedas de rede/cota (uma run
+        de 96 gravou respostas vazias com `health` verde). Custa 1 chamada de
+        embeddings; qualquer falha vira False (health nunca propaga exceção).
+        """
+        try:
+            vecs = await self.get_embeddings(texts=["health"])
+            return bool(len(vecs) > 0 and len(vecs[0]) > 0)
+        except Exception as e:
+            logger.warning(f"Health da API Gemini falhou: {e}")
+            return False
 
     async def generate_completion(
         self,

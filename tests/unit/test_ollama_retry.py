@@ -149,3 +149,43 @@ async def test_completion_stream_yields_chunks(_no_sleep):
     gen = await client.generate_completion(model="m", messages=[], stream=True)
     assert gen is not None
     assert [c async for c in gen] == ["a", "b"]  # type: ignore[union-attr]
+
+
+@pytest.mark.asyncio
+async def test_resilient_check_health_true_on_embedding():
+    import numpy as np
+
+    client = _client()
+
+    async def _ok(**kwargs):
+        return np.array([[0.1] * 8])
+
+    client.get_embeddings = _ok  # type: ignore[method-assign]
+    assert await client.check_health() is True
+
+
+@pytest.mark.asyncio
+async def test_resilient_check_health_false_on_empty_or_error():
+    import numpy as np
+
+    from ragbench.core.exceptions import QuotaExhaustedError
+
+    client = _client()
+
+    async def _empty(**kwargs):
+        return np.array([])
+
+    client.get_embeddings = _empty  # type: ignore[method-assign]
+    assert await client.check_health() is False
+
+    async def _quota(**kwargs):
+        raise QuotaExhaustedError("sem cota")
+
+    client.get_embeddings = _quota  # type: ignore[method-assign]
+    assert await client.check_health() is False
+
+    async def _boom(**kwargs):
+        raise RuntimeError("rede caiu")
+
+    client.get_embeddings = _boom  # type: ignore[method-assign]
+    assert await client.check_health() is False

@@ -306,6 +306,166 @@ def test_merge_run_manifest_caminhos(tmp_path):
     assert merge_run_manifest(new, path) == new
 
 
+def _isolated_settings(monkeypatch, tmp_path):
+    import os
+
+    from ragbench.cli_commands import deps
+    from ragbench.config import BenchmarkSettings
+
+    monkeypatch.chdir(tmp_path)
+    for key in list(os.environ):
+        if key.startswith(
+            ("OLLAMA__", "LIGHTRAG__", "CHAT__", "RAGAS__", "CLARIFY__", "ROUTING__")
+        ):
+            monkeypatch.delenv(key, raising=False)
+    settings = BenchmarkSettings(_env_file=None)
+    settings.storage_dir = tmp_path / "graph"
+    settings.storage_dir.mkdir(parents=True)
+    settings.runs_dir = tmp_path / "runs"
+    settings.results_dir = tmp_path / "resultados"
+    settings.questions_dir = tmp_path / "data"
+    settings.questions_dir.mkdir(parents=True)
+    monkeypatch.setattr(deps, "get_settings", lambda: settings)
+    return settings
+
+
+def _one_scenario(settings):
+    import json
+
+    scenarios = [
+        {
+            "id": "s1",
+            "pergunta_incompleta": "Minha senha bloqueou",
+            "pergunta_completa": "Senha 6 dígitos bloqueio U, como resolver?",
+            "slots_simulados": {"codigo_bloqueio": "U"},
+            "ground_truth": "G",
+            "tipo": "EDGE_CASE",
+        }
+    ]
+    (settings.questions_dir / "hypothesis_inicial_scenarios.json").write_text(
+        json.dumps(scenarios), encoding="utf-8"
+    )
+
+
+def _prior_entry(settings, run_name, manifest_name):
+    import json
+
+    run_dir = settings.runs_dir / run_name
+    run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / manifest_name).write_text(
+        json.dumps(
+            [
+                {
+                    "index": 99,
+                    "id": "antiga",
+                    "query_enriquecida": "pergunta antiga",
+                    "pergunta": "pergunta antiga",
+                    "tipo": "EDGE_CASE",
+                    "ground_truth": "G-antiga",
+                }
+            ],
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_run_clarify_merge_manifest_em_resume(monkeypatch, tmp_path):
+    import json
+
+    from typer.testing import CliRunner
+
+    from ragbench.cli import app
+    from ragbench.cli_commands import run_clarify_cmd
+
+    settings = _isolated_settings(monkeypatch, tmp_path)
+    _one_scenario(settings)
+    _prior_entry(settings, "mclar", "clarify_manifest.json")
+
+    class _FakeEngine:
+        llm_model = "fake"
+
+        @classmethod
+        def for_chat(cls, settings=None):
+            return cls()
+
+        async def initialize(self):
+            pass
+
+        async def finalize(self):
+            pass
+
+        async def aget_context(self, query, mode=None, top_k=None):
+            return ""
+
+        async def aquery(self, query, **kwargs):
+            return f"resp:{query[:10]}"
+
+    monkeypatch.setattr(run_clarify_cmd, "LightRAGEngine", _FakeEngine)
+    result = CliRunner().invoke(app, ["run-clarify", "--run-name", "mclar", "--no-resume"])
+    assert result.exit_code == 0, result.output
+    manifest = json.loads(
+        (settings.runs_dir / "mclar" / "clarify_manifest.json").read_text(encoding="utf-8")
+    )
+    assert [m["index"] for m in manifest] == [0, 99]
+
+
+def test_run_tree_merge_manifest_em_resume(monkeypatch, tmp_path):
+    import json
+
+    from typer.testing import CliRunner
+
+    from ragbench.cli import app
+
+    settings = _isolated_settings(monkeypatch, tmp_path)
+    _one_scenario(settings)
+    _prior_entry(settings, "mtree", "tree_manifest.json")
+    result = CliRunner().invoke(app, ["run-tree", "--run-name", "mtree", "--no-resume"])
+    assert result.exit_code == 0, result.output
+    manifest = json.loads(
+        (settings.runs_dir / "mtree" / "tree_manifest.json").read_text(encoding="utf-8")
+    )
+    assert [m["index"] for m in manifest] == [0, 99]
+
+
+def test_run_direct_merge_manifest_em_resume(monkeypatch, tmp_path):
+    import json
+
+    from typer.testing import CliRunner
+
+    from ragbench.cli import app
+    from ragbench.cli_commands import run_direct_cmd
+
+    settings = _isolated_settings(monkeypatch, tmp_path)
+    _one_scenario(settings)
+    _prior_entry(settings, "mdir", "direct_manifest.json")
+
+    class _FakeEngine:
+        llm_model = "fake"
+
+        def __init__(self, settings=None):
+            pass
+
+        async def initialize(self):
+            pass
+
+        async def finalize(self):
+            pass
+
+        async def aquery(self, query, **kwargs):
+            return f"resp:{query[:10]}"
+
+    monkeypatch.setattr(run_direct_cmd, "DirectLLMEngine", _FakeEngine)
+    result = CliRunner().invoke(
+        app, ["run-direct", "--input", "completa", "--run-name", "mdir", "--no-resume"]
+    )
+    assert result.exit_code == 0, result.output
+    manifest = json.loads(
+        (settings.runs_dir / "mdir" / "direct_manifest.json").read_text(encoding="utf-8")
+    )
+    assert [m["index"] for m in manifest] == [0, 99]
+
+
 def test_probe_retrieval_com_fake_engine(monkeypatch, tmp_path):
     """Probe por modo gera JSON+MD sem rede (cobre o fluxo principal)."""
 
