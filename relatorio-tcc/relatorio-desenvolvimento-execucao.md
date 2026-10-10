@@ -170,6 +170,25 @@ do routed cede ~0.05 no 96 (Resumo alonga a pergunta — mover instrução para
 (workaround `PYTHONPATH` forçando IPv4), cotas free-tier (embeddings 1000/dia,
 juiz 500/dia → 1 eval-96/dia), `health` não faz I/O de rede (só checa a chave).
 
+## 6c. Robustez fora de cobertura — OOD-32 (10/2026)
+
+Conjunto `data/ood_scenarios.json` (32 cenários verificados por grep como sem
+cobertura: 6 off-domain, 8 banking-não-coberto, 6 near-miss, 4 cross-POP, 8
+armadilhas numéricas; gabaritos = comportamento esperado, revisados item a
+item). Runs `ood_routed/hybrid/direct_completa/tree` + rúbrica A/B/C com dano
+ponderado (B1 confirma/arbitra ×3/×2, B2 nega+desvia ×1, B3 fora-do-tema ×0).
+Resultado (A/B1/B2/B3/C/dano): routed 20/3/9/0/0/18, hybrid 18/5/8/0/1/23,
+direct 12/13/3/3/1/37, tree 0/18/0/0/14/51. A árvore não deu nenhum FALLBACK:
+13 esclarecimentos irrelevantes + 18 templates confiantes em armadilhas; o
+routed é o que mais se abstém honestamente (20/32, efeito do system prompt
+anti-alucinação) e o direct o mais perigoso (13 confirmações, incluindo
+receita/filme/gramática). Detalhes, tabela e limitações (ruído do juiz em
+entradas idênticas, métrica nova no modelo de chat) em
+[`relatorio-2-vs-8-pops.md`](relatorio-2-vs-8-pops.md) (seção OOD) e
+`evidencias/eraood_rubrica.csv`. Enquadramento para a banca: árvore = oráculo
+closed-world (teto in-dist, frágil OOD); routed = melhor sistema que
+generaliza *e* se abstém.
+
 ## 7. Ameaças à validade (copiar para Metodologia)
 
 - 3 questionários diferentes + `n=4` no baseline — efeito-corpus confundido com efeito-questionário.

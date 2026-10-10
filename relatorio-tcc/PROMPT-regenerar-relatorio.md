@@ -44,6 +44,19 @@ N-POPs, 06–09/10/2026) usa os mesmos cenários-fonte; seus CSVs vivem em
 sobre 79/96 (17 NaN por template curto); roteador off não gera `rota_*`
 (`rota_doc: null` no manifest).
 
+## 7. Anexo OOD (preservar na regeneração)
+
+O conjunto `data/ood_scenarios.json` (32 cenários fora de cobertura) e as
+evidências `evidencias/cenarios_ood.json`, `evidencias/eraood_routed_manifest.json`,
+`evidencias/eraood_tree_manifest.json`, `evidencias/eraood_rubrica.csv`
+(128 linhas `id,tipo,braco,triagem,juiz,sub,tem_numero,dano,det_tree`) pertencem
+à seção "Robustez fora de cobertura" — **não recalcular nem remover**: a
+rúbrica usa o modelo de chat (não o juiz RAGAS) e contém overrides
+determinísticos documentados (ESCLARECER→C, correção de template idêntico,
+`tem_numero` refeito das respostas). Números canônicos — abstenções (A):
+routed 20, hybrid 18, direct 12, tree 0; dano total: routed 18, hybrid 23,
+direct 37, tree 51; tree sem nenhum FALLBACK em 32.
+
 Cenários-fonte: `data/hypothesis_inicial_scenarios.json` (2 POPs, 24 cenários:
 12 `pop_acesso_pf.md` + 12 `pop_cdc_pf.md`), `data/golden_scenarios_completa.json`
 (8 POPs, 96 golden finais `golden96-00`…`golden96-95`, 12 por POP) e o snapshot

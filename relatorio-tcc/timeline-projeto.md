@@ -103,6 +103,16 @@ Routed confirma a hipótese nos 8 POPs (+0.09 vs fixo nos 96). Operação: IPv6
 intermitente (workaround `PYTHONPATH`→IPv4), cotas free-tier (embed 1000/dia,
 juiz 500/dia → 1 eval-96/dia), `health` sem I/O real.
 
+## Fase 7 — Robustez fora de cobertura OOD-32 — 10/2026
+
+`data/ood_scenarios.json` (32 cenários sem cobertura, blindados por grep +
+revisão item a item) → runs `ood_routed/hybrid/direct_completa/tree` (32/32)
+→ rúbrica A/B/C com dano ponderado (128 julgamentos, `evidencias/eraood_rubrica.csv`).
+Resultado: routed 20 abstenções/dano 18 (melhor); tree 0 FALLBACK, 18 respostas
+confiantes em armadilhas/dano 51 (regras disparam pelo vocabulário da armadilha);
+direct o mais perigoso entre LLMs (13 confirmações). Números e limitações na
+seção OOD de [`relatorio-2-vs-8-pops.md`](relatorio-2-vs-8-pops.md).
+
 ## Síntese para a banca (1 parágrafo por virada)
 
 1. **07/09:** local não aguenta lote → troca embeddings/juiz + throttling.
