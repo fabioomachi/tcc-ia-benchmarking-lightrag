@@ -85,14 +85,14 @@ flowchart TD
 
 Células `<perguntas>-<índice>`, amostragem seed 42 estratificada por tipo:
 
-| Dia | Trabalho | Esperado (validação com a banca) |
+| Dia | Trabalho | Resultado e comparação que os dados permitem |
 |---|---|---|
-| D1 | `data/pops_2` + build `idx2` + sanidade ±15% + amostragem + `piloto-duo2-idx2` + OOD-fixo | idx2 com 2 docs e SHAs dos POPs-fonte; amostragem reproduz 4/16/16/64/16 com IDs publicados; piloto 5/5 runs + 5/5 evals prova o pipeline antes de gastar cota |
-| D2 | `duo-denso-idx2` (5 hipóteses) | `rota==source` ≈100% (mundo fechado — se baixo, o problema é o roteador, não o volume) |
-| D3 | `duo-denso-idx8` + `ood-idx2` + rúbrica OOD | cruzado sobre as **mesmas 16** do D2 (IDs byte a byte); rúbrica no modelo de chat sem tocar a cota do juiz |
-| D4 | `octeto-esparso-idx8` (5 hipóteses) | manifests com n exato, 0 vazias; NaN dentro do gatilho |
-| D5–D7 | `octeto-denso-idx8` (2+2+1 hipóteses; parar em 429) | qualquer 429 → para o dia, resume no seguinte |
-| D8 | Gráficos + `relatorio-comparativo-final.md` | 4 gráficos legíveis como resposta às H1–H4 (interação, painel pareado, dano OOD, deltas por pergunta) |
+| D1 | `data/pops_2` + build `idx2` + sanidade ±15% + amostragem + `piloto-duo2-idx2` + OOD-fixo | Piloto mostra a dispersão inicial entre hipóteses em mundo fechado; OOD-fixo estabelece o piso de dano sem roteamento; infra validada antes de gastar cota |
+| D2 | `duo-denso-idx2` (5 hipóteses) | Teto de referência por hipótese em mundo fechado — base contra a qual cada hipótese será comparada no idx8 |
+| D3 | `duo-denso-idx8` + `ood-idx2` + rúbrica OOD | **Efeito-volume puro**: mesmas 16 perguntas, dois índices — queda por hipótese = distração; dano OOD idx2×idx8 testa H3 |
+| D4 | `octeto-esparso-idx8` (5 hipóteses) | Primeira medida em 8 POPs; com n igual ao duo, o contraste A×B isola o efeito-corpus total |
+| D5–D7 | `octeto-denso-idx8` (2+2+1 hipóteses; parar em 429) | Medição principal: B×C isola o efeito-densidade; com as demais células, fecha a interação corpus×densidade |
+| D8 | Gráficos + `relatorio-comparativo-final.md` | Quem ganha, onde e por quanto: H1–H4 respondidas + deltas pareados routed×fixo por pergunta |
 
 Regras: `STORAGE_DIR` por índice (`lightrag_2pops_db` vs `lightrag_ollama_db`),
 `PYTHONPATH` IPv4, `--concurrency 1`, 1 eval-96/dia (cotas: juiz 500/dia,
