@@ -99,7 +99,22 @@ Regras: `STORAGE_DIR` por índice (`lightrag_2pops_db` vs `lightrag_ollama_db`),
 embeddings 1000/dia), congelamento total D1–D8, gatilhos (aborto se >15%
 NaN-429; sanidade idx2 ±15%).
 
-## 6. Resultados esperados (pré-registrados, falsificáveis)
+## 6. O que se mede e compara em cada atividade
+
+| Atividade | Mede-se | Compara-se contra | Critério |
+|---|---|---|---|
+| Amostragem | distribuição tipo×POP por célula | proporções do golden96 | IDs publicados; sem re-amostrar após resultados |
+| Build idx2 | nº entidades/doc, SHAs, manifest | idx8 (±15%) | fora → 1 rebuild; persistindo, declara "volume + vintage" |
+| Runs | n, sucesso, 0 vazias, latência, turnos, `rota==source` | n da célula | 0 vazias (resume até zerar); latência nunca é qualidade |
+| Evals | 4 métricas + `n_scored/n` + NaN | — | >15% NaN-429 → aborta a célula |
+| Rúbrica OOD | A/B1/B2/B3/C + dano por hipótese×tipo | idx2 × idx8 | spot-check ≥80% confirma |
+| Relatório final | contrastes H1–H4 + deltas pareados | thresholds: efeito ≥0,10; sugestivo 0,05–0,10; ruído <0,05 | piloto sem conclusão |
+
+Detalhe integral em
+[`relatorio-tcc/evidencias/criterios_fatorial.md`](relatorio-tcc/evidencias/criterios_fatorial.md)
+(seções A1–A7, com a tabela de decisão por contraste e a leitura dos 4 gráficos).
+
+## 7. Resultados esperados (pré-registrados, falsificáveis)
 
 - **H1**: `duo-denso-idx2 × duo-denso-idx8` mostra queda por distração (efeito-volume puro).
 - **H2**: routed × fixo pareado positivo em toda célula.
@@ -108,7 +123,7 @@ NaN-429; sanidade idx2 ±15%).
 - **Falsificação**: se H1 ≈ 0, o efeito-corpus histórico era questionário, não volume.
 - **Ruído**: deltas <0,05 em células n≤16 não são achados; piloto sem conclusão.
 
-## 7. Riscos assumidos
+## 8. Riscos assumidos
 
 n pequeno fora do denso; deriva do alias do juiz (janela registrada);
 `octeto-esparso × idx2` excluído (documento ausente ≠ volume); NaN sempre com
