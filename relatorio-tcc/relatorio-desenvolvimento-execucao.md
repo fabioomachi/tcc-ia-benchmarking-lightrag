@@ -1,6 +1,6 @@
 # Desenvolvimento e Execução do `ragbench` — Relatório para TCC
 
-> **Documento complementar:** ver também [`timeline-projeto.md`](timeline-projeto.md) — timeline commit a commit de 06/09 a 05/10/2026 (57 commits) que sustenta a narrativa abaixo.
+> **Documento complementar:** ver também [`timeline-projeto.md`](timeline-projeto.md) — timeline commit a commit de 06/09 a 10/10/2026 (69 commits, com síntese final revista pelo teste OOD) que sustenta a narrativa abaixo.
 > **Resultado experimental:** ver [`relatorio-2-vs-8-pops.md`](relatorio-2-vs-8-pops.md) — matriz 3 níveis x 5 braços, gráfico e ameaças à validade.
 > **Dados auditáveis:** pasta [`evidencias/`](evidencias/) + tabela-máquina [`evidencias/tabela_bracos_2_vs_8.csv`](evidencias/tabela_bracos_2_vs_8.csv).
 

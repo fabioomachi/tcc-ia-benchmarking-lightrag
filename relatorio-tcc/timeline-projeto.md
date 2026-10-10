@@ -1,9 +1,9 @@
-# Timeline do projeto `ragbench` — 06/09 a 09/10/2026
+# Timeline do projeto `ragbench` — 06/09 a 10/10/2026
 
 > **Documento complementar:** ver também [`relatorio-desenvolvimento-execucao.md`](relatorio-desenvolvimento-execucao.md) — desenvolvimento, protocolo de execução, matriz 3 níveis x 5 braços e leitura dos resultados.
 > **Resultado experimental:** ver [`relatorio-2-vs-8-pops.md`](relatorio-2-vs-8-pops.md) — matriz, gráfico `comparacao_2_vs_8_pops.png` e evidências em [`evidencias/`](evidencias/).
 
-Repositório: `github.com/fabioomachi/tcc-ia-benchmarking-lightrag` — branch `main`, **57 commits** (+ working tree v2 não commitado em 09/10), conferido no GitHub (`/commits/main`) + `git log --reverse` local. Todos os hashes abaixo são verificáveis em `/commit/<hash>`.
+Repositório: `github.com/fabioomachi/tcc-ia-benchmarking-lightrag` — branch `main`, **69 commits**, conferido no GitHub (`/commits/main`) + `git log --reverse` local. Todos os hashes abaixo são verificáveis em `/commit/<hash>`.
 
 ## Fase 0 — PoC com scripts soltos — 06/09
 
@@ -83,9 +83,9 @@ Números finais na matriz Níveis 2–3 de [`relatorio-desenvolvimento-execucao.
 | 02/10 | `f141de6` | Preserva intermediário 16 como controle (`era8_16_*`, `cenarios_8pops_16.json`). Matriz vira 3 níveis |
 | 05/10 | `9cb5b85` | Fecha nível 96 com `hybrid_96 0.4050/0.5317` + `direct_96 0.1534/0.8016` |
 
-Estado final: `golden_scenarios_completa.json` 96 itens, `relatorio-2-vs-8-pops.md` 3 níveis, `tabela_bracos_2_vs_8.csv` 15 linhas, `evidencias/` 11MB (32 arquivos), `runs/` 30+ pastas.
+Estado final: `golden_scenarios_completa.json` 96 itens, `relatorio-2-vs-8-pops.md` 3 níveis + série v2 + seção OOD, `tabela_bracos_2_vs_8.csv` 22 linhas (16 históricas + 6 v2), `evidencias/` 47 arquivos (inclui `erav2_*` e `eraood_*`), `runs/` 45 pastas.
 
-## Fase 6 — Roteador N-POPs + série v2 — 06–09/10 (working tree, sem commit)
+## Fase 6 — Roteador N-POPs + série v2 — 06–09/10 (`93db44b` + `1bf3625`)
 
 Auditoria do `run` roteado mostrou que o roteador 2-docs quebrava com 8 POPs
 (scoring por fração do doc inflava POPs pequenos: 5/24 rotas certas). Correções
@@ -103,7 +103,7 @@ Routed confirma a hipótese nos 8 POPs (+0.09 vs fixo nos 96). Operação: IPv6
 intermitente (workaround `PYTHONPATH`→IPv4), cotas free-tier (embed 1000/dia,
 juiz 500/dia → 1 eval-96/dia), `health` sem I/O real.
 
-## Fase 7 — Robustez fora de cobertura OOD-32 — 10/2026
+## Fase 7 — Robustez fora de cobertura OOD-32 — 10/10 (`ebd21bd` + `cb61141`)
 
 `data/ood_scenarios.json` (32 cenários sem cobertura, blindados por grep +
 revisão item a item) → runs `ood_routed/hybrid/direct_completa/tree` (32/32)
@@ -119,8 +119,9 @@ seção OOD de [`relatorio-2-vs-8-pops.md`](relatorio-2-vs-8-pops.md).
 2. **09/09:** scripts → framework retomável e testável.
 3. **13/09:** local → Gemini unificado + 87 testes.
 4. **16/09:** modo LightRAG → hipótese clarify+router só-grafo.
-5. **18/09:** só neural → teto simbólico (árvore 0.86 empata grafo).
-6. **26/09–05/10:** 2→8 POPs→96 golden revela colapso parcial do grafo (`0.68→0.27→0.41`), mitigação do roteamento (`0.86→0.48→0.54`), imunidade relativa da árvore (`0.86→0.78→0.74`).
+5. **18/09:** só neural → teto simbólico (árvore 0.86 empata grafo) — *ver ressalva no item 8*.
+6. **26/09–05/10:** 2→8 POPs→96 golden revela colapso parcial do grafo (`0.68→0.27→0.41`), mitigação do roteamento (`0.86→0.48→0.54`), imunidade relativa da árvore (`0.86→0.78→0.74`) — *ver ressalva no item 8*.
 7. **06–09/10:** roteador vira N-POPs sem regra por documento (24/24 e 61/96 rotas certas); série v2 confirma hipótese nos 8 POPs (routed 0.55 vs fixo 0.46 nos 96) sem regressão vs legado.
+8. **10/10 — a virada:** o teste OOD-32 inverte a conclusão sobre a árvore. A "imunidade" dos itens 5–6 era imunidade *dentro* do mundo fechado: fora de cobertura, a árvore não se abstém nenhuma vez em 32 (0 FALLBACK) — suas regras disparam pelo vocabulário das armadilhas e ela responde com confiança o que não sabe (18 alucinações, maior dano total: 51). O sistema mais honesto é justamente o neural guiado: o routed abstém-se em 20/32 e tem o menor dano (18), efeito do system prompt anti-alucinação. **Conclusão final para a banca:** em distribuição, a árvore é o teto (0.72–0.86) e o routed o melhor sistema que generaliza (0.55–0.86); fora de distribuição, a árvore vira o maior risco e o routed o mais seguro. Recomendação de deploy: routed como default, árvore só como fallback determinístico *quando o roteador roteia com confiança para um POP coberto* — nunca como oráculo geral.
 
 Ver interpretação completa em [`relatorio-desenvolvimento-execucao.md`](relatorio-desenvolvimento-execucao.md) (seções 6–7).
