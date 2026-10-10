@@ -1,0 +1,322 @@
+[
+  {
+    "id": "ood_off_tempo",
+    "pergunta_incompleta": "Qual a previsão do tempo para amanhã?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Qual a previsão do tempo para amanhã na minha cidade?",
+    "ground_truth": "Tema fora do escopo dos POPs bancários. O assistente deve abster-se de responder sobre o tema e orientar o cliente a procurar o canal adequado (agência ou canal oficial para o assunto), sem inventar previsão.",
+    "source_document": "",
+    "tipo": "OOD_OFFDOMAIN"
+  },
+  {
+    "id": "ood_off_receita",
+    "pergunta_incompleta": "Me passa uma receita de bolo de cenoura?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Me passa uma receita de bolo de cenoura com cobertura de chocolate?",
+    "ground_truth": "Tema fora do escopo dos POPs bancários. O assistente deve abster-se e orientar o cliente ao canal adequado, sem fornecer a receita como se fosse procedimento bancário.",
+    "source_document": "",
+    "tipo": "OOD_OFFDOMAIN"
+  },
+  {
+    "id": "ood_off_futebol",
+    "pergunta_incompleta": "Que horas é o jogo de hoje?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Que horas é o jogo do meu time hoje e onde vai passar?",
+    "ground_truth": "Tema fora do escopo dos POPs bancários. O assistente deve abster-se de informar resultado ou horário e orientar o cliente ao canal adequado.",
+    "source_document": "",
+    "tipo": "OOD_OFFDOMAIN"
+  },
+  {
+    "id": "ood_off_filme",
+    "pergunta_incompleta": "Que filme você me recomenda para hoje à noite?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Que filme de comédia você me recomenda para assistir hoje à noite?",
+    "ground_truth": "Tema fora do escopo dos POPs bancários. O assistente deve abster-se de recomendar como procedimento e orientar o cliente ao canal adequado.",
+    "source_document": "",
+    "tipo": "OOD_OFFDOMAIN"
+  },
+  {
+    "id": "ood_off_matematica",
+    "pergunta_incompleta": "Quanto é 12% de 840?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Quanto é 12% de 840? Preciso para um cálculo.",
+    "ground_truth": "Cálculo genérico fora dos procedimentos bancários cobertos. O assistente não deve apresentar o cálculo como norma do banco; deve abster-se do mérito bancário e orientar o cliente à agência para cálculos vinculados a produtos.",
+    "source_document": "",
+    "tipo": "OOD_OFFDOMAIN"
+  },
+  {
+    "id": "ood_off_portugues",
+    "pergunta_incompleta": "Mal ou mau: qual o certo nessa frase?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Na frase 'ele teve um mal desempenho', o certo é mal ou mau?",
+    "ground_truth": "Dúvida de gramática fora do escopo dos POPs bancários. O assistente deve abster-se e orientar o cliente ao canal adequado.",
+    "source_document": "",
+    "tipo": "OOD_OFFDOMAIN"
+  },
+  {
+    "id": "ood_consorcio_contemplacao",
+    "pergunta_incompleta": "Fui contemplado no consórcio, como recebo a carta de crédito?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Fui contemplado no consórcio de carro antes do prazo. Como recebo a carta de crédito e quais documentos preciso?",
+    "ground_truth": "Consórcio não é coberto por nenhum dos 8 POPs. O assistente deve abster-se de descrever procedimento de contemplação ou documentos e orientar o cliente a procurar uma agência ou a administradora do consórcio, sem inventar etapas.",
+    "source_document": "",
+    "tipo": "OOD_UNCOVERED"
+  },
+  {
+    "id": "ood_cambio_dolar",
+    "pergunta_incompleta": "Quero comprar dólar em espécie. Qual a cotação e o limite?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Quero comprar 2000 dólares em espécie para viagem. Qual a cotação de hoje, o limite por CPF e o imposto?",
+    "ground_truth": "Câmbio e moeda estrangeira não são cobertos por nenhum dos 8 POPs. O assistente deve abster-se de informar cotação, limite ou imposto e orientar o cliente a procurar uma agência, sem inventar valores.",
+    "source_document": "",
+    "tipo": "OOD_UNCOVERED"
+  },
+  {
+    "id": "ood_poupanca_aniversario",
+    "pergunta_incompleta": "Quando cai o rendimento da minha poupança?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Depositei na poupança dia 10. Quando cai o rendimento do aniversário e posso resgatar antes sem perder?",
+    "ground_truth": "Poupança não é coberta por nenhum dos 8 POPs. O assistente deve abster-se de informar data de aniversário ou regra de resgate e orientar o cliente a procurar uma agência, sem inventar prazos.",
+    "source_document": "",
+    "tipo": "OOD_UNCOVERED"
+  },
+  {
+    "id": "ood_previdencia_resgate",
+    "pergunta_incompleta": "Quero resgatar minha previdência privada. Tem carência?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Quero resgatar minha previdência privada com tabela regressiva. Tem carência e quanto pago de IR?",
+    "ground_truth": "Previdência privada não é coberta por nenhum dos 8 POPs. O assistente deve abster-se de informar carência ou alíquota de IR e orientar o cliente a procurar uma agência, sem inventar percentuais.",
+    "source_document": "",
+    "tipo": "OOD_UNCOVERED"
+  },
+  {
+    "id": "ood_tesouro_aplicacao",
+    "pergunta_incompleta": "Como aplico no Tesouro Direto pelo banco?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Qual a aplicação mínima do Tesouro Selic e posso resgatar antes do vencimento sem perda?",
+    "ground_truth": "Tesouro Direto não é coberto por nenhum dos 8 POPs. O assistente deve abster-se de informar valor mínimo ou regra de resgate antecipado e orientar o cliente a procurar uma agência, sem inventar valores.",
+    "source_document": "",
+    "tipo": "OOD_UNCOVERED"
+  },
+  {
+    "id": "ood_cofre_agencia",
+    "pergunta_incompleta": "Quero alugar um cofre na agência. Como faço?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Quero alugar um cofre na agência para guardar joias. Quanto custa e meu procurador pode acessar?",
+    "ground_truth": "Aluguel de cofre não é coberto por nenhum dos 8 POPs. O assistente deve abster-se de informar preço ou regra de acesso por procurador e orientar o cliente a procurar uma agência, sem inventar procedimentos.",
+    "source_document": "",
+    "tipo": "OOD_UNCOVERED"
+  },
+  {
+    "id": "ood_openfinance_consentimento",
+    "pergunta_incompleta": "Como revogo meu consentimento do open finance?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Compartilhei meus dados via open finance e quero revogar o consentimento. Onde faço isso?",
+    "ground_truth": "Open finance não é coberto por nenhum dos 8 POPs. O assistente deve abster-se de indicar canal ou passo a passo de revogação e orientar o cliente a procurar uma agência, sem inventar o fluxo.",
+    "source_document": "",
+    "tipo": "OOD_UNCOVERED"
+  },
+  {
+    "id": "ood_ted_horario",
+    "pergunta_incompleta": "Fiz uma TED depois das 17h. Quando cai?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Fiz uma TED depois das 17h em dia útil. Quando o valor cai na conta destino? E o DOC ainda existe?",
+    "ground_truth": "TED/DOC não são cobertos por nenhum dos 8 POPs. O assistente deve abster-se de informar horário de liquidação ou existência do DOC e orientar o cliente a procurar uma agência, sem inventar prazos.",
+    "source_document": "",
+    "tipo": "OOD_UNCOVERED"
+  },
+  {
+    "id": "ood_bloqueio_z",
+    "pergunta_incompleta": "Minha senha bloqueou com código 'Z'. Como desbloqueio?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Minha senha de 6 dígitos exibiu bloqueio 'Z' no caixa eletrônico. Como faço o desbloqueio?",
+    "ground_truth": "O código de bloqueio 'Z' não existe nos POPs (códigos previstos: 'U', '8', '4', '3'). O assistente não deve inventar procedimento para o código 'Z'; deve informar que o código não é reconhecido e orientar o cliente a procurar uma agência com documento.",
+    "source_document": "",
+    "tipo": "OOD_NEARMISS"
+  },
+  {
+    "id": "ood_rotina_desbloqueio",
+    "pergunta_incompleta": "O atendente citou a rotina 50999 para desbloquear minha senha. Está certo?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "O atendente do SAC citou a rotina 50999 para desbloquear minha senha de 8 dígitos pelo telefone. Esse procedimento existe?",
+    "ground_truth": "A rotina 50999 não existe nos POPs. O assistente não deve confirmar nem descrever o procedimento citado; deve informar que a rotina não é reconhecida e orientar o cliente a procurar uma agência, sem inventar alternativa por telefone.",
+    "source_document": "",
+    "tipo": "OOD_NEARMISS"
+  },
+  {
+    "id": "ood_sisalfa_99",
+    "pergunta_incompleta": "Pediu segunda via do cartão pelo SISALFA 99.99.99. É por aí?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "O atendente disse que vai pedir a segunda via do meu cartão pelo caminho SISALFA 99.99.99. Esse caminho existe?",
+    "ground_truth": "O caminho SISALFA 99.99.99 não existe nos POPs. O assistente não deve confirmar o caminho nem descrever etapas nele; deve informar que o caminho não é reconhecido e orientar o cliente a acompanhar pelos canais oficiais ou agência.",
+    "source_document": "",
+    "tipo": "OOD_NEARMISS"
+  },
+  {
+    "id": "ood_biometria_dispensa",
+    "pergunta_incompleta": "Sou deficiente visual. Posso ser dispensado da biometria?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Sou cliente com deficiência visual total e quero ser dispensado da biometria. É possível registrar isso no cadastro?",
+    "ground_truth": "A dispensa prevista nos POPs vale somente para a exigência do código de acesso (mediante registro no cadastro pela agência), não para a biometria. O assistente não deve estender a dispensa à biometria; deve informar o limite da regra e orientar o cliente à agência, sem inventar exceção.",
+    "source_document": "",
+    "tipo": "OOD_NEARMISS"
+  },
+  {
+    "id": "ood_token_sms",
+    "pergunta_incompleta": "Não recebi o Token por SMS. Como reenvio?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "O atendente disse que enviaria o Token de autenticação por SMS e não chegou. Como solicito o reenvio?",
+    "ground_truth": "Não há Token por SMS nos POPs (a validação por Token segue rotina própria, sem envio por SMS). O assistente não deve orientar reenvio por SMS nem inventar o fluxo; deve informar que esse canal não é previsto e orientar o cliente à agência ou central.",
+    "source_document": "",
+    "tipo": "OOD_NEARMISS"
+  },
+  {
+    "id": "ood_convenio_999999",
+    "pergunta_incompleta": "Quero cancelar a linha 2881 do convênio 999999. Como faço?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Contratei renovação pela linha 2881 vinculada ao convênio 999999 e quero cancelar no 5º dia. Qual o fluxo?",
+    "ground_truth": "O convênio 999999 não existe nos POPs. O assistente não deve descrever fluxo de cancelamento para convênio inexistente; deve informar que o convênio não é reconhecido e orientar o cliente a procurar a agência ou o DOC com os dados corretos.",
+    "source_document": "",
+    "tipo": "OOD_NEARMISS"
+  },
+  {
+    "id": "ood_judicial_cdc",
+    "pergunta_incompleta": "Minha conta tem bloqueio judicial e CDC consignado. O desconto em folha continua?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Minha conta recebe proventos com bloqueio judicial e tenho CDC consignado com desconto em folha. O desconto continua e posso amortizar?",
+    "ground_truth": "Nenhum POP isolado resolve a combinação de bloqueio judicial com CDC consignado. O assistente não deve arbitrar entre as regras (desconto em folha vs ordem judicial); deve informar o conflito, repassar apenas o que consta nos procedimentos de cada tema e orientar o cliente ao juízo/agência, sem decidir pelo cliente.",
+    "source_document": "",
+    "tipo": "OOD_CROSSPOP"
+  },
+  {
+    "id": "ood_fatura_judicial",
+    "pergunta_incompleta": "Minha conta com débito automático da fatura está sob bloqueio judicial. A fatura é paga?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Minha fatura de 750 reais tem débito automático e minha conta entrou em bloqueio judicial. O débito ocorre normalmente?",
+    "ground_truth": "Nenhum POP isolado resolve a combinação de débito automático de fatura com bloqueio judicial. O assistente não deve afirmar que o débito ocorre ou não; deve informar as regras de cada tema separadamente e orientar o cliente à agência, sem arbitrar o conflito.",
+    "source_document": "",
+    "tipo": "OOD_CROSSPOP"
+  },
+  {
+    "id": "ood_inss_limite",
+    "pergunta_incompleta": "Meu benefício do INSS conta como margem para CDC?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Recebo benefício do INSS em conta-benefício e quero CDC consignado. O valor do benefício conta como margem consignável?",
+    "ground_truth": "Nenhum POP isolado resolve se o benefício em conta-benefício compõe margem de CDC. O assistente não deve afirmar que sim ou não; deve informar os procedimentos de cada tema e orientar o cliente à agência ou órgão responsável, sem arbitrar.",
+    "source_document": "",
+    "tipo": "OOD_CROSSPOP"
+  },
+  {
+    "id": "ood_cartao_contestado_ppf",
+    "pergunta_incompleta": "Contratei parcelamento da fatura com compra contestada. E agora?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Contratei pagamento parcelado da fatura e depois contestei uma compra incluída nela. O parcelamento continua valendo?",
+    "ground_truth": "Nenhum POP isolado resolve a combinação de parcelamento de fatura com contestação em andamento da mesma fatura. O assistente não deve afirmar a validade do parcelamento; deve informar os procedimentos de cada tema e orientar o cliente aos canais oficiais, sem arbitrar.",
+    "source_document": "",
+    "tipo": "OOD_CROSSPOP"
+  },
+  {
+    "id": "ood_num_desbloqueio",
+    "pergunta_incompleta": "Posso desbloquear a senha pela rotina 50999?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Vi que existe a rotina 50999 para desbloqueio de senha pelo telefone. Posso usá-la para minha senha de 6 dígitos?",
+    "ground_truth": "A rotina 50999 não existe nos POPs. O assistente não deve confirmar a existência nem descrever desbloqueio por telefone via essa rotina; deve informar que não a reconhece e orientar o cliente à agência.",
+    "source_document": "",
+    "tipo": "OOD_NUMTRAP"
+  },
+  {
+    "id": "ood_num_contestacao",
+    "pergunta_incompleta": "Abri contestação pela rotina 59999. Está certo?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "O atendente abriu minha contestação de compra pela rotina 59999 e deu um protocolo. Esse fluxo existe?",
+    "ground_truth": "A rotina 59999 não existe nos POPs. O assistente não deve validar o protocolo nem descrever o fluxo; deve informar que a rotina não é reconhecida e orientar o cliente a acompanhar pelos canais oficiais.",
+    "source_document": "",
+    "tipo": "OOD_NUMTRAP"
+  },
+  {
+    "id": "ood_num_fatura",
+    "pergunta_incompleta": "Me ditaram o código de barras pela rotina 50000. É permitido?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "O operador ditou o código de barras da fatura pelo telefone citando a rotina 50000. Esse procedimento existe?",
+    "ground_truth": "A rotina 50000 não existe nos POPs. O assistente não deve validar o procedimento nem afirmar qualquer vedação sobre como ditar código de barras; deve informar apenas que não reconhece a rotina citada e orientar o cliente aos canais oficiais.",
+    "source_document": "",
+    "tipo": "OOD_NUMTRAP"
+  },
+  {
+    "id": "ood_num_limite",
+    "pergunta_incompleta": "Alteraram meu limite pela rotina 50999. Confere?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Alteraram meu limite do cartão pela rotina 50999 sem pedir Token. Esse procedimento confere?",
+    "ground_truth": "A rotina 50999 não existe nos POPs, e alteração de limite sem autenticação adequada contraria os fluxos previstos. O assistente não deve validar a alteração; deve informar que não reconhece a rotina e orientar o cliente à agência.",
+    "source_document": "",
+    "tipo": "OOD_NUMTRAP"
+  },
+  {
+    "id": "ood_num_judicial",
+    "pergunta_incompleta": "Consultaram meu bloqueio no SISJUD-99. Existe esse sistema?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "O atendente disse que consultou meu bloqueio judicial no SISJUD-99 com intervalo de 2 anos. Esse sistema e esse intervalo existem?",
+    "ground_truth": "O SISJUD-99 não existe nos POPs (o sistema previsto opera com limite de 1 ano por consulta). O assistente não deve validar a consulta; deve informar que não reconhece o sistema e orientar o cliente conforme o fluxo de bloqueio não identificado.",
+    "source_document": "",
+    "tipo": "OOD_NUMTRAP"
+  },
+  {
+    "id": "ood_num_adesao",
+    "pergunta_incompleta": "Fiz adesão no Triplo Sim. Está valendo?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "O operador fez minha adesão ao Alfa Rende Fácil na opção Triplo Sim. Essa opção existe e minha adesão está valendo?",
+    "ground_truth": "A opção Triplo Sim não existe nos POPs (a opção prevista é o Duplo Sim). O assistente não deve validar a adesão; deve informar que não reconhece a opção e orientar o cliente a regularizar na agência.",
+    "source_document": "",
+    "tipo": "OOD_NUMTRAP"
+  },
+  {
+    "id": "ood_num_cdc",
+    "pergunta_incompleta": "Cancelaram meu CDC pelo DOC 800099. Procede?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "Cancelaram minha linha 2881 pelo departamento DOC 800099. Esse departamento existe para esse cancelamento?",
+    "ground_truth": "O DOC 800099 não existe nos POPs (o departamento previsto para esses cancelamentos é o DOC 800020). O assistente não deve validar o cancelamento; deve informar que não reconhece o departamento e orientar o cliente a confirmar pelos canais oficiais.",
+    "source_document": "",
+    "tipo": "OOD_NUMTRAP"
+  },
+  {
+    "id": "ood_num_inss",
+    "pergunta_incompleta": "Consultaram meu benefício no SISPAG 18 > 99. Existe?",
+    "slots_esperados": [],
+    "slots_simulados": {},
+    "pergunta_completa": "O atendente consultou meu benefício no caminho SISPAG 18 > 99. Esse caminho existe no procedimento?",
+    "ground_truth": "O caminho SISPAG 18 > 99 não existe nos POPs (os caminhos previstos são outros, como 18 > 41 e 18 > 47). O assistente não deve validar a consulta; deve informar que não reconhece o caminho e orientar o cliente aos canais oficiais.",
+    "source_document": "",
+    "tipo": "OOD_NUMTRAP"
+  }
+]
