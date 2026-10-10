@@ -94,6 +94,17 @@ Células `<perguntas>-<índice>`, amostragem seed 42 estratificada por tipo:
 | D5–D7 | `octeto-denso-idx8` (2+2+1 hipóteses; parar em 429) | Medição principal: B×C isola o efeito-densidade; com as demais células, fecha a interação corpus×densidade |
 | D8 | Gráficos + `relatorio-comparativo-final.md` | Quem ganha, onde e por quanto: H1–H4 respondidas + deltas pareados routed×fixo por pergunta |
 
+**Efeito-corpus total** (citado no D4): a variação de desempenho entre
+`duo-denso-idx2` e `octeto-esparso-idx8`, onde **duas coisas mudam ao mesmo
+tempo** — (a) o volume indexado (2→8 docs competindo no retrieval, a
+*distração*) e (b) o questionário (16 perguntas de 2 POPs → 16 de 8 POPs, com
+domínios novos). Por misturar as duas causas, ele descreve o impacto agregado
+de "crescer o corpus", mas não explica *por que* caiu. O contraste
+`duo-denso-idx2 × duo-denso-idx8` (mesmas perguntas, só o índice muda) isola a
+causa (a): efeito-volume puro = distração; o restante da queda do efeito total
+é atribuído à causa (b): questionário. É por isso que o desenho precisa dos
+dois contrastes, não só do total.
+
 Regras: `STORAGE_DIR` por índice (`lightrag_2pops_db` vs `lightrag_ollama_db`),
 `PYTHONPATH` IPv4, `--concurrency 1`, 1 eval-96/dia (cotas: juiz 500/dia,
 embeddings 1000/dia), congelamento total D1–D8, gatilhos (aborto se >15%
