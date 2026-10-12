@@ -12,6 +12,10 @@ Uso: python3 relatorio-tcc/evidencias/amostra_fatorial.py
 Saídas: /tmp/cel_{piloto,duo16,esparso16,denso64}.json (cenários completos)
         /tmp/cel_{...}_target.json (sidecar [{"question": pergunta_completa}]
         para `ragbench run --target`, cujo loader só lê o campo "question")
+        /tmp/cel_{...}_golden.json (golden convertido
+        [{question, question_type, ground_truth, source_document}] para
+        `ragbench eval --run-id <hybrid> --golden`, pois `run` não grava
+        golden.json próprio e o eval exige o campo "question")
         + relatorio-tcc/evidencias/amostra_fatorial_ids.json (anexo versionado)
 """
 
@@ -95,7 +99,19 @@ def main() -> None:
         (TMP / f"cel_{name}_target.json").write_text(
             json.dumps(sidecar, ensure_ascii=False, indent=1), encoding="utf-8"
         )
-        print(f"cel_{name}: {len(ids)} itens -> /tmp/cel_{name}.json + _target.json")
+        golden = [
+            {
+                "question": by_id[i]["pergunta_completa"],
+                "question_type": by_id[i]["tipo"],
+                "ground_truth": by_id[i]["ground_truth"],
+                "source_document": by_id[i]["source_document"],
+            }
+            for i in sorted(ids)
+        ]
+        (TMP / f"cel_{name}_golden.json").write_text(
+            json.dumps(golden, ensure_ascii=False, indent=1), encoding="utf-8"
+        )
+        print(f"cel_{name}: {len(ids)} itens -> /tmp/cel_{name}.json + _target.json + _golden.json")
 
     OUT_IDS.write_text(
         json.dumps({"seed": SEED, "cells": {k: sorted(v) for k, v in cells.items()}},
