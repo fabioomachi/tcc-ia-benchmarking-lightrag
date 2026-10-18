@@ -125,3 +125,25 @@ seção OOD de [`relatorio-2-vs-8-pops.md`](relatorio-2-vs-8-pops.md).
 8. **10/10 — a virada:** o teste OOD-32 inverte a conclusão sobre a árvore. A "imunidade" dos itens 5–6 era imunidade *dentro* do mundo fechado: fora de cobertura, a árvore não se abstém nenhuma vez em 32 (0 FALLBACK) — suas regras disparam pelo vocabulário das armadilhas e ela responde com confiança o que não sabe (18 alucinações, maior dano total: 51). O sistema mais honesto é justamente o neural guiado: o routed abstém-se em 20/32 e tem o menor dano (18), efeito do system prompt anti-alucinação. **Conclusão final para a banca:** em distribuição, a árvore é o teto (0.72–0.86) e o routed o melhor sistema que generaliza (0.55–0.86); fora de distribuição, a árvore vira o maior risco e o routed o mais seguro. Recomendação de deploy: routed como default, árvore só como fallback determinístico *quando o roteador roteia com confiança para um POP coberto* — nunca como oráculo geral.
 
 Ver interpretação completa em [`relatorio-desenvolvimento-execucao.md`](relatorio-desenvolvimento-execucao.md) (seções 6–7).
+
+## Fase 8 — Desenho fatorial com índice condicionado (série erafim) — 10–18/10
+
+Pré-registro estrito antes de qualquer número (`criterios_fatorial.md`, tag
+`tcc-serie-antiga`): fatorial 2×2 corpus {2,8 POPs} × densidade {2,8/POP} × braços
+{routed, fixo, hybrid, direct, tree}, com **índice condicionado ao corpus** (idx2 =
+`STORAGE_DIR` próprio, **contraste-estrela** duo-idx2 × duo-idx8 = mesmas 16 perguntas,
+só o índice muda) + OOD-32 fixa rúbrica determinística. Re-execuções: índice do CDC→2
+POPs pressionado em cotas de embedding resolvido com pacing; piloto contaminado desfeito
+(`0962318`) e série reiniciada no branch `fatorial/idx-condicionado`; `health` real fixado
+(`7123f5e`). 23 runs `fx_*` com gate PASS e sidecar `index_info.json` (quatro camadas de
+identificação idx2/idx8); runs idempotentes zeraram 9 vazias transientes via resume.
+
+Resultados (faithfulness; limiares: efeito ≥0.10 em n≥16, ruído <0.05; avaliações 1/dia
+por cota do juiz — direct/tree denso pendentes): **H1 falsificada para o routed**
+(efeito-volume puro +0.0056 com perguntas idênticas) e **real só no hybrid** (−0.3695);
+**H2 confirmada** no denso-64 pareado (routed +0.1231 de f, 29×17); **H4 confirmada**
+(densidade ≈ ruído ou melhora) — logo, **o efeito-corpus total (−0.44/−0.46) é
+predominantemente questionário** (domínios novos), não distração. OOD erafim: os três
+braços novos honestos (dano 3/5/1; `erafim_ood_rubrica.csv`, 96 julgamentos +
+spot-check 23 p/ conferência ≥80%), trophy legada do tree (dano 51) referenciada apenas
+intra-série. Ver [`relatorio-comparativo-final.md`](relatorio-comparativo-final.md).
