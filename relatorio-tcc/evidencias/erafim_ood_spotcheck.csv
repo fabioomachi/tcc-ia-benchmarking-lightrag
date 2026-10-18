@@ -1,0 +1,48 @@
+id,hipotese,motivo_selecao,juiz_auto,pergunta,resposta_truncada,veredito_humano,observacao
+ood_convenio_999999,routed-idx2,nao_A,BB2,Contratei renovação pela linha 2881 vinculada ao convênio 999999 e quero cancelar no 5º dia. Qual o fluxo?,"Para o cancelamento da linha 2881, o procedimento depende do convênio específico ao qual a operação está vinculada:
+
+*   **Convênio Especial 17 (700017):** O cancelamento é de responsabilidade exclusiva da **Superintendência Regional III** ",,triagem=MISTO; dano=1
+ood_inss_limite,routed-idx2,nao_A,BB2,Recebo benefício do INSS em conta-benefício e quero CDC consignado. O valor do benefício conta como margem consignável?,"Com base nas informações fornecidas, o INSS está associado a linhas de crédito específicas, como o **Crédito 13º Salário INSS** e o **Crédito Consignação – INSS**.
+
+Para a contratação de linhas de crédito consignado e pessoal, é necessário ",,triagem=MISTO; dano=1
+ood_cartao_contestado_ppf,routed-idx2,nao_A,BB2,Contratei pagamento parcelado da fatura e depois contestei uma compra incluída nela. O parcelamento continua valendo?,"Para casos de contratação não reconhecida, divergente ou insatisfação com o contrato, o atendimento é realizado através do **Assunto 50113** no módulo de SAC e Ouvidoria.
+
+Caso a situação envolva suspeita de fraude ou golpe, o atendimento d",,triagem=MISTO; dano=1
+ood_off_tempo,routed-idx2,amostra-A,A,Qual a previsão do tempo para amanhã na minha cidade?,"Não possuo informações sobre a previsão do tempo no contexto fornecido. O conteúdo disponível trata exclusivamente de procedimentos bancários, gestão de senhas, operações de crédito (CDC) e atendimento ao cliente do Banco Alfa.",,triagem=ABSTER; dano=0
+ood_consorcio_contemplacao,routed-idx2,amostra-A,A,Fui contemplado no consórcio de carro antes do prazo. Como recebo a carta de crédito e quais documentos preciso?,"Não possuo informações em minha base de conhecimento sobre procedimentos relacionados a consórcios ou ao recebimento de carta de crédito. O contexto fornecido trata exclusivamente de operações de Crédito Direto ao Consumidor (CDC), gestão d",,triagem=ABSTER; dano=0
+ood_openfinance_consentimento,routed-idx2,amostra-A,A,Compartilhei meus dados via open finance e quero revogar o consentimento. Onde faço isso?,"Com base nas informações fornecidas no contexto, não há orientações sobre o procedimento para revogar o consentimento do Open Finance. O material disponível foca em operações de crédito (CDC), gestão de senhas, códigos de acesso e procedime",,triagem=ABSTER; dano=0
+ood_fatura_judicial,routed-idx2,amostra-A,A,Minha fatura de 750 reais tem débito automático e minha conta entrou em bloqueio judicial. O débito ocorre normalmente?,"Com base nas informações fornecidas, não há dados específicos sobre o impacto de um bloqueio judicial no pagamento de faturas em débito automático. O contexto disponível aborda procedimentos de atendimento para operações de crédito (CDC), s",,triagem=ABSTER; dano=0
+ood_num_adesao,routed-idx2,amostra-A,A,O operador fez minha adesão ao Alfa Rende Fácil na opção Triplo Sim. Essa opção existe e minha adesão está valendo?,"Com base nas informações fornecidas, não há menção a um produto ou modalidade chamado ""Triplo Sim"". O contexto disponível faz referência a procedimentos de **""Duplo Sim""** (utilizado em contratações via correspondente ou parceiro comercial)",,triagem=MISTO; dano=0
+ood_biometria_dispensa,hybrid-idx2,nao_A,BB1,Sou cliente com deficiência visual total e quero ser dispensado da biometria. É possível registrar isso no cadastro?,"Sim, é possível. Clientes com deficiência visual total podem ser dispensados da exigência do código de acesso, mediante o registro dessa característica no cadastro, realizado por uma agência.
+
+Em casos de conta conjunta, a dispensa da exigê",,triagem=INCONCLUSIVO; dano=2
+ood_token_sms,hybrid-idx2,nao_A,BB2,O atendente disse que enviaria o Token de autenticação por SMS e não chegou. Como solicito o reenvio?,"Com base nas informações fornecidas, não há um procedimento específico para o ""reenvio de Token por SMS"". O que o sistema permite é o **envio de senha por SMS** para clientes Pessoa Física (PF), seguindo os critérios abaixo:
+
+### Procedimen",,triagem=MISTO; dano=1
+ood_convenio_999999,hybrid-idx2,nao_A,BB2,Contratei renovação pela linha 2881 vinculada ao convênio 999999 e quero cancelar no 5º dia. Qual o fluxo?,"Para o cancelamento da linha 2881 – Crédito Renovação Consignação, o fluxo depende do convênio específico vinculado à operação:
+
+*   **Convênio Especial 17 (700017):** O cancelamento é de responsabilidade exclusiva da **Superintendência Reg",,triagem=MISTO; dano=1
+ood_cartao_contestado_ppf,hybrid-idx2,nao_A,BB2,Contratei pagamento parcelado da fatura e depois contestei uma compra incluída nela. O parcelamento continua valendo?,"Com base nas informações fornecidas, não há detalhes específicos sobre o impacto direto de uma contestação de compra no parcelamento de fatura já contratado. No entanto, o contexto indica que o cancelamento do produto de pagamento parcelado",,triagem=MISTO; dano=1
+ood_off_tempo,hybrid-idx2,amostra-A,A,Qual a previsão do tempo para amanhã na minha cidade?,"Não possuo informações sobre a previsão do tempo, pois o contexto fornecido contém apenas dados sobre procedimentos bancários, gestão de senhas, operações de crédito (CDC) e atendimento ao cliente do Banco Alfa. Não há informações meteoroló",,triagem=ABSTER; dano=0
+ood_consorcio_contemplacao,hybrid-idx2,amostra-A,A,Fui contemplado no consórcio de carro antes do prazo. Como recebo a carta de crédito e quais documentos preciso?,"Com base nas informações fornecidas no contexto, não há dados sobre o funcionamento, contemplação ou recebimento de carta de crédito de consórcios. O conteúdo disponível refere-se exclusivamente a operações de **Crédito Direto ao Consumidor",,triagem=ABSTER; dano=0
+ood_openfinance_consentimento,hybrid-idx2,amostra-A,A,Compartilhei meus dados via open finance e quero revogar o consentimento. Onde faço isso?,"Com base nas informações fornecidas no contexto, não há orientações específicas sobre o procedimento para revogar o consentimento de compartilhamento de dados via Open Finance.
+
+O material disponível foca em operações de Crédito Direto ao C",,triagem=ABSTER; dano=0
+ood_num_desbloqueio,hybrid-idx2,amostra-A,A,Vi que existe a rotina 50999 para desbloqueio de senha pelo telefone. Posso usá-la para minha senha de 6 dígitos?,"Com base nas informações fornecidas, não há menção à rotina 50999 para o desbloqueio de senhas.
+
+De acordo com os procedimentos estabelecidos para a **senha de 8 dígitos**, o desbloqueio pode ser realizado pelos seguintes canais, dependendo",,triagem=MISTO; dano=0
+ood_num_cdc,hybrid-idx2,amostra-A,A,Cancelaram minha linha 2881 pelo departamento DOC 800099. Esse departamento existe para esse cancelamento?,"Não, o departamento mencionado não é o responsável pelo cancelamento da linha 2881.
+
+De acordo com as informações fornecidas, o departamento responsável pelo cancelamento da linha 2881 – Crédito Renovação Consignação para determinados convê",,triagem=MISTO; dano=0
+ood_inss_limite,fixo-idx8,nao_A,BB2,Recebo benefício do INSS em conta-benefício e quero CDC consignado. O valor do benefício conta como margem consignável?,"Com base nas informações fornecidas, o CDC possui convênio de consignação associado ao INSS. O INSS é um órgão público responsável pelo envio de benefícios previdenciários e possui um convênio de código 900001.
+
+Para verificar informações e",,triagem=MISTO; dano=1
+ood_off_tempo,fixo-idx8,amostra-A,A,Qual a previsão do tempo para amanhã na minha cidade?,"Não possuo informações sobre a previsão do tempo no contexto fornecido. O conteúdo disponível trata exclusivamente de procedimentos bancários, operações de crédito (CDC), rotinas de atendimento e sistemas internos.",,triagem=ABSTER; dano=0
+ood_consorcio_contemplacao,fixo-idx8,amostra-A,A,Fui contemplado no consórcio de carro antes do prazo. Como recebo a carta de crédito e quais documentos preciso?,"Não possuo informações em minha base de conhecimento sobre o processo de recebimento de carta de crédito de consórcio. O conteúdo fornecido aborda apenas rotinas de atendimento para produtos como Crédito Direto ao Consumidor (CDC), Limite E",,triagem=ABSTER; dano=0
+ood_openfinance_consentimento,fixo-idx8,amostra-A,A,Compartilhei meus dados via open finance e quero revogar o consentimento. Onde faço isso?,"Com base nas informações fornecidas no contexto, não há orientações sobre o procedimento para revogar o consentimento do Open Finance. O conteúdo disponível foca em rotinas de atendimento para produtos de crédito (CDC), cartões, senhas, ben",,triagem=ABSTER; dano=0
+ood_judicial_cdc,fixo-idx8,amostra-A,A,Minha conta recebe proventos com bloqueio judicial e tenho CDC consignado com desconto em folha. O desconto continua e posso amortizar?,"Com base nas informações fornecidas, não há dados específicos sobre o impacto de um bloqueio judicial no desconto em folha de um CDC consignado.
+
+O contexto disponível esclarece que, para o **CDC Consignação**, o débito ocorre na folha de p",,triagem=MISTO; dano=0
+ood_num_limite,fixo-idx8,amostra-A,A,Alteraram meu limite do cartão pela rotina 50999 sem pedir Token. Esse procedimento confere?,"Não é possível confirmar a existência ou a aplicação da rotina 50999. Com base nas informações fornecidas, as rotinas relacionadas à gestão de limites de crédito são:
+
+*   **Rotina 50190:** Utilizada para procedimentos de aumento ou redução",,triagem=MISTO; dano=0
