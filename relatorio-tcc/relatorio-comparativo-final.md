@@ -11,7 +11,7 @@ Dados: `evidencias/erafim_resumo_ragas.csv`, `evidencias/erafim_ood_rubrica.csv`
 |---|---|---|
 | **H2 — routed ≥ fixo pareado** | duo-16/idx2 +0.0954; esparso-16/idx8 +0.1152; **denso-64/idx8 +0.1231** (routed vence 29×17 pareados; média fixo−routed −0.1109/pergunta) | **efeito confirmado** na célula principal (n=64); sugestivo nas n=16 |
 | **H1 — efeito-volume puro** (mesmas 16 perguntas, só o índice muda) | routed +0.0056 (ruído); **hybrid −0.3695 (efeito)** | **falsificada para routed; real apenas para hybrid** |
-| **H4 — densidade degrada menos que corpus** | routed 0.5127→0.5492 (+0.0365); fixo 0.3975→0.4261 (+0.0286); hybrid 0.2633→0.4161 (+0.1528, melhora com mais perguntas); direct 0.1471→0.1764 (+0.0293) | **confirmada** |
+| **H4 — densidade degrada menos que corpus** | routed 0.5127→0.5492 (+0.0365); fixo 0.3975→0.4261 (+0.0286); hybrid 0.2633→0.4161 (+0.1528, melhora com mais perguntas); direct 0.1471→0.1764 (+0.0293); tree 0.7190→0.7260 (+0.0070) | **confirmada** |
 | **Efeito-corpus total** (duo-16/idx2 → esparso-16/idx8) | routed −0.4388; fixo −0.4586; hybrid −0.6506; tree −0.1383; direct −0.2069 | grande, replicado em todos os braços |
 | **H3 — dano OOD idx2 < idx8** | sem mesmo braço nos dois índices na rúbrica erafim (dano: routed-idx2 3 · hybrid-idx2 5 · fixo-idx8 1) | **inconclusivo intra-série** (limitação registrada) |
 
@@ -99,7 +99,7 @@ Coluna primária dos limiares = **f (faithfulness)**. Latência = `latencia_tota
 | (8,8) | fixo | 64 | 0.7411 | 0.4261 | 0.9844 | 0.9687 | 0.5851 | 1.0 |
 | (8,8) | hybrid | 64 | 0.7471 | 0.4161 | 1.0 | 1.0 | 0.5722 | 2.5 |
 | (8,8) | direct | 64 | 0.7493 | 0.1764 | 1.0 | 1.0 | 0.8210 | 9.0 |
-| (8,8) | tree | 64 | **PENDENTE-EVAL** | | | | | |
+| (8,8) | tree | 64 | 0.8448 | 0.7260 | 0.9857 | 1.0 | 0.6673 | 0.0 |
 
 Declaração de NaN: 1 em duo-16/idx2 fixo; 3 em esparso-16 tree; 1**direct** em denso-64 (n_scored 63/64); 1 em OOD fixo-idx8 RAGAS
 (scores desses itens excluídos das médias; `n_scored/n` na evidência).
@@ -151,7 +151,7 @@ relevante da consulta.
 | fixo | 0.3975 | 0.4261 | +0.0286 | ruído |
 | hybrid | 0.2633 | 0.4161 | +0.1528 | efeito a favor do denso |
 | direct | 0.1471 | 0.1764 | +0.0293 | ruído |
-| tree | 0.7190 | **PENDENTE-EVAL** | | |
+| tree | 0.7190 | 0.7260 | +0.0070 | ruído |
 
 Densidade não degrada (routed/fixo em ruído; hybrid melhora — com mais perguntas por POP, o
 retrieve global ganha mais sinal de intenção do cliente para desambiguar). H4 sai
@@ -164,7 +164,7 @@ confirmada: mais amostras por domínio não piorou nenhum braço.
 | routed | −0.4388 | +0.0056 | +0.0365 | **−0.4809** |
 | fixo | −0.4586 | n/a | +0.0286 | ≈ −0.49 |
 | hybrid | −0.6506 | −0.3695 | +0.1528 | ≈ −0.43 |
-| tree | −0.1383 | n/a | pendente | — |
+| tree | −0.1383 | n/a | +0.0070 | ≈ −0.15 |
 | direct | −0.2069 | n/a | +0.0293 | ≈ −0.24 |
 
 A árvore é a que menos sofre com o corpus (−0.14); o resto varia de −0.21 a −0.65. Em todos
@@ -215,9 +215,12 @@ aceitação pré-registrada ≥80%). *Pendência para a banca.*
 
 1. Piloto n=4 (sem conclusão, por pré-registro); células n=16 têm limiar apenas "sugestivo";
    a evidência decisiva está no denso-64 pareado.
-2. Eval `tree` do denso-64 **pendente por cota do juiz** (429 em 19/10 17:41 — 3º dia
-   consecutivo em que o primeiro eval-64 esgota as 500 do dia); a célula PENDENTE-EVAL
-   fecha a matriz; nenhuma conclusão da §7 depende dela.
+2. Incidência de 19–21/10: o gerenciador de shell derrubava o eval em 90 min (o tree denso
+    roda ~1h20m), e as duas tentativas abortadas consumiram a cota do dia; em 21/10 a
+    recuperação exigiu reconstruir o venv (o SO atualizou Python 3.12→3.14 de madrugada;
+    `asyncio.get_event_loop` quebra em 3.14 e o rebuild vlanew saiu sem `langchain-openai`):
+    `uv sync --all-extras --python 3.12` restaurou o ambiente validado e o eval fechou
+    com 64/64 e zero NaN.
 3. `answer_relevancy` do tree **idêntico a 4 casas** (0.7495) no piloto e no duo-16 idx2:
    coincidência não explicável com template determinístico — tratada como ruído do juiz; não
    influencia vereditos nem thresholds de f.
