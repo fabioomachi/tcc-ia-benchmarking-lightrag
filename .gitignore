@@ -35,3 +35,5 @@ data/storage/
 # Arquivos de ambiente e segredos
 .env
 .env.local
+# opencode CLI local (node_modules/tooling)
+.opencode/
