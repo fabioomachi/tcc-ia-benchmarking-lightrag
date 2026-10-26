@@ -47,21 +47,26 @@ diferencia é **como chegam ao contexto certo** — e quanto de automação est�
 - **hybrid — "o grafo como vem de fábrica" (o mais simples).
   A pergunta do cliente vai direta, sem tratamento, para uma única busca no grafo em modo
   `hybrid` (combina navegação por entidades/conceitos do grafo com similaridade de texto nos
-  trechos), top-k=5, e o chat modelo responde com o que retornar. Não há clarificação, não
+  trechos), top-k=5, e o chat modelo responde com o que retornar. Não há clarificação
+  (a coleta dos dados obrigatórios do POP, descrita no item fixo abaixo), não
   há roteio, não há estratégia por documento: toda pergunta é tratada da mesma forma,
   num corpus de 8 POPs com temas muito distintos (acesso, CDC, Fatura, INSS…). É o piso
   da comparação: mede o que o grafo entrega sem nenhum aparato de produção.
 
 - **fixo — clarificação + receita única de busca (baseline pareado).
-  Duas etapas: (1) *clarify* — o chat modelo reescreve/completa a pergunta vaga do cliente
-  ("meu cartão não passa") em uma pergunta operacional completa (qual produto, qual
-  documento, qual prazo), podendo fazer um turno de pergunta de volta; (2) *busca* — com a
-  pergunta completa, recupera contexto sempre com a **mesma receita**, modo `hybrid`,
-  top-k=5, independentemente do POP. Depois o chat modelo escreve a resposta com system
-  prompt anti-alucinação. Compartilha com o routed absolutamente tudo — clarify, modelo de
-  geração, prompt, avaliação — exceto uma coisa: **o fixo não escolhe a estratégia de
-  busca**. Por isso os dois são comparados pergunta a pergunta (§2.3): qualquer diferença
-  vem só do roteio.
+  Duas etapas: (1) *clarify* — extrair os **dados obrigatórios do POP** que a pergunta crua
+  do cliente não traz (código de bloqueio exibido, há quantos dias a biometria está
+  cadastrada, Alfa Code, canal tentado, correntista ou não): um extrator **por regras
+  (regex, determinístico, custo zero — sem LLM)** lê o texto livre e, se falta dado
+  obrigatório, faz até 3 turnos com perguntas fixas de volta, interpretando respostas
+  curtas ("U", "não", "5 dias") pelo contexto do slot; os fatos coletados viram parte da
+  pergunta (`[Dados coletados via clarificação: codigo_bloqueio=U; biometria_dias=11…]`).
+  (2) *busca* — a pergunta completa recupera contexto sempre com a **mesma receita**, modo
+  `hybrid`, top-k=5, independentemente do POP. Depois o chat modelo escreve a resposta com
+  system prompt anti-alucinação. Compartilha com o routed absolutamente tudo — clarify,
+  modelo de geração, prompt, avaliação — exceto uma coisa: **o fixo não escolhe a
+  estratégia de busca**. Por isso os dois são comparados pergunta a pergunta (§2.3):
+  qualquer diferença vem só do roteio.
 
 - **routed — clarificação + roteador + receita por POP (o carro-chefe).
   Começa como o fixo (clarify + anti-alucinação), mas acrescenta o **roteador N-POPs**: um
