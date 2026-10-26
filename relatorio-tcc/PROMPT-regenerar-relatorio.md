@@ -32,16 +32,22 @@ Propósito: um agente novo consegue reproduzir `relatorio-tcc/relatorio-comparat
    de `pergunta_completa` (2 nuances de clarify: resolver por prefixo da base),
    triagem determinística conforme regras da `erafim_ood_notas.md`; dump em `/tmp/rub_raw.json`.
 5. **Tabela canônica**: gerar `evidencias/erafim_resumo_ragas.csv` conforme o script da
-   evidência (médias das 4 métricas por run + `score_composto` + `latencia_media_s`).
+   evidência (médias das 4 métricas por run + `score_composto` + `latencia_media_s` +
+   `n_scored_f`/`n_scored_ar` sobre pontuadas). **Sem as linhas do braço só-LLM
+   (`fx_*_direct`)** — o braço saiu da narrativa e da evidência por decisão do autor;
+   os runs originais permanecem intactos em `runs/`.
 6. **Contrastes** (regras `tcc-serie-antiga:relatorio-tcc/evidencias/criterios_fatorial.md`):
    efeito se |Δf| ≥ 0.10 (n ≥ 16); sugestivo 0.05–0.10; ruído < 0.05 (ou n=4). Deltas
    pareados routed×fixo por pergunta (join pela coluna `question` do eval).
 7. **Relatório final**: escrever `relatorio-comparativo-final.md` com a estrutura
-   §1–§9 (resumo executivo com vereditos H1–H4; desenho; registro operacional com 429s;
-   matriz por célula; contrastes; OOD; respostas; limitações; apêndice com commits,
-   manifestos e desvios). Escrever apenas com números verificados em `runs/`; as duas
-   células PENDENTE-EVAL ficam sinalizadas com "**PENDENTE-EVAL**" até completar —
-   nunca publicar a matriz sem eles.
+   §1–§6 legível em ordem linear: **§1 Cenários** (corpus/índices congelados, tabela de
+   conjuntos de perguntas com "o que isola", braços, medição) → **§2 Resultados RAGAS
+   por cenário** (matriz 21 linhas + contraste volume + pareado + densidade + decomposição)
+   → **§3 Conclusões por cenário** (prosa na ordem dos cenários + veredicto de deploy)
+   → §4 registro operacional (429s) → §5 limitações → §6 apêndice (commits, manifestos,
+   desvios e glossário H1–H4 — os códigos só aqui, mapeados aos nomes longos). Escrever
+   apenas com números verificados em `runs/` (script de conferência contra os CSVs da
+   matriz); série fechada — **nenhuma célula PENDENTE-EVAL**.
 
 ## Não fazer
 
