@@ -49,7 +49,9 @@ Propósito: um agente novo consegue reproduzir `relatorio-tcc/relatorio-comparat
    desvios e glossário H1–H4 — os códigos só aqui, mapeados aos nomes longos) →
    **§7 Conclusão final** (tabela "quatro apostas" com confirmação e falha medida de cada
    arquitetura + recomendação em camadas para o cenário de mitigação de respostas erradas +
-   stack recomendada). Escrever
+   stack recomendada). §1.3 inclui o diagrama mermaid dos fluxos de chamada reais por braço
+   (classes/funções de `src/ragbench/` — conferir existência de cada nome citado no código
+   antes de publicar). Escrever
    apenas com números verificados em `runs/` (script de conferência contra os CSVs da
    matriz); série fechada — **nenhuma célula PENDENTE-EVAL**.
 

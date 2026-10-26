@@ -94,6 +94,40 @@ diferencia é **como chegam ao contexto certo** — e quanto de automação est�
 | routed | clarify → roteio → busca (`local/k10` ou `hybrid/k5`) → resposta | 4 s (piloto) a 55 s (esparso) |
 | tree | regra → template | 0 s |
 
+**O mesmo fluxo no código** (classes e funções reais do framework — `src/ragbench/`):
+
+```mermaid
+flowchart TB
+  subgraph HYB["braço hybrid — run_cmd.py"]
+    A1["run_cmd::run_benchmark<br/>(--mode hybrid --top-k 5)"] --> A2["LightRAGEngine.for_chat()"]
+    A2 --> A3["LightRAGEngine.aquery<br/>(mode=hybrid, top_k=5)"]
+    A3 --> A4["resposta do modelo de chat"]
+  end
+
+  subgraph FIX["braço fixo — run_clarify_cmd.py (ROUTING__ENABLED=false)"]
+    B1["run_clarify_cmd::run_clarify_batch"] --> B2["batch::simulate_clarification<br/>(clarifier.extract_slots + merge_slots<br/>+ next_clarifying_question, ≤ 3 turnos)"]
+    B2 --> B3["clarifier.build_enriched_query<br/>(pergunta + fatos k=v)"]
+    B3 --> B4["LightRAGEngine.aquery<br/>(mode=hybrid, top_k=5 — receita padrão,<br/>rotação não aplicada)"]
+    B4 --> B5["resposta com prompt anti-alucinação"]
+  end
+
+  subgraph ROU["braço routed — run_clarify_cmd.py (ROUTING__ENABLED=true)"]
+    C1["run_clarify_cmd::run_clarify_batch"] --> C2["batch::simulate_clarification_guided_full<br/>(clarify loop + histórico de turnos)"]
+    C2 --> C3["router.route_by_graph → router.RouteInfo<br/>(re-pontua a pergunta a cada turno;<br/>POP + margem + mode + top_k;<br/>baixa confiança → fallback hybrid/k5)"]
+    C3 --> C4["clarifier.build_routed_query<br/>+ build_routed_instruction"]
+    C4 --> C5["LightRAGEngine.aquery<br/>(mode/top_k da rota: local/k10 acesso,<br/>hybrid/k5 CDC e fallback)"]
+    C5 --> C6["resposta com prompt anti-alucinação"]
+  end
+
+  subgraph TRE["braço tree — run_tree_cmd.py"]
+    D1["run_tree_cmd::run_tree_batch"] --> D2["batch::load_scenarios<br/>batch::simulate_clarification<br/>(preenchimento determinístico)"]
+    D2 --> D3["decision_tree_engine::decide(enriched)"]
+    D3 --> D4["decision_tree_engine::detect_doc"]
+    D4 --> D5{"decide por POP:<br/>acesso · cdc · cartoes · fatura · inss ·<br/>limites · judicial · alfa"}
+    D5 --> D6["decision_tree_engine::Decision<br/>= template + confiança"]
+  end
+```
+
 ### 1.4 Como medimos
 
 - **4 métricas RAGAS** com juiz dedicado `gemini-3.5-flash-lite`: *faithfulness* (f — aderência
