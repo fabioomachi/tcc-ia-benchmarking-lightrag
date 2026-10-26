@@ -101,8 +101,13 @@ Coluna primária dos limiares = **f (faithfulness)**. Latência = `latencia_tota
 | (8,8) | direct | 64 | 0.7493 | 0.1764 | 1.0 | 1.0 | 0.8210 | 9.0 |
 | (8,8) | tree | 64 | 0.8448 | 0.7260 | 0.9857 | 1.0 | 0.6673 | 0.0 |
 
-Declaração de NaN: 1 em duo-16/idx2 fixo; 3 em esparso-16 tree; 1**direct** em denso-64 (n_scored 63/64); 1 em OOD fixo-idx8 RAGAS
-(scores desses itens excluídos das médias; `n_scored/n` na evidência).
+Declaração de NaN (médias sempre sobre pontuadas; `n_scored/n` por métrica em
+`evidencias/erafim_resumo_ragas.csv`): duo-16/idx2 fixo **1 em answer_relevancy** (15/16);
+esparso-16 tree **3 em faithfulness** (13/16); denso-64 direct **1 em context_recall**
+(63/64); denso-64 tree **14 em faithfulness** (50/64 = 21,9%†); OOD fixo-idx8 **1 em
+faithfulness** (31/32). † NaN de template curto (braço tree), que por pré-registro conta à
+parte — não dispara aborto (>15% vale só para 429/retry exaurido) e não usa imputação;
+redoonal opcional pende a janela de cota (1 eval/dia).
 
 **Leitura.** (i) *Mundo fechado (duo-16/idx2)*: routed/fixo/hybrid/tree ≥0.89, direct 0.80 —
 todos os braços funcionam quando o grafo cobre o domínio. (ii) *Corpus grande*: routed cai
@@ -151,7 +156,10 @@ relevante da consulta.
 | fixo | 0.3975 | 0.4261 | +0.0286 | ruído |
 | hybrid | 0.2633 | 0.4161 | +0.1528 | efeito a favor do denso |
 | direct | 0.1471 | 0.1764 | +0.0293 | ruído |
-| tree | 0.7190 | 0.7260 | +0.0070 | ruído |
+| tree | 0.7190† | 0.7260† | +0.0070 | ruído |
+
+† f média sobre pontuados (esparso 13/16; denso 50/64 — NaN de template curto, carve-out
+pré-registrado; ver declaração de NaN na §4). Veredicto sem mudança: densidade = ruído.
 
 Densidade não degrada (routed/fixo em ruído; hybrid melhora — com mais perguntas por POP, o
 retrieve global ganha mais sinal de intenção do cliente para desambiguar). H4 sai
@@ -219,8 +227,11 @@ aceitação pré-registrada ≥80%). *Pendência para a banca.*
     roda ~1h20m), e as duas tentativas abortadas consumiram a cota do dia; em 21/10 a
     recuperação exigiu reconstruir o venv (o SO atualizou Python 3.12→3.14 de madrugada;
     `asyncio.get_event_loop` quebra em 3.14 e o rebuild vlanew saiu sem `langchain-openai`):
-    `uv sync --all-extras --python 3.12` restaurou o ambiente validado e o eval fechou
-    com 64/64 e zero NaN.
+    `uv sync --all-extras --python 3.12` restaurou o ambiente validado. **Correção do
+    registro original:** o eval do tree denso não fechou "zero NaN" — o CSV da run tem
+    14/64 linhas sem faithfulness (21,9%, template curto; carve-out pré-registrado da nota
+    A4), f=0.7260 calculada sobre os 50 pontuados (`n_scored_f` agora declarado em
+    `erafim_resumo_ragas.csv`); redo do eval fica como pendência se houver janela de cota.
 3. `answer_relevancy` do tree **idêntico a 4 casas** (0.7495) no piloto e no duo-16 idx2:
    coincidência não explicável com template determinístico — tratada como ruído do juiz; não
    influencia vereditos nem thresholds de f.

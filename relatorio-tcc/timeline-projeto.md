@@ -149,8 +149,9 @@ spot-check 23 p/ conferência ≥80%), trophy legada do tree (dano 51) referenci
 intra-série. Ver [`relatorio-comparativo-final.md`](relatorio-comparativo-final.md).
 
 Fechamento: `direct` denso avaliado em 20/10 (`f=0.1764`, densidade +0.0293 = ruído) e
-`tree` denso encerrado em 21/10 (`f=0.7260`, score 0.8448, 64/64 sem NaN; densidade
-+0.0070 = ruído), matriz completa. Incidência pós-run: o shell matava evals >90 min e a
+`tree` denso encerrado em 21/10 (`f=0.7260`, score 0.8448, sobre 50/64 pontuados — 14 NaN
+de template curto, carve-out pré-registrado; densidade +0.0070 = ruído), matriz completa.
+Incidência pós-run: o shell matava evals >90 min e a
 cota esgotava; em 21/10 o SO atualizou Python 3.12→3.14 e o venv reconstruído perdeu
 `langchain-openai` + quebrou `get_event_loop`; restaurado com `uv sync --all-extras
 --python 3.12` (checklist novo: conferir `pyvenv.cfg` no pré-voo dos evals).

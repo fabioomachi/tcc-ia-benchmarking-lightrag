@@ -21,7 +21,10 @@ Propósito: um agente novo consegue reproduzir `relatorio-tcc/relatorio-comparat
 2. **Runs** (idempotentes, mesmos parâmetros usados nos runs existentes (resumidos em `relatorio-tcc/evidencias/erafim_resumo_ragas.csv`).
    Cada run já tem gate e sidecar; **retomar com o mesmo `--run-name`, sem `--no-resume`**).
    Convenção de nome: `fx_<celula>_<braco>`; `STORAGE_DIR=lightrag_2pops_db` só para braços
-   retrieval idx2; `CONCURRENCY_LIMIT=1` no `run-direct`. Os runs PENDENTE-EVAL para fechar o fatorial: `fx_denso_idx8_direct` / `tree` (rodar primeiro; 2ª-feira 19/10 o direct já fechou, restando o tree).
+   retrieval idx2; `CONCURRENCY_LIMIT=1` no `run-direct`. **Estado: série fechada** — os 25
+   runs `fx_*` têm eval (a última célula, `fx_denso_idx8_tree`, em 21/10, com 14/64 NaN de
+   faithfulness de template curto — carve-out pré-registrado com †, `n_scored_f=50/64` no
+   resumo); redo opcional do eval do tree pende janela de cota (1/dia).
 3. **Evals** (1/dia): `ragbench eval --run-id <run>`; híbrido sempre com
    `--golden /tmp/cel_<celula>_golden.json`; checar `n` e NaN após cada chamada;
    referência de NaN = `n_scored/n` declarado (nunca imputar).
