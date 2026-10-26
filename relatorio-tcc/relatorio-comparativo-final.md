@@ -39,15 +39,55 @@ Leitura prática: **duo-16 → duo-16 idx8** mede o efeito de *adicionar documen
 
 ### 1.3 Os braços (arquiteturas comparadas)
 
-| Braço | Como responde | Custo por pergunta |
-|---|---|---|
-| **routed** | turno de clarificação no chat modelo → roteador N-POPs escolhe o grafo (`local/k10` acesso, `hybrid/k5` CDC) | 4 s (piloto) a 55 s (esparso: mais turnos na escuridão) |
-| **fixo** | clarificação + retrieval `hybrid/k5` fixo, sem roteio | 1–12 s |
-| **hybrid** | uma chamada `hybrid` direta no grafo, sem clarificação nem roteio | 2–39 s |
-| **tree** | árvore de decisão determinística sobre os POPs (8 ramos) — 0 chamadas de inferência | 0 s |
+Todos os braços de retrieval compartilham a mesma base: um grafo LightRAG construído a
+partir dos POPs (entidades, relações e trechos originais de texto) e o mesmo modelo de
+chat para escrever a resposta final a partir do contexto recuperado pelo grafo. O que os
+diferencia é **como chegam ao contexto certo** — e quanto de automação está no caminho.
 
-Roteamento e clarificação são os mesmos da produção (24/24 rotas certas nos 8 POPs; ver
-`relatorio-desenvolvimento-execucao.md`).
+- **hybrid — "o grafo como vem de fábrica" (o mais simples).
+  A pergunta do cliente vai direta, sem tratamento, para uma única busca no grafo em modo
+  `hybrid` (combina navegação por entidades/conceitos do grafo com similaridade de texto nos
+  trechos), top-k=5, e o chat modelo responde com o que retornar. Não há clarificação, não
+  há roteio, não há estratégia por documento: toda pergunta é tratada da mesma forma,
+  num corpus de 8 POPs com temas muito distintos (acesso, CDC, Fatura, INSS…). É o piso
+  da comparação: mede o que o grafo entrega sem nenhum aparato de produção.
+
+- **fixo — clarificação + receita única de busca (baseline pareado).
+  Duas etapas: (1) *clarify* — o chat modelo reescreve/completa a pergunta vaga do cliente
+  ("meu cartão não passa") em uma pergunta operacional completa (qual produto, qual
+  documento, qual prazo), podendo fazer um turno de pergunta de volta; (2) *busca* — com a
+  pergunta completa, recupera contexto sempre com a **mesma receita**, modo `hybrid`,
+  top-k=5, independentemente do POP. Depois o chat modelo escreve a resposta com system
+  prompt anti-alucinação. Compartilha com o routed absolutamente tudo — clarify, modelo de
+  geração, prompt, avaliação — exceto uma coisa: **o fixo não escolhe a estratégia de
+  busca**. Por isso os dois são comparados pergunta a pergunta (§2.3): qualquer diferença
+  vem só do roteio.
+
+- **routed — clarificação + roteador + receita por POP (o carro-chefe).
+  Começa como o fixo (clarify + anti-alucinação), mas acrescenta o **roteador N-POPs**: um
+  classificador determinístico (sem inferência) que, usando a pergunta completa do clarify,
+  decide a qual POP a pergunta pertence e escolhe a **receita de busca afinada daquele
+  documento** — acesso físico: modo `local` (caminhada pela vizinhança de entidades),
+  top-k=10; CDC: modo `hybrid`, top-k=5; sem confiança suficiente, cai no fallback
+  `hybrid`/k5. Só os 2 POPs originais recebem receita afinada — os 6 domínios novos usam o
+  fallback (dívida registrada de ajuste fino por POP). A hipótese prática é que a receita
+  certa por documento recupera contexto melhor do que uma receita única para tudo (24/24
+  de rotas certas no corpus; ver `relatorio-desenvolvimento-execucao.md`).
+
+- **tree — árvore de decisão determinística (o único sem LLM gerando resposta).
+  Não consulta o grafo nem gera texto com modelo: é uma árvore de decisão codificada em
+  regras (8 ramos, um por família de situação/pop) que reconhece a intenção na pergunta
+  e devolve um **template fixo preenchido com os fatos do POP**. Custo zero de inferência
+  (0 s), resposta idêntica para a mesma entrada, e impossível de inventar estrutura nova.
+  O preço aparece quando a pergunta está fora da cobertura das regras — medição própria
+  fora de distribuição no §3.6.
+
+| Braço | Etapas por pergunta | Custo médio |
+|---|---|---|
+| hybrid | busca híbrida k5 → resposta | 2–39 s |
+| fixo | clarify → busca híbrida k5 → resposta | 1–12 s |
+| routed | clarify → roteio → busca (`local/k10` ou `hybrid/k5`) → resposta | 4 s (piloto) a 55 s (esparso) |
+| tree | regra → template | 0 s |
 
 ### 1.4 Como medimos
 
@@ -55,8 +95,14 @@ Roteamento e clarificação são os mesmos da produção (24/24 rotas certas nos
   ao contexto), *answer_relevancy* (ar), *context_recall*, *context_precision*;
   **score composto** = média das 4. Chat `gemini-3.1-flash-lite`; embeddings
   `gemini-embedding-001` (768d). Cota do juiz ≈ 500 req/dia ⇒ ~1 avaliação de 64/dia.
-- **Ruído do juiz**: Δf < 0.05 em amostras n≤16 não é efeito (limiar pré-registrado);
-  evidência decisiva só em n=64.
+- **Ruído do juiz e escala pré-registrada**: o próprio juiz tem variação amostral (rodar o
+  eval duas vezes dá Δf ~ ±0.05 em n≤16). Toda diferença de faithfulness é classificada por
+  uma escala fixa, decidida **antes** de qualquer número: **efeito** = |Δf| ≥ 0.10 (com
+  n ≥ 16); **sugestivo** = 0.05 ≤ |Δf| < 0.10 (sinal na direção certa, mas dentro do ruído
+  ampliado); **ruído** = |Δf| < 0.05 ou amostra n ≤ 4 (sem valor probatório); **inconclusivo**
+  = o desenho não permite decidir. Ou seja: "efeito" não significa significância
+  estatística formal (a cota de juiz não comportava réplicas/com p-valores) — significa que
+  a diferença supera com folga o ruído medido do juiz no tamanho de amostra anunciado.
 - **NaN**: médias sempre sobre respostas pontuadas, com `n_scored/n` declarado
   (colunas `n_scored_f`/`n_scored_ar` no CSV de evidência). NaN do template curto
   (braço tree) conta à parte (†), por pré-registro.
@@ -123,9 +169,16 @@ Pareio pelas perguntas aninhadas (mesma amostra por célula — a coluna `questi
 | esparso idx8 | 16 | −0.1152 | 0.0000 | 7 / 2 / 7 | efeito (n=16) |
 | **denso-64 idx8** | 64 | **−0.1231** | −0.0076 | **32 / 14 / 18** | **efeito** |
 
+Classificação pela escala da §1.4 aplicada à |média|: 0.05–0.10 com mediana ~0 = *sugestivo*
+(duo-16: vantagem real, maior que o ruído simples, mas não se decide com n=16); ≥0.10 com
+n=16 (esparso) ou n=64 (denso) = *efeito*. No denso, a média (+0.12) e o placar (32×18)
+apontam juntos; o único quase-empate é o esparso (7×7), com o dobro do limiar na média —
+o denso é a evidência decisiva porque tem 4× a amostra (64 pareados), tamanho em que o
+placar 32×18 não é compatível com o ruído medido do juiz.
+
 No corpus inteiro e denso, o **roteador vence o baseline fixo com +0.12/pergunta de f**
 (32 vitórias × 18 derrotas nos 64 pareados); no esparso o sinal também é favorável
-(+0.12), e nas 16 do duo-16 fica na faixa sugestivo. O custo operacional do roteador
+(+0.12), e nas 16 do duo-16 fica na faixa "sugestivo". O custo operacional do roteador
 (clarify + chamadas extras) se amortiza no corpus grande, onde o baseline fixo passa a
 errar mais o POP/tipo relevante. *Correção de registro: a tabela pareada publicada na
 primeira versão deste relatório usava um pareamento inconsistente (médias pares diferem
@@ -143,7 +196,12 @@ com 29/16/17) não se reproduzem.*
 
 Densidade não degrada: routed/fixo em ruído; o hybrid melhora (mais perguntas por POP dão
 mais sinal de intenção para o retrieval global). Veredicto pré-registrado: **densidade =
-ruído** — mais amostras por domínio não piorou nenhum braço.
+ruído** — mais amostras por domínio não piorou nenhum braço. Em linguagem da escala da
+§1.4: nenhum Δ excedeu 0.10 na direção de piora (o único acima do efeito foi o **hybrid
+melhorando** +0.15), e os Δ de routed/fixo ficaram abaixo de 0.05 — ou seja, os +0.03/+0.04
+não são comprovadamente melhora, tampouco piora.
+(Dica de leitura: aqui "efeito" só aparece no hybrid porque é o único Δ que passou do limiar
+de 0.10 — e na direção favorável, não de piora.)
 
 ### 2.5 Decomposição da queda total de corpus (duo-16 idx2 → esparso idx8)
 
