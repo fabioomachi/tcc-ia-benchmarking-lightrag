@@ -40,12 +40,16 @@ Propósito: um agente novo consegue reproduzir `relatorio-tcc/relatorio-comparat
    efeito se |Δf| ≥ 0.10 (n ≥ 16); sugestivo 0.05–0.10; ruído < 0.05 (ou n=4). Deltas
    pareados routed×fixo por pergunta (join pela coluna `question` do eval).
 7. **Relatório final**: escrever `relatorio-comparativo-final.md` com a estrutura
-   §1–§6 legível em ordem linear: **§1 Cenários** (corpus/índices congelados, tabela de
-   conjuntos de perguntas com "o que isola", braços, medição) → **§2 Resultados RAGAS
+   §1–§7 legível em ordem linear: **§1 Cenários** (corpus/índices congelados, tabela de
+   conjuntos de perguntas com "o que isola", braços pormenorizados, medição com a escala
+   efeito/sugestivo/ruído) → **§2 Resultados RAGAS
    por cenário** (matriz 21 linhas + contraste volume + pareado + densidade + decomposição)
    → **§3 Conclusões por cenário** (prosa na ordem dos cenários + veredicto de deploy)
    → §4 registro operacional (429s) → §5 limitações → §6 apêndice (commits, manifestos,
-   desvios e glossário H1–H4 — os códigos só aqui, mapeados aos nomes longos). Escrever
+   desvios e glossário H1–H4 — os códigos só aqui, mapeados aos nomes longos) →
+   **§7 Conclusão final** (tabela "quatro apostas" com confirmação e falha medida de cada
+   arquitetura + recomendação em camadas para o cenário de mitigação de respostas erradas +
+   stack recomendada). Escrever
    apenas com números verificados em `runs/` (script de conferência contra os CSVs da
    matriz); série fechada — **nenhuma célula PENDENTE-EVAL**.
 

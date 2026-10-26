@@ -258,7 +258,7 @@ são ≈0 para routed/fixo; no hybrid, o volume puro responde por metade do tota
    oráculo geral, pela lição OOD da série legada); **fixo como piso durável** (menor dano OOD
    medido, 1/32, sem custo de confusão no corpus grande — dentro do pré-registro); hybrid
    apenas como componente de retrieval dos braços roteados (só-isolado degrada no índice
-   grande).
+   grande). *Síntese estendida, com foco em mitigação de respostas erradas, na §7.*
 
 ## 4. Registro operacional (congelamento)
 
@@ -334,3 +334,68 @@ são ≈0 para routed/fixo; no hybrid, o volume puro responde por metade do tota
 | H2 | routed ≥ fixo pareado por pergunta | §2.3 |
 | H3 | dano OOD idx2 < idx8 | §3.6 (inconclusiva intra-série) |
 | H4 | densidade degrada menos que corpus | §2.4 |
+
+## 7. Conclusão — o que separa as arquiteturas e como mitigar respostas erradas
+
+### 7.1 As quatro apostas, lado a lado
+
+Cada arquitetura é uma aposta diferente sobre de onde vem o erro de um assistente
+bancário — e a série erafim mediu cada aposta com o mesmo juiz, os mesmos POPs e o mesmo
+filtro de ruído pré-registrado (§1.4):
+
+| Arquitetura | Aposta | Confirmação medida | Onde falha (medido) | Custo |
+|---|---|---|---|---|
+| **hybrid** | o grafo cru basta | f 0.9139 no universo coberto (duo-16) | volume derruba a geração (−0.3695, §2.2); colapso esparso no contexto (ar 0.2659) | 2–39 s |
+| **fixo** | basta clarificar e usar uma receita única | menor dano OOD da série (1/32, §3.6) | perde do roteador no corpus grande (−0.1231 pareado por pergunta, §2.3) | 1–12 s |
+| **routed** | o erro nasce do POP errado no retrieval; a receita certa por documento resolve | imune ao volume puro (+0.0056, §2.2); vence o fixo pareado 32×18 no denso (§2.3) | esparso custa 55 s de clarify; sidestep residual em NUMTRAP (§3.6) | 4–55 s |
+| **tree** | o erro nasce da geração livre; sem LLM não há alucinação | maior f do denso (0.7260†) e custo zero | fora das regras: 0 abstenções e dano 51 na série legada (§3.6) — responde com confiança o que não sabe | 0 s |
+
+Três leituras cruzadas valem a pena registrar. Primeiro, as falhas dos braços são
+**complementares, não concorrentes**: o hybrid falha por contexto (competição no índice
+grande), o fixo falha por rota (receita única perde o POP certo), o tree falha por
+cobertura (as regras não alcançam o que não codificam) — e é exatamente por isso que a
+combinação deles supera qualquer um isolado. Segundo, a peça mais barata e mais
+transversal do desenho não é o roteador, é o **par clarify + prompt anti-alucinação**,
+compartilhado pelos três braços honestos (fixo/routed/hybrid eram os menos danosos da
+erafim; na legada, sem esse par ou com menos proteção, os danos eram muito maiores). Terceiro, o **RAGAS pune a abstenção** (ar baixo para quem diz "não sei") — por
+isso, quem compara assistentes só pela nota de relevância favorece sistemas que adivinham;
+a leitura humana dos danos OOD inverte essa preferência.
+
+### 7.2 Cenário-alvo: mitigar respostas erradas
+
+Se o objetivo explícito do deploy é **minimizar a taxa de respostas erradas** (e não
+maximizar utilidade por resposta ou reduzir custo), a evidência da série ordena a
+recomendação em camadas:
+
+1. **Camadas universais (baratas, sempre ativas)**: clarificação com os dados
+   obrigatórios por POP e
+   system prompt anti-alucinação. Elas atacam as duas fontes dominantes de erro — consulta
+   incompleta e geração fora do contexto — e são compartilhadas por todos os braços que
+   abstêm de forma honesta no OOD.
+2. **Roteio por POP no corpus grande**: no denso-64 pareado, é a única intervenção de
+   retrieval cuja diferença ultrapassa o ruído do juiz (32×18, +0.12 f/pergunta; §2.3).
+   Com corpus pequeno e totalmente coberto, o ganho desaparece (sugestivo com mediana ~0) —
+   rotear é política para corpus que cresce, não dogma.
+3. **Nunca trocar o LLM por templates fora de universo fechado**: a árvore tem o melhor
+   custo-benefício no universo coberto (f 0.7260 do denso a custo zero), mas é o pior comportamento
+   conhecido fora de cobertura (legado: 18 alucinações e dano 51 em 32; §3.6). Como
+   mitigação de erro, a árvore só entra **atrás do roteador, quando a rota é confiante para
+   um POP coberto** — como atalho determinístico, nunca como oráculo geral.
+4. **Preferir abstenção a adivinhação**: entre os braços medidos, os que abstêm têm os
+   menores danos (fixo 1, routed 3, hybrid 5 por 32; §3.6). Para o critério "não errar",
+   a métrica de gestão não é o score RAGAS isolado — é a rúbrica de dano OOD, lida junto da
+   declaração de abstenção.
+5. **Controles operacionais permanentes**: rúbrica OOD no pipeline de regressão antes de
+   qualquer alteração de índice/prompt; spot-check humano (23 linhas, `veredito_humano`
+   pendente — §5.7); `n_scored/n` declarados em toda publicação de métrica; watchlist dos
+   três itens sidestep (`convenio_999999`, `inss_limite`, `cartao_contestado_ppf`) com
+   teste dedicado de captura de número falso (o resíduo conhecido dos braços novos).
+
+**Stack recomendada para o Banco Alfa (síntese)**: **routed como padrão** (imune ao
+crescimento do corpus, melhor efeito pareado do denso, abstenção honesta), com fallback
+**fixo** (`hybrid/k5`) quando o roteador não confia na rota, e **tree acionável apenas
+nessa rota confiante de POP coberto** — todas as três camadas com clarify + prompt
+anti-alucinação, avaliação contínua pela rúbrica OOD e monitoramento da watchlist NUMTRAP.
+O custo disso é aceitar o preço do erro controlado: ~4 s de latência média a mais no denso
+(5 s do routed vs 1 s do fixo) e um ar mais baixo no RAGAS por causa das abstenções — que é
+exatamente o que a rúbrica de dano humana valoriza quando o requisito não é errar.
